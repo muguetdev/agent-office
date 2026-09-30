@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
-import { HAIR_COLORS, HAIR_STYLES, SKIN_TONES, randomLook, type Look } from '../../shared/avatar';
-import { L } from '../i18n';
+import { HAIR_COLORS, HAIR_STYLES, SKIN_TONES, randomLook, randomName, type Look } from '../../shared/avatar';
 import { AVATAR_COLORS, saveProfile, store, type Profile } from '../state';
 import { Person } from '../world/character';
 import { toonUnique } from '../world/toon';
 import { h, openModal } from './dom';
+import { L } from '../i18n';
 
 /** A turntable with your character on it, drawn with its own small renderer. */
 class Preview {
@@ -129,15 +129,24 @@ class Preview {
 
 /**
  * The character select screen: your name, skin tone, hair and shirt, with a live preview.
- * `first` is the one you see when you join, which can't be skipped.
+ * `first` is the one you see when you join: closing it goes in as whoever's picked so far.
  */
 export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   const pick: Profile = { ...store.profile, look: { ...store.profile.look } };
   const canvas = h('canvas', { 'aria-label': L.character.preview }) as HTMLCanvasElement;
   const preview = new Preview(canvas, pick);
 
-  const input = h('input', { type: 'text', maxlength: 24, value: first ? '' : pick.name, placeholder: L.character.namePlaceholder, 'aria-label': L.character.name }) as HTMLInputElement;
-  if (first && pick.name !== 'Guest') input.value = pick.name;
+  // Leave the name blank (or skip this) and you go by the made-up one in the box; 🎲 deals another.
+  // Guest is what you were before you picked one, so it isn't a name to keep.
+  const input = h('input', { type: 'text', maxlength: 24, value: pick.name === 'Guest' ? '' : pick.name, placeholder: randomName(), 'aria-label': L.character.name }) as HTMLInputElement;
+  const reroll = h('button.btn', { type: 'button', title: L.character.randomName, 'aria-label': L.character.randomName }, '🎲');
+  reroll.addEventListener('click', () => {
+    let name = randomName();
+    while (name === input.value || name === input.placeholder) name = randomName();
+    input.value = input.placeholder = name;
+    input.focus();
+  });
+  const typedName = () => input.value.trim().slice(0, 24) || input.placeholder;
   // Your account's name is the one everyone sees; only the look is yours to change here.
   const account = store.me.account;
   if (account) {
@@ -179,7 +188,7 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   const surprise = h('button.btn', { type: 'button', title: L.character.randomLook }, L.character.surprise);
   surprise.addEventListener('click', () => change(randomLook(), AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]));
   const save = h('button.btn.primary', { type: 'submit' }, first ? L.character.enter : L.character.save);
-  const close = first ? null : h('button.btn.close', { type: 'button', 'aria-label': L.character.close }, '✕');
+  const close = h('button.btn.close', { type: 'button', 'aria-label': L.character.close, title: first ? L.character.skip : L.common.closeEsc }, '✕');
 
   const form = h(
     'form.modal.charsel',
@@ -193,7 +202,7 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
         'div.charsel-opts',
         {},
         h('label', {}, L.character.name),
-        input,
+        account ? input : h('div.webhook', {}, input, reroll),
         account ? h('p.setting-note', {}, L.character.signedInAs(account.name)) : null,
         h('label', {}, L.character.skinTone),
         skinRow,
@@ -208,19 +217,28 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
     h('footer', {}, surprise, h('span.grow'), save),
   ) as HTMLFormElement;
 
-  const modal = openModal(form, { escCloses: !first, backdropCloses: !first, doing: L.character.doing, onClose: () => preview.dispose() });
-  close?.addEventListener('click', () => modal.close());
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = input.value.trim().slice(0, 24);
-    if (!name) {
-      input.focus();
-      return;
-    }
+  let done = false;
+  const finish = (name: string) => {
+    done = true;
     store.profile = { name, color: pick.color, look: { ...pick.look } };
     saveProfile(store.profile);
     modal.close();
     onSave(store.profile);
+  };
+  const modal = openModal(form, {
+    // A stray click shouldn't skip the first one; ✕ and Esc still do.
+    backdropCloses: !first,
+    doing: L.character.doing,
+    onClose: () => {
+      preview.dispose();
+      // The office only lets you in with a character: skipping it goes in with this one, and the name in the box.
+      if (first && !done) finish(typedName());
+    },
+  });
+  close.addEventListener('click', () => modal.close());
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    finish(typedName());
   });
   if (!account) setTimeout(() => input.focus(), 30);
 }

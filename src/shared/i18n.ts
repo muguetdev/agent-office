@@ -45,6 +45,12 @@ export function envLocale(env: Record<string, string | undefined>): Locale {
 
 /** A desk or seat's name in a language: shared/layout.ts names them in English, and they're translated here by id. */
 export function placeName(m: Messages, place: { id: string; label: string }): string {
+  // A map of its own names its seats itself (see shared/maps): those stay as they are.
+  if (byId(messages('en'), place) !== place.label) return place.label;
+  return byId(m, place) ?? place.label;
+}
+
+function byId(m: Messages, place: { id: string; label: string }): string | undefined {
   const names = m.places;
   const n = Number(/-(\d+)$/.exec(place.id)?.[1]);
   if (place.id.startsWith('desk-')) return names.desk(n);
@@ -52,5 +58,5 @@ export function placeName(m: Messages, place: { id: string; label: string }): st
   if (place.id === 'meeting-1') return names.headOfTable;
   if (place.id.startsWith('meeting-')) return names.meetingChair(n);
   const fixed: Record<string, string> = names.fixed;
-  return fixed[place.id.replace(/-\d+$/, '')] ?? place.label;
+  return fixed[place.id.replace(/-\d+$/, '')];
 }

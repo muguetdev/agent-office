@@ -1160,7 +1160,8 @@ export function openIssue(first: GhIssue, net: Net, actions: BoardActions) {
     actions.queue(issuePrompt(it), `#${it.number} ${it.title}`, it.number, queueProvider.value(), queueProvider.model(), queueProvider.effort());
   };
   const queue = h('button.btn', { type: 'button', onclick: addIssueToQueue }) as HTMLButtonElement;
-  const pickUp = h('button.btn', { type: 'button', title: L.pull.pickUpTip, onclick: () => actions.pickUp(it) }, L.pull.pickUp);
+  const carry = actions.pickUp;
+  const pickUp = carry ? h('button.btn', { type: 'button', title: L.pull.pickUpTip, onclick: () => carry(it) }, L.pull.pickUp) : null;
   const meta = h('div.gh-meta');
   const el = h(
     'div.modal.gh-window.issue',
@@ -1198,7 +1199,7 @@ export function openIssue(first: GhIssue, net: Net, actions: BoardActions) {
     const task = store.taskForIssue(it.number);
     const onQueue = !!task && task.status !== 'done';
     closeIssue.classList.toggle('hidden', !isOpen);
-    pickUp.classList.toggle('hidden', !isOpen);
+    pickUp?.classList.toggle('hidden', !isOpen);
     queueProvider.element.classList.toggle('hidden', !isOpen || onQueue);
     queue.classList.toggle('hidden', !isOpen);
     queue.disabled = onQueue;

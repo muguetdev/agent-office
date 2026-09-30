@@ -19,6 +19,9 @@ export interface ShelfDeps {
   repoUrl?: string;
   /** You turned a page (opened a doc, or scrolled a screenful): the book in your hands turns one too. */
   onTurn(): void;
+  /** Whether a page turning makes a sound (⚙️'s setting), and the 🔈 up top that turns it on or off. */
+  pageSound: boolean;
+  onPageSound(on: boolean): void;
 }
 
 /** A doc that passes the filter: how well, and which letters of its title and path matched. */
@@ -157,10 +160,23 @@ export function openBookshelf(deps: ShelfDeps) {
   const meta = h('div.bs-meta');
   const toc = h('select.bs-toc', { 'aria-label': L.books.jump, title: L.books.jump }) as HTMLSelectElement;
   const page = h('div.bs-page', { tabindex: -1 });
+  let pageSound = deps.pageSound;
+  const soundBtn = h('button.btn.bs-sound', { type: 'button', 'aria-label': L.books.soundLabel });
+  const paintSound = () => {
+    soundBtn.textContent = pageSound ? '🔈' : '🔇';
+    soundBtn.title = pageSound ? L.books.soundOn : L.books.soundOff;
+    soundBtn.setAttribute('aria-pressed', String(pageSound));
+  };
+  paintSound();
+  soundBtn.addEventListener('click', () => {
+    pageSound = !pageSound;
+    deps.onPageSound(pageSound);
+    paintSound();
+  });
   const el = h(
     'div.modal.bookshelf',
     { role: 'dialog', 'aria-label': L.books.bookshelf },
-    h('header', {}, h('h2', {}, L.hints.bookshelf, deps.project ? h('span.bs-project', {}, ` · ${deps.project}`) : '')),
+    h('header', {}, h('h2', {}, L.hints.bookshelf, deps.project ? h('span.bs-project', {}, ` · ${deps.project}`) : ''), soundBtn),
     h(
       'div.body',
       {},

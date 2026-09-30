@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { MachineState } from '../../shared/protocol';
+import { officeFull } from '../../shared/machine';
 import { L } from '../i18n';
 
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
@@ -14,16 +15,6 @@ export function loadColor(pct: number): string {
 export function fmtGb(bytes: number): string {
   const gb = bytes / 2 ** 30;
   return `${gb.toFixed(gb < 10 ? 1 : 0)} GB`;
-}
-
-/** The office has as many workers as it takes. */
-export function officeFull(s: MachineState): boolean {
-  return s.limit !== undefined && s.workers >= s.limit;
-}
-
-/** What the hire dialog says while the machine is under pressure. */
-export function pressureNote(s: MachineState): string | undefined {
-  return s.pressure ? L.machine.pressureNote(s.pressure) : undefined;
 }
 
 /**

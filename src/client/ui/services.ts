@@ -4,7 +4,14 @@ import { h, openModal, timeAgo } from './dom';
 import { copy, copyButton, guessOs, openCommand, OS_LABEL, type Os } from './team';
 import { L } from '../i18n';
 
-function serviceUrl(port: number): string {
+/** Whether this page came over the office's Tailscale network, where every server has its own link. */
+function onTailnet(s: ServicesState): boolean {
+  return !!s.tailnet && location.hostname === s.tailnet;
+}
+
+export function serviceUrl(port: number, s = store.services): string {
+  // Tailscale Serve points <office>.ts.net:<port> at the office, which relays it by the port.
+  if (onTailnet(s)) return `https://${s.tailnet}:${port}`;
   // The tunnel lands on the office's own port, so it speaks whatever the office speaks.
   return `${location.protocol}//localhost:${port}`;
 }
@@ -40,18 +47,31 @@ export function openServices() {
   );
 
   const pick = async (svc: ServiceInfo) => {
+    const s = store.services;
     picked = svc.port;
-    copied = (await copy(serviceTunnel(store.services, svc.port, os))) ? svc.port : null;
+    copied = (await copy(onTailnet(s) ? serviceUrl(svc.port) : serviceTunnel(s, svc.port, os))) ? svc.port : null;
     render();
   };
 
   const render = () => {
     const s = store.services;
+    const direct = onTailnet(s);
     tabs.replaceChildren(
-      ...(Object.keys(OS_LABEL) as Os[]).map((o) => h('button.btn', { type: 'button', class: o === os ? 'on' : '', onclick: () => ((os = o), (copied = null), render()) }, OS_LABEL[o])),
+      ...(direct ? [] : (Object.keys(OS_LABEL) as Os[])).map((o) =>
+        h('button.btn', { type: 'button', class: o === os ? 'on' : '', onclick: () => ((os = o), (copied = null), render()) }, OS_LABEL[o]),
+      ),
     );
+    footer.firstElementChild!.textContent = direct
+      ? L.services.footDirect
+      : L.services.foot;
     body.replaceChildren(
-      h('p.note', { style: 'margin:0 0 12px' }, L.services.intro),
+      h(
+        'p.note',
+        { style: 'margin:0 0 12px' },
+        direct
+          ? L.services.introDirect
+          : L.services.intro,
+      ),
     );
     if (!s.items.length) {
       body.append(
@@ -68,11 +88,12 @@ export function openServices() {
     for (const svc of s.items) {
       const { who, color, branch } = describe(svc);
       const on = picked === svc.port;
-      const open = h('a.btn', { href: serviceUrl(svc.port), target: '_blank', rel: 'noopener', title: L.services.openTip(serviceUrl(svc.port)) }, L.services.open);
+      const title = direct ? L.services.openUrl(serviceUrl(svc.port)) : L.services.openTip(serviceUrl(svc.port));
+      const open = h('a.btn', { href: serviceUrl(svc.port), target: '_blank', rel: 'noopener', title }, L.services.open);
       open.addEventListener('click', (e) => e.stopPropagation());
       const li = h(
         'li',
-        { class: on ? 'on' : '', tabindex: 0, role: 'button', title: L.services.copyTunnel },
+        { class: on ? 'on' : '', tabindex: 0, role: 'button', title: direct ? L.services.copyLink : L.services.copyTunnel },
         h('span.dot', { style: `background:${color}` }),
         h(
           'div.svc-main',
@@ -95,7 +116,13 @@ export function openServices() {
     body.append(list);
 
     const svc = s.items.find((i) => i.port === picked);
-    if (svc) {
+    if (svc && direct) {
+      body.append(
+        copied === svc.port
+          ? h('p.team-status.ok', {}, L.services.copiedLink(serviceUrl(svc.port)))
+          : h('p.team-status', {}, L.services.linkFor(svc.port, serviceUrl(svc.port))),
+      );
+    } else if (svc) {
       const cmd = serviceTunnel(s, svc.port, os);
       body.append(
         copied === svc.port
@@ -106,9 +133,10 @@ export function openServices() {
     } else if (picked !== null) {
       body.append(h('p.team-status.error', {}, L.services.stopped(picked)));
     }
+    if (direct) return;
     body.append(
       s.ssh
-        ? h('p.note', {}, L.services.sameSsh, h('code', {}, 'deploy/aws.sh service <port>'), L.services.instead)
+        ? h('p.note', {}, L.services.sameSsh, h('code', {}, `${s.deploy ?? 'deploy/aws.sh'} service <port>`), L.services.instead)
         : h('p.note', {}, L.services.replace, h('code', {}, 'you@your-server'), L.services.replaceWith),
     );
   };

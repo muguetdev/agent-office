@@ -1,6 +1,6 @@
 import type { FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
 import { floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
-import { ROOF } from '../../shared/rooftop';
+import { ROOF, ROOF_NAME } from '../../shared/rooftop';
 import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo, type Modal } from './dom';
@@ -10,11 +10,20 @@ import { L } from '../i18n';
 // The elevator's panel: a button for every floor (every project), and "add a project", which clones
 // one of the repositories the office's gh login can see and makes it a new floor. The first time
 // the office runs there are no floors, and this is where you start. Admins can take a floor off the
-// building here too; its checkout stays on disk.
+// building here too; its checkout stays on disk. Under the floors, it goes down to the garage.
+
+/**
+ * The garage under the building, where the elevator goes too. It isn't a floor: it's down under the
+ * one you're on (from the roof, the bottom one), level with the street.
+ */
+export const GARAGE = '@garage';
 
 export interface ElevatorOptions {
   net: Net;
+  /** Rides to a floor, the roof (ROOF) or the garage (GARAGE). */
   ride(floorId: string): void;
+  /** You're down in the garage (or out on the street), under the floor you're on. */
+  downstairs(): boolean;
 }
 
 /** How many repositories the list shows at once; typing narrows it down. */
@@ -37,7 +46,8 @@ export function elevatorPanelOpen(): boolean {
 
 export function openElevator(opts: ElevatorOptions): void {
   if (current) return;
-  // Nowhere to go yet: the panel stays until there's a floor to ride to.
+  // Nowhere to go yet: the panel greets you. It closes like any other; the elevator (or the floor
+  // name in the corner) opens it again.
   const setup = !store.floor;
   const { net } = opts;
   let filter = '';
@@ -55,10 +65,9 @@ export function openElevator(opts: ElevatorOptions): void {
   const statusEl = h('div');
   const addBtn = h('button.btn.primary', { type: 'button' }, L.elevator.addFloor);
   const refreshBtn = h('button.btn', { type: 'button', title: L.elevator.refresh }, '↻');
-  const close = setup ? null : h('button.btn.close', { 'aria-label': L.common.close }, '✕');
+  const close = h('button.btn.close', { type: 'button', 'aria-label': L.common.close, title: L.elevator.closeEsc }, '✕');
 
-  // Where clones go. Admins can move it right here: a new office's elevator can't be closed to reach
-  // ⚙️ Settings until it has a floor, and the first project is when it matters.
+  // Where clones go. Admins can move it right here: the first project is when it matters.
   const dirInput = h('input', { type: 'text', placeholder: '~/Workspace', 'aria-label': L.elevator.workspaceFolder, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const dirSave = h('button.btn.primary', { type: 'button' }, L.common.save);
   const dirCancel = h('button.btn', { type: 'button' }, L.hints.cancel);
@@ -93,7 +102,9 @@ export function openElevator(opts: ElevatorOptions): void {
   const choice = (): string | undefined => selected ?? normalizeRepo(filter);
 
   const floorButton = (f: FloorInfo, i: number) => {
-    const here = f.id === store.floor;
+    // Down in the garage, your floor is somewhere to go back up to.
+    const mine = f.id === store.floor;
+    const here = mine && !opts.downstairs();
     const p = floorPalette(f.palette);
     const stats: (HTMLElement | string)[] = [];
     if (f.cloning) stats.push(L.elevator.cloningShort);
@@ -105,9 +116,9 @@ export function openElevator(opts: ElevatorOptions): void {
     }
     const btn = h(
       'button.floor-btn',
-      { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name) },
+      { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name, !!mine) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
-      h('span.floor-text', {}, h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : null), h('span.floor-sub', {}, f.repo ?? f.dir)),
+      h('span.floor-text', {}, h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null), h('span.floor-sub', {}, f.repo ?? f.dir)),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
     );
     btn.addEventListener('click', () => {
@@ -155,12 +166,34 @@ export function openElevator(opts: ElevatorOptions): void {
     return btn;
   };
 
+  /** Under floor 1: the garage, level with the street. */
+  const garageButton = () => {
+    const here = opts.downstairs();
+    const bottom = store.floors.find((f) => !f.cloning);
+    const under = store.floor === ROOF ? L.elevator.underFloor(bottom?.name) : L.elevator.underBuilding;
+    const btn = h(
+      'button.floor-btn',
+      { type: 'button', class: here ? 'here' : '', disabled: here, title: here ? L.elevator.atStreet : L.elevator.rideDown },
+      h('span.floor-no', { style: 'background:#2b2d42' }, '🏎️'),
+      h('span.floor-text', {}, h('span.floor-name', {}, 'Garage', here ? h('span.here-tag', {}, L.elevator.youAreHere) : null), h('span.floor-sub', {}, under)),
+      h('span.floor-stats', {}),
+    );
+    btn.addEventListener('click', () => {
+      if (here) return;
+      modal.close();
+      opts.ride(GARAGE);
+    });
+    return btn;
+  };
+
   const renderFloors = () => {
     const floors = store.floors;
-    // Top floor first, the way an elevator's buttons stack, with the roof over them and floor 1 at the bottom.
+    const built = floors.some((f) => !f.cloning);
+    // Top floor first, the way an elevator's buttons stack, with the roof over them, floor 1 and then the garage at the bottom.
     floorsEl.replaceChildren(
-      ...(floors.some((f) => !f.cloning) ? [roofButton()] : []),
+      ...(built ? [roofButton()] : []),
       ...(floors.length ? floors.map(floorRow).reverse() : [h('p.empty', {}, L.elevator.noFloors)]),
+      ...(built ? [garageButton()] : []),
     );
   };
 
@@ -302,12 +335,12 @@ export function openElevator(opts: ElevatorOptions): void {
     { role: 'dialog', 'aria-label': L.menu.elevator },
     h('header', {}, h('h2', {}, setup ? L.elevator.welcome : L.hints.elevator), close),
     h('div.body', {}, intro, floorsEl, addEl),
-    h('footer', {}, h('span.grow', {}, setup ? L.elevator.footSetup : L.elevator.foot), addBtn),
+    h('footer', {}, h('span.grow', {}, setup ? L.elevator.setupFoot : L.elevator.foot), addBtn),
   );
   const unsubs = [store.on('floors', () => (renderFloors(), renderAdd())), store.on('repos', renderAdd), store.on('projectsDir', () => (editDir(false), renderAdd())), store.on('floor', renderFloors), store.on('peers', renderFloors), store.on('me', () => (renderFloors(), renderAdd()))];
   const modal = openModal(el, {
     doing: L.elevator.doing,
-    escCloses: !setup,
+    // A stray click shouldn't lose the first-run panel; ✕ and Esc still close it.
     backdropCloses: !setup,
     onClose: () => {
       current = null;
@@ -316,7 +349,7 @@ export function openElevator(opts: ElevatorOptions): void {
     },
   });
   current = modal;
-  close?.addEventListener('click', () => modal.close());
+  close.addEventListener('click', () => modal.close());
   renderFloors();
   if (showAdd) needRepos();
   renderAdd();

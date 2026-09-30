@@ -3,8 +3,8 @@ import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo, STATUS_LABEL } from './dom';
 import { confirmDialog } from './prompt';
-import { providerPicker, providerLabel, providerUsageState, resolvedProvider, modelBadge } from './provider';
-import { officeFull } from '../world/machine';
+import { providerPicker, providerLabel, providerUsageState, providerWaitingLabel, resolvedProvider, modelBadge } from './provider';
+import { officeFull } from '../../shared/machine';
 import { L } from '../i18n';
 
 export interface QueueActions {
@@ -90,7 +90,10 @@ export function openQueue(net: Net, actions: QueueActions) {
     const model = badge ? ` · ${L.queue.initial(badge)}` : '';
     const usageSuffix = (provider: AgentProvider | undefined, usage?: Usage) => {
       const state = providerUsageState(provider, store.project, usage);
-      return state === 'untracked' ? ` · ${L.hud.untracked}` : state === 'waiting' && resolvedProvider(provider, store.project) === 'opencode' ? ` · ${L.hud.waitingMetrics}` : state === 'waiting' && resolvedProvider(provider, store.project) === 'codex' ? ` · ${L.hud.waitingReport}` : '';
+      if (state === 'untracked') return ` · ${L.hud.untracked}`;
+      if (state !== 'waiting') return '';
+      const waiting = providerWaitingLabel(provider, store.project);
+      return waiting ? ` · ${waiting}` : '';
     };
     let pos: string | null = null;
     if (t.status === 'running') {

@@ -19,6 +19,8 @@ export interface Config {
   project?: string;
   host: string;
   port: number;
+  /** Open the office in a browser, signed in, when it's started in a terminal (--no-open: don't). */
+  open: boolean;
   /** Plaintext password, only when known: from --password, or generated and not yet claimed. */
   password?: string;
   passwordGenerated: boolean;
@@ -33,12 +35,19 @@ export interface Config {
   markClaimed(): void;
   agentCmd: string;
   agentArgs: string[];
+  /** The DSH profile a DeepSeek Harness worker boots (`--dsh-profile`, default "acp"). */
+  dshProfile: string;
   tls?: { cert: string; key: string };
   trustProxy: boolean;
   iceServers: RTCIceServerLike[];
-  /** Address teammates SSH-tunnel to (set by deploy/aws.sh); enables invites from the office. */
+  /** How to run the script that deployed the office, e.g. "deploy/azure.sh --name team2" (set by deploy/provision.sh), for the commands it suggests. */
+  deployScript?: string;
+  /** Address teammates SSH-tunnel to (set by deploy/provision.sh); enables invites from the office. */
   publicHost?: string;
-  /** Daily tracked Claude Code spend budget, USD. OpenCode/Codex spend is excluded. */
+  /** The office's name on a Tailscale network, e.g. agent-office.tail1234.ts.net (set by deploy/provision.sh --tailscale). */
+  tailnet?: string;
+  /** Daily tracked Claude Code spend budget, USD. OpenCode/Codex/Grok/Muse spend is excluded. */
+
   budget?: number;
   /** Refuse new hires for the rest of the day once the budget is spent. */
   budgetPause: boolean;
@@ -58,13 +67,12 @@ export interface RTCIceServerLike {
   credential?: string;
 }
 
-/** `agent-office --help`, in the language the terminal asks for (see ./i18n.ts). */
 const HELP = L.cli.help;
 
 function takeValue(args: string[], i: number, flag: string): string {
   const v = args[i + 1];
   if (v === undefined || v.startsWith('--')) {
-    console.error(`agent-office: ${L.logs.needsValue(flag)}`);
+    console.error(`agent-office: ${flag} needs a value`);
     process.exit(2);
   }
   return v;
@@ -111,10 +119,13 @@ export function loadConfig(argv: string[]): Config {
   let homeGiven = !!process.env.AGENT_OFFICE_HOME;
   let projects = process.env.AGENT_OFFICE_PROJECTS ? path.resolve(process.env.AGENT_OFFICE_PROJECTS) : '';
   let port = Number(process.env.PORT) || 4600;
-  let host = '0.0.0.0';
+  // Loopback unless asked: an office lets whoever signs in run commands on this machine.
+  let host = '127.0.0.1';
+  let open = !process.env.AGENT_OFFICE_NO_OPEN || process.env.AGENT_OFFICE_NO_OPEN === '0';
   let password = process.env.AGENT_OFFICE_PASSWORD || '';
   let agentCmd = process.env.AGENT_OFFICE_AGENT || 'claude';
   let agentArgs: string[] = splitArgs(process.env.AGENT_OFFICE_AGENT_ARGS || '');
+  let dshProfile = process.env.AGENT_OFFICE_DSH_PROFILE || 'acp';
   let tlsCert = '';
   let tlsKey = '';
   let selfSigned = false;
@@ -155,6 +166,9 @@ export function loadConfig(argv: string[]): Config {
         if (argv[i + 1] === undefined) takeValue(argv, i, a);
         agentArgs = splitArgs(argv[++i]);
         break;
+      case '--dsh-profile':
+        dshProfile = takeValue(argv, i++, a);
+        break;
       case '--tls-cert':
         tlsCert = takeValue(argv, i++, a);
         break;
@@ -172,6 +186,9 @@ export function loadConfig(argv: string[]): Config {
         break;
       case '--reset-password':
         resetPassword = true;
+        break;
+      case '--no-open':
+        open = false;
         break;
       case '--turn':
         iceServers.push(parseTurn(takeValue(argv, i++, a)));
@@ -223,7 +240,7 @@ export function loadConfig(argv: string[]): Config {
   // New floors go next to the office's data when it has a home of its own, and never into a project.
   const projectsDir = project ? path.join(os.homedir(), 'agent-office') : home;
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-    console.error(`agent-office: ${L.logs.badPort}`);
+    console.error('agent-office: invalid --port');
     process.exit(2);
   }
   const budgetUsd = budget ? Number(budget.replace(/^\$/, '')) : undefined;
@@ -307,6 +324,7 @@ export function loadConfig(argv: string[]): Config {
     project: project || undefined,
     host,
     port,
+    open,
     password: password || undefined,
     passwordGenerated,
     verifier,
@@ -323,10 +341,13 @@ export function loadConfig(argv: string[]): Config {
     },
     agentCmd,
     agentArgs,
+    dshProfile: dshProfile.trim() || 'acp',
     tls,
     trustProxy,
     iceServers,
+    deployScript: process.env.AGENT_OFFICE_DEPLOY_SCRIPT || undefined,
     publicHost: process.env.AGENT_OFFICE_PUBLIC_HOST || undefined,
+    tailnet: process.env.AGENT_OFFICE_TAILSCALE_HOST?.toLowerCase().replace(/\.$/, '') || undefined,
     budget: budgetUsd,
     budgetPause,
     maxWorkers: workerLimit,

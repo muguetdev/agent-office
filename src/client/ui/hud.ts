@@ -1,13 +1,14 @@
 import { BUZZ_SECONDS, type Caffeine } from '../caffeine';
-import { ROOF } from '../../shared/rooftop';
+import { ROOF, ROOF_NAME } from '../../shared/rooftop';
 import { store } from '../state';
 import type { Voice } from '../voice';
 import type { ChatLine } from '../../shared/protocol';
 import { $, h, openModal, STATUS_LABEL } from './dom';
 import { usageLabel, usageTitle } from './usage';
-import { providerLabel, providerUsageState, resolvedProvider, modelBadge } from './provider';
+import { providerLabel, providerUsageState, providerWaitingLabel, resolvedProvider, modelBadge } from './provider';
 import { whereabouts } from './whereabouts';
 import { DESK_BY_ID } from '../../shared/layout';
+import { IS_MAC } from './termkeys';
 import { L } from '../i18n';
 
 /** What the people list last showed, so it's only drawn again when something in it changed. */
@@ -17,7 +18,7 @@ let peopleKey = '';
 export function renderPeople(voice: Voice, onEditProfile: () => void, onWalkTo: (id: string) => void, force = true) {
   const peers = [...store.peers.values()].sort((a, b) => (a.id === store.you ? -1 : b.id === store.you ? 1 : a.name.localeCompare(b.name)));
   // What each of them is up to changes as they walk about (onto the balcony, up the stairs).
-  const doing = peers.map((p) => (p.id === store.you ? undefined : whereabouts(p)));
+  const doing = peers.map((p) => (p.id === store.you ? undefined : whereabouts(p, store.carOf(p.id))));
   const key = peers.map((p, i) => `${p.id}|${doing[i] ?? ''}`).join('\n');
   if (!force && key === peopleKey) return;
   peopleKey = key;
@@ -29,7 +30,7 @@ export function renderPeople(voice: Voice, onEditProfile: () => void, onWalkTo: 
     const sub = doing[i];
     const li = h(
       'li',
-      { 'data-peer': p.id, class: 'walk', title: you ? L.hud.changeCharacter : `${store.onMyFloor(p) ? L.hud.walkTo(p.name) : L.hud.elevatorTo(p.name)}${sub ? ` (${sub})` : ''}` },
+      { 'data-peer': p.id, class: p.lite && !you ? undefined : 'walk', title: you ? L.hud.changeCharacter : p.lite ? L.hud.onLite(p.name) : `${store.onMyFloor(p) ? L.hud.walkTo(p.name) : L.hud.elevatorTo(p.name)}${sub ? ` (${sub})` : ''}` },
       h('span.dot', { style: `background:${p.color}` }),
       h('span.name', {}, p.name, sub ? h('span.sub', {}, sub) : null),
       p.account ? h('span.acct', { title: you ? L.hud.ownAccountYou : L.hud.ownAccount }, '✓') : null,
@@ -37,7 +38,7 @@ export function renderPeople(voice: Voice, onEditProfile: () => void, onWalkTo: 
       // Somewhere else in the building: which floor.
       !you && !store.onMyFloor(p)
         ? p.floor === ROOF
-          ? h('span.where', { title: L.hud.onRoof }, `🍸 ${L.menu.roof}`)
+          ? h('span.where', { title: L.hud.onRoof }, `🍸 ${ROOF_NAME}`)
           : h('span.where', { title: L.hud.otherFloor }, `🛗 ${store.floors.find((f) => f.id === p.floor)?.name ?? L.hud.lobby}`)
         : null,
       p.sharing ? h('span', { title: L.hud.sharing }, '🖥️') : null,
@@ -65,9 +66,10 @@ export function renderWorkers(onOpen: (id: string) => void) {
     const provider = w.kind === 'agent' ? providerLabel(w.provider, store.project) : null;
     const providerKind = w.kind === 'agent' ? resolvedProvider(w.provider, store.project) : undefined;
     const usageState = w.kind === 'agent' ? providerUsageState(w.provider, store.project, w.usage) : undefined;
-    const usageNote = usageState === 'untracked' ? ` · ${L.hud.untracked}` : usageState === 'waiting' && providerKind === 'opencode' ? ` · ${L.hud.waitingMetrics}` : usageState === 'waiting' && providerKind === 'codex' ? ` · ${L.hud.waitingReport}` : '';
+    const waiting = usageState === 'waiting' ? providerWaitingLabel(providerKind, store.project) : '';
+    const usageNote = usageState === 'untracked' ? ` · ${L.hud.untracked}` : waiting ? ` · ${waiting}` : '';
     const badge = w.kind === 'agent' ? modelBadge(w.provider, w.model, w.effort) : undefined;
-    const sub = [provider && `⚙️ ${provider}${badge ? ` · ${badge}` : ''}${usageNote}`, w.worktree && `🌿 ${w.worktree.branch}`, w.pr && `🔀 PR #${w.pr.number}`, w.activity || w.title || w.prompt].filter(Boolean).join(' · ');
+    const sub = [provider && `⚙️ ${provider}${badge ? ` · ${badge}` : ''}${usageNote}`, w.worktree && `🌿 ${w.worktree.branch}`, w.repos?.length && `🗂️ ${w.repos.length + 1} repos`, w.pr && `🔀 PR #${w.pr.number}`, w.activity || w.title || w.prompt].filter(Boolean).join(' · ');
     ul.append(
       h(
         'li',
@@ -75,7 +77,7 @@ export function renderWorkers(onOpen: (id: string) => void) {
         h('span.dot', { style: `background:${w.color}` }),
         h('span.name', {}, w.name, sub ? h('span.sub', {}, sub) : null,
           usageState === 'tracked' && w.usage ? h('span.cost', { title: usageTitle(w.usage, providerKind) }, usageLabel(w.usage, providerKind)) : null),
-        h('span.pill', { class: w.status }, STATUS_LABEL[w.status] ?? w.status),
+        w.lost ? h('span.pill.lost', { title: L.hud.lostTip }, L.game.worktreeDeleted) : h('span.pill', { class: w.status }, STATUS_LABEL[w.status] ?? w.status),
       ),
     );
   }
@@ -131,7 +133,7 @@ export function renderChat() {
 }
 
 export function openHelp() {
-  const rows = L.help.rows;
+  const rows = L.help.rows(IS_MAC ? '⌘K' : 'Ctrl+K');
   const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
   const el = h(
     'div.modal',

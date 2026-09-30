@@ -40,6 +40,17 @@ function inviteMessage(t: TeamState, os: Os): string {
     .trim();
 }
 
+/** On an office on a Tailscale network: the link, and how to get onto the network. */
+function tailnetMessage(t: TeamState): string {
+  return [
+    L.team.msgTailnet(store.project?.name, `https://${t.tailnet}`),
+    '',
+    L.team.msgTailnetHow,
+  ].join('\n');
+}
+
+const TAILSCALE_ADMIN = 'https://login.tailscale.com/admin';
+
 export async function copy(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -76,7 +87,8 @@ export function openTeam(net: Net) {
   let status: HTMLElement | null = null;
   const body = h('div.body.team');
   const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
-  const copyMsg = copyButton(L.team.copyMessage, () => (store.team ? inviteMessage(store.team, os) : ''), 'primary');
+  const message = (t: TeamState) => (t.tailnet ? tailnetMessage(t) : inviteMessage(t, os));
+  const copyMsg = copyButton(L.team.copyMessage, () => (store.team ? message(store.team) : ''), 'primary');
   const footer = h('footer', {}, h('span.grow', {}, L.team.stillSignIn), copyMsg);
   const el = h('div.modal', { role: 'dialog', 'aria-label': L.menu.invite, style: 'width:min(680px,100%)' }, h('header', {}, h('h2', {}, `👥 ${L.menu.invite}`), close), body, footer);
 
@@ -104,6 +116,7 @@ export function openTeam(net: Net) {
     if (!t) return body.append(h('p.empty', {}, L.common.loading));
     footer.classList.toggle('hidden', !!t.unavailable);
     if (t.unavailable) return body.append(h('p', { style: 'margin:0;font-weight:700' }, t.unavailable));
+    if (t.tailnet) return renderTailnet(t);
 
     body.append(
       h('label', {}, L.team.byUsername),
@@ -129,9 +142,46 @@ export function openTeam(net: Net) {
         L.team.opensTunnel(t.port),
         t.fingerprint ? h('span', {}, L.team.fingerprintMust, h('code', {}, t.fingerprint), '.') : null,
       ),
-      h('p.note', {}, L.team.sshOnly, h('code', {}, 'deploy/aws.sh allow <their-ip>'), L.team.or, h('code', {}, 'allow anywhere'), L.team.onYourMachine),
     );
+    // Railway's TCP proxy, a Fly.io app's IP address and Dokploy's published port (addresses with a port
+    // of their own) answer every IP; AWS's firewall doesn't.
+    if (!t.ssh?.startsWith('ssh://')) {
+      body.append(h('p.note', {}, L.team.sshOnly, h('code', {}, `${t.deploy ?? 'deploy/aws.sh'} allow <their-ip>`), L.team.orParen, h('code', {}, 'allow anywhere'), L.team.onYourMachine));
+    }
 
+    body.append(h('h4', {}, `${L.team.invited} `, h('span.count', {}, String(t.members.length))), memberList(t));
+    if (typing || !focused) setTimeout(() => input.focus(), 30);
+    focused = true;
+  };
+
+  // Tailscale decides who gets in: the panel says how to let someone onto the network.
+  const renderTailnet = (t: TeamState) => {
+    const url = `https://${t.tailnet}`;
+    const link = (path: string, text: string) => h('a', { href: `${TAILSCALE_ADMIN}/${path}`, target: '_blank', rel: 'noopener' }, text);
+    body.append(
+      h('label', {}, L.team.tailnetOpens),
+      h('div.cmd', {}, h('pre', {}, url), copyButton(L.team.copy, () => url)),
+      h('p.note', {}, L.team.tailnetNote),
+      h('h4', {}, L.team.notOnIt),
+      h(
+        'p.note',
+        {},
+        L.team.share1,
+        link('machines', 'Machines'),
+        L.team.share2,
+        h('code', {}, t.tailnet!.split('.')[0]),
+        L.team.share3,
+        link('users', 'Users'),
+        '.',
+      ),
+    );
+    if (status) body.append(status);
+    if (t.error) body.append(h('p.team-status.error', {}, t.error));
+    // People invited before the office went on the tailnet can still tunnel in, until they're removed.
+    if (t.members.length) body.append(h('h4', {}, L.team.bySshKey, h('span.count', {}, String(t.members.length))), memberList(t));
+  };
+
+  const memberList = (t: TeamState) => {
     const list = h('ul.team-list');
     for (const m of t.members) {
       const remove = h('button.btn', { type: 'button', title: L.team.removeAccess(m.name) }, L.settings.remove);
@@ -146,9 +196,7 @@ export function openTeam(net: Net) {
       list.append(h('li', {}, h('span.name', {}, m.name), h('span.keys', {}, L.team.keys(m.keys)), remove));
     }
     if (!t.members.length) list.append(h('li.empty', {}, L.team.nobody));
-    body.append(h('h4', {}, `${L.team.invited} `, h('span.count', {}, String(t.members.length))), list);
-    if (typing || !focused) setTimeout(() => input.focus(), 30);
-    focused = true;
+    return list;
   };
 
   onInvited = (msg) => {

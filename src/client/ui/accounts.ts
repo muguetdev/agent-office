@@ -63,7 +63,7 @@ export function openAccounts(net: Net) {
       const v = fresh;
       body.append(h('div.cmd', {}, h('pre', {}, inviteLink(v)), copyButton(L.team.copy, () => inviteLink(v))));
     }
-    if (store.invites) body.append(h('p.note', {}, L.accounts.needWayIn));
+    if (store.invites) body.append(h('p.note', {}, L.accounts.needWayInFirst));
 
     const list = h('ul.team-list');
     for (const a of s.accounts) {

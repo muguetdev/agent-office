@@ -1,8 +1,7 @@
-import { MEETING_PATTERNS, MEETING_PATTERN_IDS, TOKENS_PER_SEAT, meetingSpend, outputProblem, slugify } from '../../shared/meetings';
+import { MEETING_PATTERNS, MEETING_PATTERN_IDS, TOKENS_PER_SEAT, meetingSpend, meetingStage, outputProblem, slugify } from '../../shared/meetings';
 import { fmtTokens, type Meeting, type MeetingPattern, type MeetingTurn } from '../../shared/protocol';
 import type { Net } from '../net';
 import { store } from '../state';
-import { meetingStage } from '../world/meeting';
 import { h, openModal, timeAgo, toast, STATUS_LABEL, type Modal } from './dom';
 import { confirmDialog } from './prompt';
 import { providerPicker } from './provider';
@@ -138,8 +137,8 @@ function meetingForm(net: Net, preset: MeetingPreset | undefined, done: () => vo
   titleIn.value = preset?.title ?? '';
   const outputIn = h('input', { type: 'text', 'aria-label': L.meeting.outputFile, spellcheck: 'false' }) as HTMLInputElement;
   const outputNote = h('small.muted');
-  const prSel = h('select.provider-select', { 'aria-label': 'Pull request' }) as HTMLSelectElement;
-  const prRow = h('div.meeting-field', {}, h('label', {}, 'Pull request'), prSel);
+  const prSel = h('select.provider-select', { 'aria-label': L.meeting.pullRequest }) as HTMLSelectElement;
+  const prRow = h('div.meeting-field', {}, h('label', {}, L.meeting.pullRequest), prSel);
   const partsIn = h('textarea', { rows: 3, placeholder: 'src/server/\nsrc/client/\nsrc/shared/', 'aria-label': L.meeting.partsLabel, spellcheck: 'false' }) as HTMLTextAreaElement;
   const partsRow = h('div.meeting-field', {}, h('label', {}, L.meeting.partsPerLine), partsIn, h('small.muted', {}, L.meeting.partsNote));
   const count = h('b');

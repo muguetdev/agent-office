@@ -3,6 +3,7 @@ import { store, type Settings, type ViewMode } from '../state';
 import { askNotifyPermission, notifyPermission, type DesktopNotifier } from '../notify';
 import type { ThemePick, WebhookKind } from '../../shared/protocol';
 import { THEME_PICKS } from '../../shared/theme';
+import { mapChoices } from '../../shared/maps';
 import { DOG_NAME_MAX, cleanDogName } from '../../shared/dog';
 import { h, openModal, timeAgo } from './dom';
 import { agentFields, choiceLabel, officeChoice } from './provider';
@@ -18,8 +19,34 @@ const THEME_LABEL: Record<ThemePick, string> = L.settings.themes;
 
 const WEBHOOK_NAME: Record<WebhookKind, string> = L.settings.webhookNames;
 
-/** `outside` describes the sky over the office (see describeSky), once the server has said. */
-export function openSettings(net: Net, settings: Settings, onChange: (s: Settings) => void, onCharacter: () => void, previewSound: () => void, notifier: DesktopNotifier, onSignOut: () => void, outside?: { now: string; live: boolean }) {
+/** The categories down the side of ⚙️ Settings. */
+export type SettingsPane = 'you' | 'sound' | 'notify' | 'building' | 'workers';
+
+const PANES: { id: SettingsPane; icon: string; label: string; blurb: string }[] = [
+  { id: 'you', icon: '🧍', label: L.main.you, blurb: L.settings2.youBlurb },
+  { id: 'sound', icon: '🔊', label: L.settings2.sound, blurb: L.settings2.soundBlurb },
+  { id: 'notify', icon: '🔔', label: L.settings2.notify, blurb: L.settings2.notifyBlurb },
+  { id: 'building', icon: '🏢', label: L.settings2.building, blurb: L.settings2.buildingBlurb },
+  { id: 'workers', icon: '🤖', label: L.page.workers, blurb: L.settings2.workersBlurb },
+];
+
+/** Who a setting is for, shown by its name: some are yours alone, some the whole office's. */
+type Scope = 'you' | 'floor' | 'office';
+const SCOPE: Record<Scope, [label: string, title: string]> = {
+  you: L.settings2.scopeYou,
+  floor: L.settings2.scopeFloor,
+  office: L.settings2.scopeOffice,
+};
+
+/** One setting: its name and who it's for, then whatever sets it. */
+const setting = (title: string, scope: Scope | null, ...body: Node[]) =>
+  h('div.setting', {}, h('div.setting-head', {}, h('h4', {}, title), scope && h('span.scope', { class: scope, title: SCOPE[scope][1] }, SCOPE[scope][0])), ...body);
+
+/** Where ⚙️ Settings was last, so it opens there again. */
+let lastPane: SettingsPane = 'you';
+
+/** `outside` describes the sky over the office (see describeSky), once the server has said. `first` opens on that category instead of the last one. */
+export function openSettings(net: Net, settings: Settings, onChange: (s: Settings) => void, onCharacter: () => void, previewSound: () => void, notifier: DesktopNotifier, onSignOut: () => void, outside?: { now: string; live: boolean }, first?: SettingsPane) {
   const seg = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.camera });
   const note = h('p.setting-note');
   const paint = () => {
@@ -112,6 +139,37 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   paintTalk();
   const musicRow = volumeRow(L.settings.jukeboxVolume, 'music', 'musicMuted');
 
+  // The swish of the book's pages at the bookshelf, on or off.
+  const pagesRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings2.pages });
+  const paintPages = () => {
+    pagesRow.replaceChildren(
+      ...(
+        [
+          [true, L.settings2.pagesOn],
+          [false, L.settings.themes.off],
+        ] as const
+      ).map(([on, label]) =>
+        h(
+          'button.btn',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': String(settings.pageTurns === on),
+            class: settings.pageTurns === on ? 'on' : '',
+            onclick: () => {
+              if (settings.pageTurns === on) return;
+              settings = { ...settings, pageTurns: on };
+              onChange(settings);
+              paintPages();
+            },
+          },
+          label,
+        ),
+      ),
+    );
+  };
+  paintPages();
+
   // The building's holiday theme, for everyone.
   const themeRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.holiday });
   const themeNote = h('p.setting-note');
@@ -144,6 +202,42 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     themeNote.textContent = `${now}${how} ${L.settings.sameForAll(by ? `${by}${at ? ` ${timeAgo(at)}` : ''}` : undefined)}`;
   };
   paintTheme();
+
+  // The building's map, for everyone: the office, the castle, or one of your own. Opening Settings
+  // has the office read its folder of maps again, so one you just added or fixed shows up.
+  net.send({ t: 'map.set' });
+  const mapRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings2.map });
+  const mapNote = h('p.setting-note');
+  const mapBad = h('p.setting-note.bad', { style: 'white-space: pre-line' });
+  const paintMap = () => {
+    const { pick, by, at, custom } = store.map;
+    const choices = mapChoices(custom);
+    mapRow.replaceChildren(
+      ...choices.map((m) =>
+        h(
+          'button.btn',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': String(pick === m.id),
+            class: pick === m.id ? 'on' : '',
+            disabled: !!m.error,
+            title: m.error ? L.settings2.wontLoad(m.id, m.error) : m.description,
+            onclick: () => {
+              if (!m.error && store.map.pick !== m.id) net.send({ t: 'map.set', map: m.id });
+            },
+          },
+          `${m.icon} ${m.name}`,
+        ),
+      ),
+    );
+    const now = choices.find((m) => m.id === pick) ?? choices[0];
+    mapNote.textContent = `${now.description} ${L.settings2.mapNote(by ? `${by}${at ? ` ${timeAgo(at)}` : ''}` : undefined)}`;
+    const broken = choices.filter((m) => m.error);
+    mapBad.textContent = broken.map((m) => `⚠️ ${L.settings2.wontLoad(m.id, m.error ?? '')}`).join('\n');
+    mapBad.hidden = !broken.length;
+  };
+  paintMap();
 
   // Desktop notifications: this browser's permission, then your own on/off.
   const notifyRow = h('div.seg');
@@ -386,7 +480,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const dogInput = h('input', { type: 'text', maxlength: DOG_NAME_MAX, 'aria-label': L.settings.dogName, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const dogSave = h('button.btn.primary', { type: 'button' }, L.settings.rename);
   const dogNote = h('p.setting-note');
-  const dogSection = h('div', {}, h('label', { style: 'margin-top:18px' }, L.settings.officeDog), h('div.webhook', {}, dogInput, dogSave), dogNote);
+  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), dogNote);
   const paintDog = () => {
     const dog = store.dog;
     dogSection.classList.toggle('hidden', !dog);
@@ -410,72 +504,84 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
   signOut.addEventListener('click', onSignOut);
   const character = h('button.btn', { type: 'button' }, account ? L.settings.changeLook : L.settings.changeLookName);
-  const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
-  const el = h(
-    'div.modal',
-    { role: 'dialog', 'aria-label': L.menu.settings },
-    h('header', {}, h('h2', {}, `⚙️ ${L.menu.settings}`), close),
-    h(
-      'div.body',
-      {},
-      h('label', {}, L.settings.camera),
-      seg,
-      note,
-      h('label', { style: 'margin-top:18px' }, L.settings.sounds),
-      soundRow,
-      h('p.setting-note', {}, L.settings.soundsNote),
-      h('label', { style: 'margin-top:18px' }, L.settings.voice),
-      talkRow,
-      h('p.setting-note', {}, L.settings.voiceNote),
-      h('label', { style: 'margin-top:18px' }, '🎵 Jukebox'),
-      musicRow,
-      h('p.setting-note', {}, L.settings.jukeboxNote),
+  const panes: Record<SettingsPane, Node[]> = {
+    you: [
+      setting(L.settings.yourCharacter, null, character),
+      setting(L.settings.camera, 'you', seg, note),
+      setting(L.settings.signedIn, null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? L.settings.asAccount(account.name, account.role) : L.settings.sharedPassword)),
+    ],
+    sound: [
+      setting(L.settings.sounds, 'you', soundRow, h('p.setting-note', {}, L.settings.soundsNote)),
+      setting(L.settings2.pages, 'you', pagesRow, h('p.setting-note', {}, L.settings2.pagesNote)),
+      setting(L.settings2.jukebox, 'you', musicRow, h('p.setting-note', {}, L.settings.jukeboxNote)),
+      setting(L.settings.voice, 'you', talkRow, h('p.setting-note', {}, L.settings.voiceNote)),
+    ],
+    notify: [
+      setting(L.settings.desktopNotify, 'you', notifyRow, notifyNote),
+      setting(L.settings.teamNotify, 'office', h('div.webhook', {}, hookInput, hookSave), hookActions, hookStatus),
+    ],
+    building: [
+      setting(L.settings2.map, 'office', mapRow, mapNote, mapBad),
+      setting(L.settings.holiday, 'office', themeRow, themeNote),
       ...(outside
         ? [
-            h('label', { style: 'margin-top:18px' }, L.settings.outside),
-            h('p.outside-now', {}, outside.now),
-            h('p.setting-note', {}, outside.live ? L.settings.skyLive : L.settings.skyFake),
+            setting(
+              L.settings.outside,
+              'office',
+              h('p.outside-now', {}, outside.now),
+              h('p.setting-note', {}, outside.live ? L.settings2.skyLive : L.settings2.skyFake),
+            ),
           ]
         : []),
-      h('label', { style: 'margin-top:18px' }, L.settings.holiday),
-      themeRow,
-      themeNote,
-      h('label', { style: 'margin-top:18px' }, L.settings.desktopNotify),
-      notifyRow,
-      notifyNote,
-      h('label', { style: 'margin-top:18px' }, L.settings.teamNotify),
-      h('div.webhook', {}, hookInput, hookSave),
-      hookActions,
-      hookStatus,
-      h('label', { style: 'margin-top:18px' }, L.settings.defaultWorker),
-      agentNow,
-      agent.element,
-      agentActions,
-      agentNote,
-      h('label', { style: 'margin-top:18px' }, '📝 Prompts'),
-      promptsOpen,
-      promptsNote,
-      h('label', { style: 'margin-top:18px' }, L.settings.workerLimit),
-      limitRow,
-      limitNote,
-      h('label', { style: 'margin-top:18px' }, `🎉 ${L.settings.merged}`),
-      leaveRow,
-      leaveNote,
-      h('label', { style: 'margin-top:18px' }, `📁 ${L.elevator.workspaceFolder}`),
-      dirRow,
-      dirActions,
-      dirNote,
       dogSection,
-      h('label', { style: 'margin-top:18px' }, L.settings.yourCharacter),
-      character,
-      h('label', { style: 'margin-top:18px' }, L.settings.signedIn),
-      h('div.volume', {}, signOut),
-      h('p.setting-note', {}, account ? L.settings.asAccount(account.name, account.role) : L.settings.sharedPassword),
-    ),
-  );
+      setting(L.elevator.workspaceFolder, 'office', dirRow, dirActions, dirNote),
+    ],
+    workers: [
+      setting(L.settings2.defaultWorker, 'office', agentNow, agent.element, agentActions, agentNote),
+      setting(L.settings2.workerLimit, 'office', limitRow, limitNote),
+      setting(L.settings.merged, 'office', leaveRow, leaveNote),
+      setting(L.promptEditor.prompts, 'office', promptsOpen, promptsNote),
+    ],
+  };
+
+  // The categories down the side, the one picked on the right.
+  const nav = h('nav.settings-nav', { role: 'tablist', 'aria-orientation': 'vertical', 'aria-label': L.menu.settings });
+  const tabs = new Map<SettingsPane, HTMLButtonElement>();
+  const bodies = new Map<SettingsPane, HTMLElement>();
+  for (const p of PANES) {
+    const tab = h('button.settings-tab', { type: 'button', role: 'tab', onclick: () => show(p.id) }, h('span.icon', { 'aria-hidden': 'true' }, p.icon), h('span', {}, p.label)) as HTMLButtonElement;
+    tabs.set(p.id, tab);
+    nav.append(tab);
+    bodies.set(p.id, h('section.settings-pane', { role: 'tabpanel', 'aria-label': p.label }, h('div.settings-head', {}, h('h3', {}, `${p.icon} ${p.label}`), h('p', {}, p.blurb)), ...panes[p.id]));
+  }
+  const show = (id: SettingsPane) => {
+    lastPane = id;
+    for (const [t, tab] of tabs) {
+      tab.classList.toggle('on', t === id);
+      tab.setAttribute('aria-selected', String(t === id));
+      tab.tabIndex = t === id ? 0 : -1;
+    }
+    for (const [t, body] of bodies) body.classList.toggle('hidden', t !== id);
+    bodies.get(id)!.scrollTop = 0;
+    // On a phone the categories are a row across the top that scrolls sideways.
+    tabs.get(id)!.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+  nav.addEventListener('keydown', (e) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const i = PANES.findIndex((p) => p.id === lastPane);
+    const next = PANES[(i + step + PANES.length) % PANES.length].id;
+    show(next);
+    tabs.get(next)!.focus();
+  });
+
+  const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
+  const el = h('div.modal.settings', { role: 'dialog', 'aria-label': L.menu.settings }, h('header', {}, h('h2', {}, `⚙️ ${L.menu.settings}`), close), h('div.settings-body', {}, nav, ...bodies.values()));
   const offNotify = store.on('notify', paintHook);
   const offDog = store.on('dog', paintDog);
   const offTheme = store.on('theme', paintTheme);
+  const offMap = store.on('map', paintMap);
   const offLeave = store.on('leaveOnMerge', paintLeave);
   const offLimit = [store.on('machine', paintLimit), store.on('me', paintLimit)];
   const offDir = [store.on('projectsDir', paintDir), store.on('me', paintDir)];
@@ -486,12 +592,14 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       offNotify();
       offDog();
       offTheme();
+      offMap();
       offLeave();
       offLimit.forEach((off) => off());
       offDir.forEach((off) => off());
       offPrompts.forEach((off) => off());
     },
   });
+  show(first ?? lastPane);
   close.addEventListener('click', () => modal.close());
   character.addEventListener('click', () => {
     modal.close();

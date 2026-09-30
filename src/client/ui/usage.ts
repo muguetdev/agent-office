@@ -17,7 +17,13 @@ export function usageLabel(u: Usage, provider: AgentProvider = 'claude'): string
     : u.costKnown === false
       ? L.usage.noCost
       : `${fmtCost(u.cost)}${provider === 'opencode' ? ` ${L.usage.reported}` : ''}`;
-  return `${u.incomplete ? L.usage.partialPrefix : ''}${money} · ${fmtTokens(tokensOf(u))} tokens`;
+  // DeepSeek Harness reports what is in the context window, not a token split.
+  if (provider === 'dsh') {
+    const window = u.contextSize !== undefined ? ` / ${fmtTokens(u.contextSize)}` : '';
+    const spend = u.costKnown === true ? `${fmtCost(u.cost)} · ` : '';
+    return `${u.incomplete ? L.usage.partialPrefix : ''}${spend}${fmtTokens(tokensOf(u))}${window} ${L.usage.context}`;
+  }
+  return `${u.incomplete ? L.usage.partialPrefix : ""}${money} · ${fmtTokens(tokensOf(u))} tokens`;
 }
 
 /** Input, output, reasoning and cache tokens, a line each, for a tooltip. */
@@ -33,13 +39,16 @@ export function usageTitle(u: Usage, provider: AgentProvider = 'claude'): string
     : provider === 'opencode'
       ? L.usage.reportedCalls(u.calls)
       : L.usage.apiCalls(u.calls);
+  const dshContext = L.usage.contextTokens(fmtTokens(tokensOf(u)), u.contextSize !== undefined ? fmtTokens(u.contextSize) : undefined);
   return [
     ...(u.incomplete ? [L.usage.partial] : []),
     provider === 'codex'
       ? L.usage.codexTitle(money, calls)
       : provider === 'opencode'
         ? L.usage.openCodeTitle(money, calls)
-        : L.usage.over(money, calls),
+        : provider === 'dsh'
+          ? L.usage.dshTitle(dshContext, u.costKnown === true ? money : undefined, calls)
+          : L.usage.over(money, calls),
     ...breakdown(u.input, u.output, u.reasoning ?? 0, u.cacheWrite, u.cacheRead),
   ].join('\n');
 }
@@ -78,6 +87,12 @@ export function renderUsage() {
   let currentCodexCostUnknown = false;
   let currentCodexIncomplete = false;
   let codexWaiting = false;
+  let currentDshTokens = 0;
+  let currentDshContext = 0;
+  let currentDshReports = 0;
+  let currentDshCost = 0;
+  let currentDshCostKnown = false;
+  let dshWaiting = false;
   let untracked = false;
   for (const w of store.workers.values()) {
     if (w.kind !== 'agent') continue;
@@ -116,14 +131,27 @@ export function renderUsage() {
       if (w.usage.costKnown !== true) currentCodexCostUnknown = true;
       else currentCodexCost += w.usage.cost;
     }
+    if (provider === 'dsh') {
+      if (!w.usage) {
+        dshWaiting = true;
+        continue;
+      }
+      currentDshReports++;
+      currentDshTokens += tokensOf(w.usage);
+      if (w.usage.contextSize !== undefined) currentDshContext = Math.max(currentDshContext, w.usage.contextSize);
+      if (w.usage.costKnown === true) {
+        currentDshCost += w.usage.cost;
+        currentDshCostKnown = true;
+      }
+    }
     if (providerUsageTracked(provider, store.project, w.usage) && w.usage?.costKnown !== false && !w.usage?.incomplete) now += w.usage?.cost ?? 0;
   }
   const head = $('workers-cost');
   head.textContent = now > 0 ? fmtCost(now) : '';
-  head.title = L.usage.headTip;
+  head.title = 'Current desks: tracked Claude Code costs plus reported OpenCode and DeepSeek Harness estimates; Codex root-session tokens appear below; sessions with unavailable cost or partial history are excluded.';
 
   const el = $('usage');
-  const any = s.total.calls > 0 || s.budget !== undefined || untracked || currentOpenCodeReports > 0 || openCodeWaiting || currentCodexReports > 0 || codexWaiting;
+  const any = s.total.calls > 0 || s.budget !== undefined || untracked || currentOpenCodeReports > 0 || openCodeWaiting || currentCodexReports > 0 || codexWaiting || currentDshReports > 0 || dshWaiting;
   el.classList.toggle('hidden', !any);
   if (!any) return;
   const over = overBudget();
@@ -136,7 +164,7 @@ export function renderUsage() {
         {},
         h('span', {}, L.usage.today),
         h('b', { title: usageTitle(s.today, 'claude') }, displayedCost(s.today)),
-        s.budget !== undefined ? h('span.muted', {}, L.usage.of(fmtCost(s.budget))) : h('span.muted', {}, `· ${fmtTokens(tokensOf(s.today))} tokens`),
+        s.budget !== undefined ? h('span.muted', {}, L.usage.of(fmtCost(s.budget))) : h('span.muted', {}, `· ${fmtTokens(tokensOf(s.today))} ${L.usage.tokens}`),
       ),
     );
   }
@@ -157,7 +185,7 @@ export function renderUsage() {
             ...breakdown(currentOpenCodeInput, currentOpenCodeOutput, currentOpenCodeReasoning, currentOpenCodeCacheWrite, currentOpenCodeCacheRead),
           ].join('\n'),
         },
-        `OpenCode ${currentOpenCodeIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentOpenCodeTokens)} tokens`,
+        `OpenCode ${currentOpenCodeIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentOpenCodeTokens)} ${L.usage.tokens}`,
       ),
     );
   }
@@ -173,11 +201,28 @@ export function renderUsage() {
             ...breakdown(currentCodexInput, currentCodexOutput, currentCodexReasoning, currentCodexCacheWrite, currentCodexCacheRead),
           ].join('\n'),
         },
-        `Codex ${currentCodexIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentCodexTokens)} tokens`,
+        `Codex ${currentCodexIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentCodexTokens)} ${L.usage.tokens}`,
       ),
     );
   }
   if (codexWaiting) rows.push(h('div.row.muted', { title: L.usage.codexWaitTip }, L.usage.codexWait));
+  if (currentDshReports > 0) {
+    const context = currentDshContext > 0 ? ` / ${fmtTokens(currentDshContext)}` : '';
+    const spend = currentDshCostKnown ? `${fmtCost(currentDshCost)} · ` : '';
+    rows.push(
+      h(
+        'div.row.muted',
+        {
+          title: [
+            L.usage.dshDesksTip,
+            L.usage.dshWorkers(currentDshReports, `${fmtTokens(currentDshTokens)}${context}`),
+          ].join('\n'),
+        },
+        L.usage.dshDesks(`${spend}${fmtTokens(currentDshTokens)}${context}`),
+      ),
+    );
+  }
+  if (dshWaiting) rows.push(h('div.row.muted', { title: L.usage.dshWaitTip }, L.usage.dshWait));
   if (untracked) {
     rows.push(h('div.row.muted', { title: L.usage.customTip }, L.usage.custom));
   }

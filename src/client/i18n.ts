@@ -1,4 +1,5 @@
 import { LOCALES, matchLocale, messages, placeName, type Locale } from '../shared/i18n';
+import { localizeMaps, type MapConfig } from '../shared/maps';
 
 // The language the page speaks: the browser's, the first of its languages the office knows.
 // `?lang=pt-BR` or `?lang=en` in the address picks one and remembers it for this browser.
@@ -30,6 +31,30 @@ if (typeof document !== 'undefined') document.documentElement.lang = locale;
 /** The page's words, in its language (see ../shared/locales). */
 export const L = messages(locale);
 
+// The built-in maps in the page's language: their names, lines, tables and boards (ids stay as they are).
+localizeMaps({
+  office: L.maps.office,
+  seat: L.maps.seat,
+  table: L.maps.table,
+  map: (c: MapConfig): MapConfig => {
+    if (c.id !== 'castle') return c;
+    const t = L.maps.castle;
+    return {
+      ...c,
+      name: t.name,
+      description: t.description,
+      herald: c.herald && { ...c.herald, ...t.herald },
+      tables: c.tables.map((table, i) => ({ ...table, name: t.tables[i] ?? table.name })),
+      boards: c.boards && (Object.fromEntries(Object.entries(c.boards).map(([k, b]) => [k, b && { ...b, label: t.boards[k] ?? b.label }])) as typeof c.boards),
+      sendHome: c.sendHome && {
+        ...c.sendHome,
+        escort: c.sendHome.escort && { ...c.sendHome.escort, name: t.escort },
+        steps: c.sendHome.steps?.map((s, i) => (s.do === 'say' && t.says[i] ? { ...s, text: t.says[i] } : s)),
+      },
+    };
+  },
+});
+
 /** The message at a dotted path like `hud.people`, or undefined when there's none. */
 function lookup(path: string): string | undefined {
   let v: unknown = L;
@@ -57,6 +82,11 @@ export function translatePage(root: ParentNode = document) {
 /** A desk or seat's name in the page's language (see placeName in ../shared/i18n.ts). */
 export function placeLabel(place: { id: string; label: string }): string {
   return placeName(L, place);
+}
+
+/** A garage car's name in the page's language. */
+export function carName(car: { name: string }): string {
+  return L.cars[car.name] ?? car.name;
 }
 
 /** A meeting pattern's name, line and rounds note in the page's language (shared/meetings.ts has them in English). */
