@@ -1118,6 +1118,8 @@ Options:
     filesReviewed: (done: number, n: number) => `${done} of ${n} file${n === 1 ? '' : 's'} reviewed`,
   },
   boards: {
+    agentTags: { 'Issues agent': 'Issues agent', 'PR agent': 'PR agent', 'Queue agent': 'Queue agent' } as Record<string, string>,
+    boardTitles: { issues: 'Issues', pulls: 'Pull Requests', queue: '📋 Task queue', services: '🌐 Services' } as Record<string, string>,
     refreshTip: 'Refresh from GitHub',
     refresh: '🔄 Refresh',
     open: '📥 Open',

@@ -11,7 +11,7 @@ import { OpenBook } from './book';
 import { HeldCard } from './card';
 import { GRIME, UNDEAD_SKIN, beard, beardColor, elfBoot, elfHat, elfWorker, grime, peasantGarb, santaHat, warlockHat, zombieWorker, type Beard, type PeasantGarb } from './costumes';
 import { cardSprite, disposeSprite, mesh, textSprite, toon, toonUnique } from './toon';
-import { L } from '../i18n';
+import { L, workerName } from '../i18n';
 
 export type Pose = 'stand' | 'walk' | 'sit' | 'type';
 
@@ -1764,7 +1764,7 @@ export class Worker {
       this.root.remove(this.nameTag);
       disposeSprite(this.nameTag);
     }
-    this.nameTag = textSprite(name, { bg: '#2b2d42', color: '#fffaf3', size: 36, border: '#fffaf3' });
+    this.nameTag = textSprite(workerName(name), { bg: '#2b2d42', color: '#fffaf3', size: 36, border: '#fffaf3' });
     this.nameTag.position.y = 1.55;
     this.root.add(this.nameTag);
   }

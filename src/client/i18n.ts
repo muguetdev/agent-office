@@ -84,6 +84,16 @@ export function placeLabel(place: { id: string; label: string }): string {
   return placeName(L, place);
 }
 
+/** A worker's name as people read it: the board agents' ("Issues agent") in the page's language; everyone else's as it is. */
+export function workerName(name: string): string {
+  return L.boards.agentTags[name] ?? name;
+}
+
+/** A board's title over it, in the page's language (the layout names them in English). */
+export function boardLabel(key: string, label: string): string {
+  return L.boards.boardTitles[key] ?? label;
+}
+
 /** A garage car's name in the page's language. */
 export function carName(car: { name: string }): string {
   return L.cars[car.name] ?? car.name;

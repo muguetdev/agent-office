@@ -21,7 +21,7 @@ import { buildHoop, type HoopView } from './hoop';
 import { buildKitchen } from './kitchen';
 import { buildDeskSigns, type DeskSigns } from './desksigns';
 import { HOOP } from '../../shared/hoop';
-import { L } from '../i18n';
+import { L, boardLabel } from '../i18n';
 
 export interface Collider {
   minX: number;
@@ -1509,7 +1509,7 @@ export function buildOffice(): Office {
     bg.rotation.y = b.rotY;
     group.add(bg);
     boardMeshes[key] = face;
-    const label = textPlane(b.label, { bg: '#fffaf3', size: 64 });
+    const label = textPlane(boardLabel(key, b.label), { bg: '#fffaf3', size: 64 });
     label.scale.multiplyScalar(1.3);
     label.position.set(b.x + nx * 0.04, b.y + b.height / 2 + 0.5, b.z + nz * 0.04);
     label.rotation.y = b.rotY;

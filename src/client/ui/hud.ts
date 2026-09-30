@@ -9,7 +9,7 @@ import { providerLabel, providerUsageState, providerWaitingLabel, resolvedProvid
 import { whereabouts } from './whereabouts';
 import { DESK_BY_ID } from '../../shared/layout';
 import { IS_MAC } from './termkeys';
-import { L } from '../i18n';
+import { L, workerName } from '../i18n';
 
 /** What the people list last showed, so it's only drawn again when something in it changed. */
 let peopleKey = '';
@@ -75,7 +75,7 @@ export function renderWorkers(onOpen: (id: string) => void) {
         'li',
         { onclick: () => onOpen(w.id), title: L.hud.openTerminal(w.name) },
         h('span.dot', { style: `background:${w.color}` }),
-        h('span.name', {}, w.name, sub ? h('span.sub', {}, sub) : null,
+        h('span.name', {}, workerName(w.name), sub ? h('span.sub', {}, sub) : null,
           usageState === 'tracked' && w.usage ? h('span.cost', { title: usageTitle(w.usage, providerKind) }, usageLabel(w.usage, providerKind)) : null),
         w.lost ? h('span.pill.lost', { title: L.hud.lostTip }, L.game.worktreeDeleted) : h('span.pill', { class: w.status }, STATUS_LABEL[w.status] ?? w.status),
       ),
