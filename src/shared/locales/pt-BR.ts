@@ -691,7 +691,7 @@ Opções:
   },
   settings: {
     dogBreed: 'Raça',
-    dogBreeds: { pup: '🐶 Vira-lata', corgi: '🦊 Corgi', dachshund: '🌭 Salsicha', pug: '🐾 Pug', shiba: '🍂 Shiba' } as Record<string, string>,
+    dogBreeds: { pup: '🐶 Vira-lata', corgi: '🦊 Corgi', dachshund: '🌭 Salsicha', pug: '🐾 Pug', shiba: '🍂 Shiba', pomeranian: '🧸 Lulu da Pomerânia' } as Record<string, string>,
     first: '👀 Primeira pessoa',
     firstNote: 'Veja pelos seus próprios olhos. Clique no escritório para olhar em volta com o mouse e clique nas coisas para usá-las. Esc solta o mouse.',
     third: '🎥 Terceira pessoa',

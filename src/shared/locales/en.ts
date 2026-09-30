@@ -697,7 +697,7 @@ Options:
   },
   settings: {
     dogBreed: 'Breed',
-    dogBreeds: { pup: '🐶 Pup', corgi: '🦊 Corgi', dachshund: '🌭 Dachshund', pug: '🐾 Pug', shiba: '🍂 Shiba' } as Record<string, string>,
+    dogBreeds: { pup: '🐶 Pup', corgi: '🦊 Corgi', dachshund: '🌭 Dachshund', pug: '🐾 Pug', shiba: '🍂 Shiba', pomeranian: '🧸 Pomeranian' } as Record<string, string>,
     first: '👀 First person',
     firstNote: 'See through your own eyes. Click the office to look around with the mouse and click things to use them. Esc frees the mouse.',
     third: '🎥 Third person',
