@@ -103,10 +103,38 @@ function textTexture(text: string, opts: TextOpts) {
   return { tex, w, h };
 }
 
+/**
+ * How much nearer the camera a label or a card counts as, for what's in front of it: enough to show
+ * whole over the wall it's up against, the desk it's over or the sign beside it, not so much it shows
+ * through a wall across the room.
+ */
+const LABEL_PULL = 0.6;
+
+/** Labels and cards are drawn where they are but tested for depth LABEL_PULL nearer (see above). */
+function labelDepth(mat: THREE.SpriteMaterial): THREE.SpriteMaterial {
+  const base = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    base.call(mat, shader, renderer);
+    shader.vertexShader = shader.vertexShader.replace(
+      'gl_Position = projectionMatrix * mvPosition;',
+      `gl_Position = projectionMatrix * mvPosition;
+	{
+		float d = length( mvPosition.xyz );
+		if ( d > ${(LABEL_PULL + 0.3).toFixed(2)} ) {
+			vec4 nearer = projectionMatrix * vec4( mvPosition.xyz * ( 1.0 - ${LABEL_PULL.toFixed(2)} / d ), 1.0 );
+			gl_Position.z = nearer.z / nearer.w * gl_Position.w;
+		}
+	}`,
+    );
+  };
+  mat.customProgramCacheKey = () => 'label-depth';
+  return mat;
+}
+
 /** A camera-facing text label. */
 export function textSprite(text: string, opts: TextOpts = {}): THREE.Sprite {
   const { tex, w, h } = textTexture(text, opts);
-  const mat = new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true });
+  const mat = labelDepth(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(w * TEXT_SCALE, h * TEXT_SCALE, 1);
   sprite.renderOrder = 10;
@@ -219,7 +247,7 @@ export function cardSprite(o: CardOpts): THREE.Sprite {
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
+  const sprite = new THREE.Sprite(labelDepth(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true })));
   sprite.scale.set((w / R) * TEXT_SCALE, (h / R) * TEXT_SCALE, 1);
   sprite.center.set(0.5, 0);
   sprite.renderOrder = 10;
