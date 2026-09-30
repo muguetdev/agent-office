@@ -135,8 +135,9 @@ export function buildElevator(height = WALL_HEIGHT): Elevator {
   const doors = [-1, 1].map((side) => {
     const d = new THREE.Group();
     d.add(shaft(mesh(new THREE.BoxGeometry(half, doorHeight - 0.02, 0.05), doorMat, 0, 0, 0)));
-    // A seam line and a porthole of light, so they read as elevator doors from across the room.
-    d.add(shaft(mesh(new THREE.BoxGeometry(0.02, doorHeight - 0.1, 0.055), steelDark, (-side * half) / 2 + side * 0.01, 0, 0, false)));
+    // A seam line and a porthole of light, so they read as elevator doors from across the room. The seam
+    // stands a few millimetres in from the door's edge, or the two edges flicker through each other side-on.
+    d.add(shaft(mesh(new THREE.BoxGeometry(0.02, doorHeight - 0.1, 0.055), steelDark, (-side * half) / 2 + side * 0.014, 0, 0, false)));
     d.add(shaft(mesh(new THREE.BoxGeometry(half - 0.2, 0.05, 0.055), steelDark, 0, 0.35, 0, false)));
     d.position.set(x + (side * half) / 2, doorHeight / 2, doorZ);
     group.add(d);
