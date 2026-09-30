@@ -23,6 +23,7 @@ import { buildRooftop, type Rooftop } from './world/rooftop';
 import { DrunkVision } from './world/drunk';
 import { Booze, type Stage as Feeling } from './booze';
 import { djFrame, djTime } from './dnb';
+import { buildPartyLights } from './world/party';
 import { drinkName, openBar } from './ui/bar';
 import { DRINK_BY_ID, ROOF, ROOF_NAME, type Drink, type DrinkId } from '../shared/rooftop';
 import { BACKSWING_TIME, IMPACT, Person, Worker, type Stage } from './world/character';
@@ -163,6 +164,13 @@ scene.add(sun);
 
 const office = buildOffice();
 scene.add(office.group);
+/** A /party's club lights (see world/party.ts), over the office's floor. */
+const partyLights = buildPartyLights(FLOOR, WALL_HEIGHT);
+scene.add(partyLights.group);
+/** Until when a /party is on (the office's clock), how far its lights are faded in, and when everyone next gets up to dance again. */
+let partyUntil = 0;
+let partyLevel = 0;
+let partyDanceAt = 0;
 /**
  * The building's map as it's built (see shared/maps and world/world.ts): the office, or a map of
  * its own (the castle). Only one is in the scene at a time, like the office and the rooftop.
@@ -1204,6 +1212,12 @@ net.onMessage((msg) => {
     case 'chat':
       sayBubble(msg.from, msg.text);
       break;
+    case 'party':
+      partyUntil = msg.until;
+      partyDanceAt = 0;
+      sound.setDj(upTop || partyOn() ? djAt : null);
+      toast(msg.until ? L.party.started(msg.by) : L.party.stopped(msg.by));
+      break;
     case 'peer.act': {
       const r = remotes.get(msg.id);
       if (msg.drink !== undefined) {
@@ -1607,7 +1621,7 @@ function setPlace() {
   player.colliders = up ? r!.colliders : world.colliders;
   sky.setRoof(up, roofDrop(roofFloors()));
   sound.setOutdoors(up);
-  sound.setDj(up ? djAt : null);
+  sound.setDj(up || partyOn() ? djAt : null);
   // You can see the whole city from up there (and its clouds); from the top floors, as far as the haze.
   camera.far = up ? 700 : FAR;
   camera.updateProjectionMatrix();
@@ -3534,6 +3548,42 @@ function stageOf(desk: DeskView, model: Worker): Stage {
   return { pos, yaw: Math.atan2(ahead.x, ahead.z) };
 }
 
+/** Whether a /party is on right now. */
+function partyOn(): boolean {
+  return store.officeNow() < partyUntil;
+}
+
+/**
+ * A /party: everyone on the floor up on their desks dancing, the DJ's set playing, and the room a club
+ * (the lights down, lasers, a mirror ball, spots on the floor and flashes on the beat). When it's over,
+ * the music stops and the lights fade back.
+ */
+function partyFrame(t: number, dt: number) {
+  const on = partyOn();
+  if (!on && partyUntil && partyLevel < 0.01) {
+    partyUntil = 0;
+    sound.setDj(upTop ? djAt : null);
+  }
+  const here = on && !upTop && inOffice();
+  // The club lights are the office's; on a map of its own it's the dancing and the music.
+  partyLevel += ((here && plan().style === 'office' ? 1 : 0) - partyLevel) * (1 - Math.exp(-dt * 2));
+  if (here && t >= partyDanceAt) {
+    partyDanceAt = t + 3;
+    danceParty();
+  }
+  if (partyLevel < 0.01) return partyLights.update(t, djFrame(djAt()), 0);
+  const f = djFrame(djAt());
+  partyLights.update(t, f, partyLevel);
+  // The house lights down, and the room flashing the track's colour on the kicks and snares.
+  const k = partyLevel;
+  sun.intensity *= 1 - 0.9 * k;
+  hemi.intensity *= 1 - 0.8 * k;
+  sky.dimOffice(1 - 0.85 * k);
+  ambient.intensity = ambient.intensity * (1 - 0.7 * k) + Math.max(f.kick, f.snare * 0.7) * 0.8 * k * (0.5 + 0.5 * f.energy);
+  ambient.color.lerp(PARTY_FLASH.setHSL(f.hue, 0.9, 0.6), k);
+}
+const PARTY_FLASH = new THREE.Color();
+
 /** A pull request merged: every worker awake on the floor gets up on its desk and dances. */
 function danceParty() {
   for (const [id, v] of workerViews) {
@@ -4885,6 +4935,7 @@ function frame(ts?: number) {
     }
   }
   sun.shadow.intensity = 1 + (INDOOR_LIGHT.shadow - 1) * indoorness;
+  partyFrame(t, dt);
   if (!upTop && inOffice()) office.scenic.cull(camera.position, office.night.street, (scene.fog as THREE.Fog).far);
   // A map of its own lights itself its own way (the castle's torchlit hall), after the sky's had its say.
   if (!upTop) world.mood?.({ sun, hemi, ambient, scene }, sky.daylight, t, camera.position);

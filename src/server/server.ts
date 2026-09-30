@@ -52,6 +52,9 @@ import { ROOF, isDrink } from '../shared/rooftop.js';
 import { isBarGame, tossOk, type BarGame } from '../shared/bargames.js';
 import { L } from './i18n.js';
 
+/** How long a /party in the chat goes on for. */
+const PARTY_MS = 60_000;
+
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -1590,6 +1593,12 @@ export async function startServer(cfg: Config) {
       case 'chat': {
         const text = str(msg.text, 500).trim();
         if (!text) break;
+        // /party starts one for everyone (/party stop ends it) instead of saying it.
+        if (/^\/(party|festa)\b/i.test(text)) {
+          const stop = /\b(stop|parar|fim|off)\b/i.test(text);
+          broadcast({ t: 'party', until: stop ? 0 : Date.now() + PARTY_MS, by: who });
+          break;
+        }
         const line: ChatLine = { from: c.id, name: who, color: c.peer.color, text, at: Date.now(), ...(c.accountId ? { account: true } : {}) };
         chat.add(line);
         broadcast({ t: 'chat', ...line });

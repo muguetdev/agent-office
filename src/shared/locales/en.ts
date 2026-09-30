@@ -593,7 +593,7 @@ Options:
       ['Q', 'Put back the issue card in your hands (E at a note on the issues board, or ✋ Pick it up in an issue; then E at an empty desk, a worker or the queue board), or drop the basketball'],
       ['🐶', 'Walk up to the office dog and press E to pet it. When a worker needs input, it runs to that desk and barks. Name it in ⚙️ Settings'],
       ['O', 'Open a pull request for a worker on its own branch, or see the one it has'],
-      ['T', 'Chat'],
+      ['T', 'Chat. Type /party for a party: everyone dances, the DJ plays and the room turns into a club for a minute (/party stop ends it)'],
       ['G / 1–6', 'Emote: hold G, point at one and let go (or tap G and click one), or press 1–6: wave, thumbs up, clap, dance, point, facepalm. Everyone on your floor sees it'],
       ['/', 'Search the chat and every terminal on your floor, back to before the office last restarted'],
       [palette, 'Command palette: type a few letters to find a worker, issue, PR, service, board, teammate or action. Enter opens it, Shift+Enter walks you over to it first'],
@@ -2975,5 +2975,9 @@ Options:
     startsFrom: (branch: string, n: number) => `starts from origin/${branch}, without the ${n} commit${n === 1 ? '' : 's'} on ${branch} that origin doesn't have`,
     noFolder: 'it has no folder to put back',
     gitFailed: 'git failed',
+  },
+  party: {
+    started: (who: string) => `🎉 ${who} started a party! (/party stop ends it)`,
+    stopped: (who: string) => `${who} called the party off`,
   },
 };

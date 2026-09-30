@@ -587,7 +587,7 @@ Opções:
       ['Q', 'Devolver o cartão de chamado que está na sua mão (E num bilhete do quadro de chamados, ou ✋ Pegar num chamado; depois E numa mesa vazia, num worker ou no quadro da fila), ou largar a bola de basquete'],
       ['🐶', 'Chegue perto do cachorro do escritório e aperte E para fazer carinho. Quando um worker precisa de resposta, ele corre até a mesa e late. Dê um nome para ele em ⚙️ Configurações'],
       ['O', 'Abrir um pull request para um worker na branch dele, ou ver o que ele já tem'],
-      ['T', 'Chat'],
+      ['T', 'Chat. Digite /party para uma festa: todo mundo dança, o DJ toca e a sala vira uma boate por um minuto (/party stop encerra)'],
       ['G / 1–6', 'Emote: segure G, aponte para um e solte (ou toque G e clique em um), ou aperte 1–6: acenar, joinha, aplaudir, dançar, apontar, facepalm. Todo mundo no seu andar vê'],
       ['/', 'Buscar no chat e em todos os terminais do seu andar, desde antes do último reinício do escritório'],
       [palette, 'Paleta de comandos: digite algumas letras para achar um worker, chamado, PR, serviço, quadro, colega ou ação. Enter abre, Shift+Enter te leva até lá antes'],
@@ -2966,5 +2966,9 @@ Opções:
     startsFrom: (branch: string, n: number) => `começa de origin/${branch}, sem ${n === 1 ? 'o commit' : `os ${n} commits`} em ${branch} que o origin não tem`,
     noFolder: 'ela não tem pasta para recolocar',
     gitFailed: 'o git falhou',
+  },
+  party: {
+    started: (who: string) => `🎉 ${who} começou uma festa! (/party stop encerra)`,
+    stopped: (who: string) => `${who} encerrou a festa`,
   },
 };

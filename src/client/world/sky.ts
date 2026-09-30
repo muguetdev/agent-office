@@ -639,6 +639,11 @@ export class Sky {
     return midnight - off + h * 3_600_000;
   }
 
+  /** After update: the office's lamplight turned down to `keep` of itself, for a /party (see main.ts). */
+  dimOffice(keep: number) {
+    uniforms.skyOffice.value.multiplyScalar(keep);
+  }
+
   update(dt: number, t: number, camera: THREE.Camera) {
     if (this.night.street !== this.street) this.placeLamps();
     const s = this.state;

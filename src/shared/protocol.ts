@@ -1384,6 +1384,8 @@ export type ServerMsg =
   | { t: 'gh.labeled'; kind: 'issue' | 'pull'; number: number; labels?: GhLabel[]; error?: string }
   | { t: 'rtc'; from: string; data: unknown }
   | ({ t: 'chat' } & ChatLine)
+  /** /party in the chat: everyone dances to the DJ's set under club lights until `until` (the office's clock); 0 stops it. */
+  | { t: 'party'; until: number; by: string }
   | { t: 'toast'; text: string; level: 'info' | 'warn' | 'error' }
   | { t: 'team'; state: TeamState }
   | { t: 'upgrade'; state: UpgradeState }
