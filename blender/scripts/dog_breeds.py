@@ -354,8 +354,7 @@ BREEDS = {
         rump=((0, 0.09, 0.27), (0.13, 0.12, 0.13)),
         extra=(
             # The mane, round the head's sides and under its chin, down over the chest.
-            ((0, -0.2, 0.42), (0.19, 0.14, 0.2)),
-            ((0.1, -0.2, 0.5), (0.1, 0.1, 0.11)),
+            ((0, -0.2, 0.43), (0.185, 0.14, 0.21)),
             ((0, -0.26, 0.3), (0.12, 0.09, 0.13)),
             # The mane hanging down its chest nearly to its paws, and britches down over its back legs,
             # so all that shows of its legs is its feet.
@@ -369,7 +368,7 @@ BREEDS = {
         collar_at=0.35,
         head=(0, -0.25, 0.5),
         head_r=(0.15, 0.14, 0.14),
-        cheeks=((0.07, -0.31, 0.47), (0.08, 0.07, 0.068)),
+        cheeks=((0.058, -0.315, 0.468), (0.064, 0.062, 0.058)),
         # A short, pointed fox's muzzle.
         muzzle=((0, -0.37, 0.46), (0.042, 0.05, 0.038)),
         nose=((0, -0.415, 0.474), (0.022, 0.017, 0.018)),
