@@ -75,7 +75,8 @@ function textTexture(text: string, opts: TextOpts) {
   const ctx = canvas.getContext('2d')!;
   const font = `800 ${size}px Nunito, ui-rounded, system-ui, sans-serif`;
   ctx.font = font;
-  const w = Math.ceil(ctx.measureText(text).width) + size;
+  const width = ctx.measureText(text).width;
+  const w = Math.ceil(width) + size;
   const h = Math.ceil(size * 1.6);
   canvas.width = w;
   canvas.height = h;
@@ -91,9 +92,11 @@ function textTexture(text: string, opts: TextOpts) {
     ctx.stroke();
   }
   ctx.fillStyle = opts.color ?? '#2b2d42';
-  ctx.textAlign = 'center';
+  // Left-aligned from where centring puts it: Safari centres a line that starts with some emoji
+  // (🏎️) half its width too far right, off the end of the canvas.
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, w / 2, h / 2 + size * 0.05);
+  ctx.fillText(text, (w - width) / 2, h / 2 + size * 0.05);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;

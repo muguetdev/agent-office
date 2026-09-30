@@ -469,6 +469,7 @@ export function buildScenic(group: THREE.Group, colliders: Collider[], night: Ni
   // ---- The town's ends: signs to the loop ------------------------------------------------------------
   // A billboard across the street from the garage, and a sign at each end of the street.
   {
+    // The text stands just proud of the posts, which come forward of the board.
     const g = new THREE.Group();
     const wood = toon('#5c4033');
     for (const sx of [-1, 1]) g.add(mesh(box(0.3, 5.6, 0.3), wood, sx * 3.2, 2.8, 0));
@@ -479,17 +480,17 @@ export function buildScenic(group: THREE.Group, colliders: Collider[], night: Ni
     colliders.push({ minX: 20.6, maxX: 27.4, minZ: 36.8, maxZ: 37.2, bottom: G, top: G + 5.6 });
     const title = textPlane(L.world.scenic, { color: '#ffd166', size: 72 });
     title.scale.setScalar(1.35);
-    title.position.set(24, G + 4.75, 36.85);
+    title.position.set(24, G + 4.75, 36.8);
     title.rotation.y = Math.PI;
     const sub = textPlane(L.world.scenicSub, { color: '#f1faee', size: 44 });
     const w = (sub.geometry.parameters as { width: number }).width;
     sub.scale.setScalar(7.8 / w);
-    sub.position.set(24, G + 3.55, 36.85);
+    sub.position.set(24, G + 3.55, 36.8);
     sub.rotation.y = Math.PI;
     labels.add(title, sub);
   }
-  signpost(parts.meadow, labels, STREET_END - 14, 20.2, -Math.PI / 2, '🏔️ Scenic Loop ⟶', 4.6);
-  signpost(parts.meadow, labels, -STREET_END + 14, 20.2, Math.PI / 2, '⟵ Scenic Loop 🏖️', 4.6);
+  signpost(parts.meadow, labels, STREET_END - 14, 20.2, -Math.PI / 2, L.world.loopEast, 4.6);
+  signpost(parts.meadow, labels, -STREET_END + 14, 20.2, Math.PI / 2, L.world.loopWest, 4.6);
 
   // At the start of each stretch, a sign on the right (going round clockwise), facing the traffic.
   for (const place of ['farm', 'forest', 'mountains', 'beach', 'coast'] as Place[]) {
@@ -498,7 +499,7 @@ export function buildScenic(group: THREE.Group, colliders: Collider[], night: Ni
     const i = indexAt(s.from + 6);
     const p = LOOP[i];
     const at = beside(i, -(LOOP_HALF + 3.4));
-    signpost(parts.road, labels, at.x, at.z, Math.atan2(-p.tx, -p.tz) - 0.3, `${PLACES[place].icon} ${PLACES[place].name}`);
+    signpost(parts.road, labels, at.x, at.z, Math.atan2(-p.tx, -p.tz) - 0.3, `${PLACES[place].icon} ${L.world.places[place] ?? PLACES[place].name}`);
     taken.push({ x: at.x, z: at.z, r: 3 });
   }
 

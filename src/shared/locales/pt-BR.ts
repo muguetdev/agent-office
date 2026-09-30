@@ -2906,6 +2906,9 @@ Opções:
     opening: 'Abrindo as portas',
   },
   world: {
+    loopEast: '🏔️ Passeio Panorâmico ⟶',
+    loopWest: '⟵ Passeio Panorâmico 🏖️',
+    places: { farm: 'Fazenda Riacho do Prado', forest: 'Pinheiros Sussurrantes', mountains: 'Passo do Cume', beach: 'Praia do Pôr do Sol', coast: 'Ponta do Farol', tunnel: 'Túnel de Granito', town: 'Centro' } as Record<string, string>,
     mutters: ['🍞 …pão?', '💧 água…', '🙏 me tira daqui', '😩 eu consigo consertar, juro', '🐀 oi, rato', '🥶 que frio…', '📜 eu escrevo os testes!', '😵 …', '🎵 99 bugs no código…', '🕯️ já é dia?', '😢 que saudade da minha mesa', '🔑 psiu… a chave?'],
     axeSign: '🪓 ARREMESSO DE MACHADO',
     dartSign: '🎯 DARDOS',

@@ -910,7 +910,7 @@ function renderDriveHint(el: HTMLElement) {
   // Where you are on the scenic loop, and how the lap's going.
   const pose = office.cars.cars[i]?.pose;
   const place = pose ? loopPlace(pose.x, pose.z) : null;
-  const where = place ? ` · ${PLACES[place].icon} ${PLACES[place].name}` : '';
+  const where = place ? ` · ${PLACES[place].icon} ${L.world.places[place] ?? PLACES[place].name}` : '';
   if (driver.driving) {
     const kmh = Math.round(Math.abs(driver.pose?.speed ?? 0) * 3.6);
     const other = name(c?.passenger);

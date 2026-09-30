@@ -2915,6 +2915,9 @@ Options:
     opening: 'Opening the doors',
   },
   world: {
+    loopEast: '🏔️ Scenic Loop ⟶',
+    loopWest: '⟵ Scenic Loop 🏖️',
+    places: { farm: 'Meadowbrook Farm', forest: 'Whispering Pines', mountains: 'Summit Pass', beach: 'Sunset Beach', coast: 'Lighthouse Point', tunnel: 'Granite Tunnel', town: 'Downtown' } as Record<string, string>,
     mutters: ['🍞 …bread?', '💧 water…', '🙏 let me out', '😩 I can fix it, I swear', '🐀 hello, rat', '🥶 so cold…', '📜 I’ll write the tests!', '😵 …', '🎵 99 bugs in the code…', '🕯️ is it day?', '😢 I miss my desk', '🔑 psst… the key?'],
     axeSign: '🪓 AXE THROWING',
     dartSign: '🎯 DARTS',
