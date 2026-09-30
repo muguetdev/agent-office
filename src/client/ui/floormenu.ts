@@ -1,9 +1,10 @@
-import { floorPalette } from '../../shared/floors';
+import './floormenu.css';
+import { cloneLabel, floorPalette } from '../../shared/floors';
 import { ROOF } from '../../shared/rooftop';
+import { L } from '../i18n';
 import type { FloorInfo } from '../../shared/protocol';
 import { store } from '../state';
 import { h } from './dom';
-import { L } from '../i18n';
 
 // The floor list that drops down from the project in the corner: every floor of the building, top
 // floor first. Picking one takes you straight there, to the same spot in the office you're standing
@@ -41,7 +42,7 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
     const n = Math.abs(i - here);
     const where = isHere ? L.elevator.youAreHere : here < 0 ? '' : `${i > here ? '⬆' : '⬇'} ${i > here ? L.elevator.floorsUp(n) : L.elevator.floorsDown(n)}`;
     const stats: HTMLElement[] = [];
-    if (f.cloning) stats.push(h('span', {}, L.elevator.cloningShort));
+    if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
     else {
       if (f.waiting) stats.push(h('span.waiting', { title: L.elevator.workersWaiting }, `🙋 ${f.waiting}`));
       if (f.busy) stats.push(h('span', { title: L.elevator.working }, `👷 ${f.busy}`));

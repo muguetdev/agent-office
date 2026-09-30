@@ -1,9 +1,10 @@
-import type { FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
-import { floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
+import './elevator.css';
+import type { CloneProgress, FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
+import { cloneLabel, cloneStep, floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
 import { ROOF, ROOF_NAME } from '../../shared/rooftop';
 import type { Net } from '../net';
 import { store } from '../state';
-import { h, openModal, timeAgo, type Modal } from './dom';
+import { h, openModal, timeAgo, toast, type Modal } from './dom';
 import { confirmDialog } from './prompt';
 import { L } from '../i18n';
 
@@ -30,12 +31,25 @@ export interface ElevatorOptions {
 const SHOWN = 60;
 /** Ask gh for the repositories again after this long. */
 const REPOS_STALE_MS = 5 * 60_000;
+/** Longer than the office takes to ask GitHub about a repository before its clone starts. */
+const START_MS = 60_000;
 
-const addedWaiters = new Set<(msg: Extract<ServerMsg, { t: 'floor.added' }>) => void>();
+/** Panels waiting on a clone; each says whether the answer was for it. */
+const addedWaiters = new Set<(msg: Extract<ServerMsg, { t: 'floor.added' }>) => boolean>();
 
 /** Main feeds server messages through here, so a panel waiting on its clone hears back. */
 export function routeElevatorMessage(msg: ServerMsg) {
-  if (msg.t === 'floor.added') for (const fn of addedWaiters) fn(msg);
+  if (msg.t !== 'floor.added') return;
+  let heard = false;
+  for (const fn of addedWaiters) heard = fn(msg) || heard;
+  // The panel was closed while it cloned: a clone that failed still says why.
+  if (!heard && msg.error) toast(`🛗 ${msg.error}`, 'warn');
+}
+
+/** How far through its step a floor's clone is, as a bar (none until git gives a percentage). */
+function cloneBar(p: CloneProgress | undefined): HTMLElement | null {
+  if (p?.percent === undefined) return null;
+  return h('span.clone-bar', { role: 'progressbar', 'aria-label': p.step, 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(p.percent) }, h('span', { style: `width:${p.percent}%` }));
 }
 
 let current: Modal | null = null;
@@ -53,6 +67,9 @@ export function openElevator(opts: ElevatorOptions): void {
   let filter = '';
   let selected: string | null = null;
   let adding: string | null = null;
+  /** The office has started cloning `adding` (it's on the floor list). */
+  let seen = false;
+  let startTimer: number | undefined;
   let error = '';
   let showAdd = setup || !store.floors.length;
   /** The search box and list are in place (rebuilding them would lose the focus mid-typing). */
@@ -107,7 +124,7 @@ export function openElevator(opts: ElevatorOptions): void {
     const here = mine && !opts.downstairs();
     const p = floorPalette(f.palette);
     const stats: (HTMLElement | string)[] = [];
-    if (f.cloning) stats.push(L.elevator.cloningShort);
+    if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
     else {
       if (f.busy) stats.push(h('span', { title: L.elevator.working }, `👷 ${f.busy}`));
       if (f.waiting) stats.push(h('span.waiting', { title: L.elevator.waiting }, `🙋 ${f.waiting}`));
@@ -118,7 +135,13 @@ export function openElevator(opts: ElevatorOptions): void {
       'button.floor-btn',
       { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name, !!mine) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
-      h('span.floor-text', {}, h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null), h('span.floor-sub', {}, f.repo ?? f.dir)),
+      h(
+        'span.floor-text',
+        {},
+        h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null),
+        h('span.floor-sub', {}, [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
+        f.cloning ? cloneBar(f.clone) : null,
+      ),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
     );
     btn.addEventListener('click', () => {
@@ -129,10 +152,16 @@ export function openElevator(opts: ElevatorOptions): void {
     return btn;
   };
 
-  /** The floor's button, with a 🗑 beside it for admins to take it off the building. */
+  /** The floor's button, with a 🗑 beside it for admins to take it off the building (⏹ to stop it while it's cloned). */
   const floorRow = (f: FloorInfo, i: number) => {
     const btn = floorButton(f, i);
-    if (!store.me.admin || f.cloning) return btn;
+    if (f.cloning) {
+      if (!store.me.admin && !(adding && sameRepo(f.repo, adding))) return btn;
+      const stop = h('button.btn.floor-off', { type: 'button', title: L.elevator.stopCloning(f.repo ?? f.name), 'aria-label': L.elevator.stopCloning(f.name) }, '⏹️');
+      stop.addEventListener('click', () => confirmDialog(L.elevator.stopCloningQ(f.repo ?? f.name), L.elevator.stopCloningNote, L.elevator.stopCloningBtn, () => net.send({ t: 'floor.cancel', floor: f.id })));
+      return h('div.floor-row', {}, btn, stop);
+    }
+    if (!store.me.admin) return btn;
     const off = h('button.btn.floor-off', { type: 'button', title: L.elevator.takeOff(f.name), 'aria-label': L.elevator.remove(f.name) }, '🗑');
     off.addEventListener('click', () => confirmRemove(f));
     return h('div.floor-row', {}, btn, off);
@@ -255,12 +284,17 @@ export function openElevator(opts: ElevatorOptions): void {
     const dest = pick ? `${store.projectsDir.dir}/${pick}` : `${store.projectsDir.dir}/${L.elevator.ownerRepo}`;
     const change = store.me.admin ? h('button.btn.dir-change', { type: 'button', title: L.elevator.changeFolderTip }, L.elevator.changeFolder) : null;
     change?.addEventListener('click', () => editDir(true));
-    statusEl.replaceChildren(
-      adding
-        ? h('p.note.busy', {}, L.elevator.cloning(adding, `${store.projectsDir.dir}/${adding}`))
-        : h('p.note', {}, L.elevator.clonedInto(dest), change),
-      ...[r.error, error].filter(Boolean).map((e) => h('p.err', {}, e)),
-    );
+    // While it clones: how far it's got (the office asks GitHub about it first).
+    const on = addingFloor();
+    const lines = adding
+      ? [
+          h('p.note.busy', {}, on ? `⏳ ${L.elevator.cloningInto(on.repo ?? adding, `${store.projectsDir.dir}/${on.repo ?? adding}`)}` : `⏳ ${L.elevator.askingGithub(adding)}`),
+          on ? cloneBar(on.clone) : null,
+          on ? h('p.note', {}, [cloneStep(on.clone), on.clone?.detail].filter(Boolean).join(' · ')) : null,
+          h('p.note', {}, L.elevator.carryOn),
+        ]
+      : [h('p.note', {}, L.elevator.clonedInto(dest), change)];
+    statusEl.replaceChildren(...lines.filter((l): l is HTMLElement => !!l), ...[r.error, error].filter(Boolean).map((e) => h('p.err', {}, e)));
     addBtn.disabled = !!adding || !pick || store.floors.some((f) => sameRepo(f.repo, pick));
     addBtn.textContent = adding ? L.elevator.cloningShort : pick ? L.elevator.addRepo(pick) : L.elevator.addFloor;
     input.disabled = !!adding;
@@ -276,24 +310,54 @@ export function openElevator(opts: ElevatorOptions): void {
     }
   };
 
+  /** The floor being added, once the office is cloning it (and after, when it's there). */
+  const addingFloor = () => (adding ? store.floors.find((f) => sameRepo(f.repo, adding!)) : undefined);
+
   const add = (repo: string) => {
     if (adding) return;
     adding = repo;
+    seen = false;
     error = '';
     renderAdd();
     net.send({ t: 'floor.add', repo });
+    // The office went away before it started (a restart): don't wait forever.
+    clearTimeout(startTimer);
+    startTimer = window.setTimeout(() => {
+      if (adding !== repo || seen) return;
+      adding = null;
+      error = `The office didn't start cloning ${repo} — try again`;
+      renderAdd();
+    }, START_MS);
+  };
+
+  /** Done waiting on the clone, one way or another. */
+  const settle = (floor: string | undefined, why?: string) => {
+    adding = null;
+    clearTimeout(startTimer);
+    if (floor) {
+      modal.close();
+      opts.ride(floor);
+      return;
+    }
+    error = why ?? L.elevator.couldNotAdd;
+    renderAdd();
   };
 
   const onAdded = (msg: Extract<ServerMsg, { t: 'floor.added' }>) => {
-    if (!adding || msg.repo !== adding) return;
-    adding = null;
-    if (msg.error || !msg.floor) {
-      error = msg.error ?? L.elevator.couldNotAdd;
-      renderAdd();
-      return;
-    }
-    modal.close();
-    opts.ride(msg.floor);
+    if (!adding || msg.repo !== adding) return false;
+    settle(msg.error ? undefined : msg.floor, msg.error);
+    return true;
+  };
+
+  /**
+   * The floor list changed. The office answers the one who asked with floor.added, but if it
+   * restarted mid-clone that answer went nowhere: the floor list still shows how it ended.
+   */
+  const checkAdding = () => {
+    if (!adding) return;
+    const f = addingFloor();
+    if (f?.cloning) seen = true;
+    else if (seen) settle(f?.id, `Cloning ${adding} stopped before it finished — add it again`);
   };
   addedWaiters.add(onAdded);
 
@@ -337,13 +401,14 @@ export function openElevator(opts: ElevatorOptions): void {
     h('div.body', {}, intro, floorsEl, addEl),
     h('footer', {}, h('span.grow', {}, setup ? L.elevator.setupFoot : L.elevator.foot), addBtn),
   );
-  const unsubs = [store.on('floors', () => (renderFloors(), renderAdd())), store.on('repos', renderAdd), store.on('projectsDir', () => (editDir(false), renderAdd())), store.on('floor', renderFloors), store.on('peers', renderFloors), store.on('me', () => (renderFloors(), renderAdd()))];
+  const unsubs = [store.on('floors', () => (checkAdding(), renderFloors(), renderAdd())), store.on('repos', renderAdd), store.on('projectsDir', () => (editDir(false), renderAdd())), store.on('floor', renderFloors), store.on('peers', renderFloors), store.on('me', () => (renderFloors(), renderAdd()))];
   const modal = openModal(el, {
     doing: L.elevator.doing,
     // A stray click shouldn't lose the first-run panel; ✕ and Esc still close it.
     backdropCloses: !setup,
     onClose: () => {
       current = null;
+      clearTimeout(startTimer);
       addedWaiters.delete(onAdded);
       for (const off of unsubs) off();
     },

@@ -35,11 +35,17 @@ export function interactive(): boolean {
  * sign-in and the first projects before it opens. Enter skips any of it; the elevator does the same.
  */
 export async function welcome(cfg: Config): Promise<void> {
-  const building = new Building(cfg.dataDir, cfg.projectsDir);
+  const building = new Building(cfg.dataDir, cfg.projectsDir, { terminal: true });
   if (building.list().length) return;
   // --projects is the answer to the first question (the office applies it again as it starts).
   const folderGiven = !!cfg.projects && !building.setProjectsDir(cfg.projects, L.srv.commandLine);
-  console.log(m.welcome);
+  console.log(`
+  👋 Welcome to Agent Office!
+
+  Every project is a floor of the building, and this one doesn't have any yet.
+  Let's add your first: pick one of your GitHub repositories and the office
+  clones it. Press Enter to skip any question and do it from the office's
+  elevator instead.`);
   await walkthrough(building, cfg.dataDir, !folderGiven && !building.projectsDirState().custom);
   console.log(building.list().length ? m.allSet : m.openingEmpty);
 }
@@ -83,14 +89,14 @@ export async function setupCommand(argv: string[]): Promise<number> {
   const dataDir = path.join(dir, '.agent-office');
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   if (await officeRunning(dataDir)) {
-    console.error(m.running(tildify(dir)));
+    console.error(`agent-office setup: the office in ${tildify(dir)} is running. Add projects from its elevator, and pick the workspace folder in ⚙️ Settings.`);
     return 1;
   }
-  const building = new Building(dataDir, inProject ? path.join(os.homedir(), 'agent-office') : dir);
+  const building = new Building(dataDir, inProject ? path.join(os.homedir(), 'agent-office') : dir, { terminal: true });
 
   if (projects || repos.length || !interactive()) {
     if (!projects && !repos.length) {
-      console.error(m.nothingToDo);
+      console.error('agent-office setup: nothing to do without a terminal to ask in. Pass --projects <dir> and/or --project <owner/repo>.');
       return 2;
     }
     let code = 0;
@@ -107,7 +113,11 @@ export async function setupCommand(argv: string[]): Promise<number> {
   }
 
   const floors = building.list();
-  console.log(floors.length ? m.hasFloors(tildify(dir), floors.map((f) => f.name)) : m.noFloors(tildify(dir)));
+  console.log(
+    floors.length
+      ? `\n  🏢 ${L.setup.hasFloors(tildify(dir), floors.map((f) => f.name))}`
+      : `\n  🏢 ${L.setup.noFloorsIn(tildify(dir))}`,
+  );
   await walkthrough(building, dataDir, true);
   return 0;
 }
@@ -235,7 +245,7 @@ async function pickProjects(building: Building, login: string) {
 /** Clones `repo` as a new floor, saying how it went. */
 async function addFloor(building: Building, repo: string, by: string): Promise<boolean> {
   const r = await building.add(repo, by, (def) => {
-    console.log(m.cloning(def.repo ?? repo, tildify(def.dir)));
+    console.log(`     ⏳ Cloning ${def.repo ?? repo} into ${tildify(def.dir)}…`);
   });
   if (typeof r === 'string') {
     console.log(`     ✗ ${r}`);

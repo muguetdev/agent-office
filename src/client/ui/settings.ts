@@ -1,14 +1,15 @@
+import './settings.css';
 import type { Net } from '../net';
 import { store, type Settings, type ViewMode } from '../state';
 import { askNotifyPermission, notifyPermission, type DesktopNotifier } from '../notify';
 import type { ThemePick, WebhookKind } from '../../shared/protocol';
 import { THEME_PICKS } from '../../shared/theme';
 import { mapChoices } from '../../shared/maps';
-import { DOG_BREEDS, DOG_COATS, DOG_NAME_MAX, cleanDogName, dogBreed } from '../../shared/dog';
 import { h, openModal, timeAgo } from './dom';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { L } from '../i18n';
+import { dogSetting } from './settings-dog';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', L.settings.first, L.settings.firstNote],
@@ -476,61 +477,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   });
   dirDefault.addEventListener('click', () => net.send({ t: 'floor.projectsDir', dir: '' }));
 
-  // The dog on this floor, named for everyone here.
-  const dogInput = h('input', { type: 'text', maxlength: DOG_NAME_MAX, 'aria-label': L.settings.dogName, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
-  const dogSave = h('button.btn.primary', { type: 'button' }, L.settings.rename);
-  const dogNote = h('p.setting-note');
-  const breedRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.dogBreed });
-  const coatRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.settings.dogCoat });
-  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), breedRow, coatRow, dogNote);
-  const paintDog = () => {
-    const dog = store.dog;
-    dogSection.classList.toggle('hidden', !dog);
-    if (!dog) return;
-    dogInput.placeholder = dog.name;
-    dogNote.textContent = L.settings.dogNote(dog.name);
-    const breed = dogBreed(dog.breed);
-    breedRow.replaceChildren(
-      ...DOG_BREEDS.map((b) =>
-        h(
-          'button.btn',
-          {
-            type: 'button',
-            role: 'radio',
-            'aria-checked': String(b === breed),
-            class: b === breed ? 'on' : '',
-            onclick: () => b !== dogBreed(store.dog?.breed) && net.send({ t: 'dog.breed', breed: b }),
-          },
-          L.settings.dogBreeds[b],
-        ),
-      ),
-    );
-    coatRow.replaceChildren(
-      ...DOG_COATS.map(([body, light], i) =>
-        h('button.swatch', {
-          type: 'button',
-          role: 'radio',
-          title: L.settings.dogCoats[i],
-          'aria-label': L.settings.dogCoats[i],
-          'aria-checked': String(i === dog.coat),
-          class: i === dog.coat ? 'sel' : '',
-          style: `background:linear-gradient(135deg, ${body} 55%, ${light} 55%)`,
-          onclick: () => i !== store.dog?.coat && net.send({ t: 'dog.coat', coat: i }),
-        }),
-      ),
-    );
-  };
-  paintDog();
-  const renameDog = () => {
-    const name = cleanDogName(dogInput.value);
-    if (!name) return dogInput.focus();
-    net.send({ t: 'dog.name', name });
-    dogInput.value = '';
-  };
-  dogSave.addEventListener('click', renameDog);
-  dogInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') renameDog();
-  });
+  // The dog on this floor: its name, breed and coat, for everyone here (see settings-dog.ts).
+  const { section: dogSection, paint: paintDog } = dogSetting(net, (body) => setting(L.settings.officeDog, 'floor', ...body));
 
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);

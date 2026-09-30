@@ -1,10 +1,11 @@
+import './accounts.css';
 import type { AccountInvite, AccountRole, ServerMsg } from '../../shared/protocol';
 import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo } from './dom';
 import { confirmDialog } from './prompt';
-import { copyButton } from './team';
 import { L } from '../i18n';
+import { copyButton } from './team';
 
 export const inviteLink = (v: AccountInvite) => `${location.origin}/join#${v.token}`;
 

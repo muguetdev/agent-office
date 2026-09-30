@@ -71,6 +71,7 @@ Opções:
     added: (repo: string, floor: number) => `     ✓ ${repo} é o andar ${floor}`,
     alreadyFloor: '(já é um andar)',
     private: 'privado',
+    noFloorsIn: (dir: string) => `O escritório em ${dir} ainda não tem andares: cada projeto é um andar do prédio.`,
   },
   character: {
     titleFirst: '👋 Escolha seu personagem',
@@ -466,6 +467,9 @@ Opções:
     size: 'Tamanho',
     cancel: 'Cancelar',
     keyToLook: 'Aperte uma tecla ou clique para olhar em volta',
+    isPlaying: (who: string) => `${who} está jogando`,
+    gamePaused: (score: string) => `seu jogo está pausado em ${score}`,
+    comesDown: (floor: string) => `desce de ${floor}`,
   },
   meetings: {
     patterns: {
@@ -688,6 +692,14 @@ Opções:
     setupFoot: 'Seu escritório, um andar por projeto · Esc para dar uma olhada antes',
     goHere: (floor: string) => `Ir para ${floor}, bem onde você está`,
     goElevator: (floor: string) => `Ir para ${floor}, pelo elevador`,
+    beingCloned: 'Sendo clonado',
+    stopCloning: (what: string) => `Parar de clonar ${what}`,
+    stopCloningQ: (what: string) => `Parar de clonar ${what}?`,
+    stopCloningNote: 'O que já foi baixado é descartado. Dá para adicionar de novo quando quiser.',
+    stopCloningBtn: '⏹️ Parar de clonar',
+    cloningInto: (repo: string, dest: string) => `Clonando ${repo} em ${dest}`,
+    askingGithub: (repo: string) => `Consultando o GitHub sobre ${repo}…`,
+    carryOn: 'Pode fechar isto e seguir: todo mundo fica sabendo quando o andar novo abrir.',
   },
   settings: {
     dogCoat: 'Pelagem',
@@ -874,6 +886,10 @@ Opções:
     dshInvalid: 'Use um id de modelo do catálogo do DeepSeek Harness com até 256 caracteres, sem caracteres de controle.',
     notMetered: (agent: string) => `O gasto do ${agent} não é medido pelo escritório; os totais de tokens ficam no terminal do worker.`,
     noteDsh: 'O DeepSeek Harness informa o uso de contexto via ACP depois do primeiro turno; o custo pode não estar disponível.',
+    defaultPi: 'Padrão (configurações do Pi)',
+    piThinking: 'Nível de raciocínio do Pi',
+    thinking: 'Raciocínio',
+    piInvalid: 'Use um nome de modelo do Pi ou provedor/modelo: letras, números e . _ : / @ + - (até 256 caracteres).',
   },
   terminal: {
     typing1: (a: string) => `${a} está digitando…`,
@@ -1203,6 +1219,7 @@ Opções:
     done: '✅ Concluídas',
     empty: 'Nada na fila ainda.',
     doing: '📥 na fila',
+    terminal: '🖥️ Terminal',
   },
   meeting: {
     pullRequest: 'Pull request',
@@ -2248,6 +2265,9 @@ Opções:
     badEffort: 'Esforço inválido (esperado low, medium, high, xhigh ou max)',
     badModel: (agent: string) => `Modelo do ${agent} inválido`,
     badDshModel: 'Modelo do DeepSeek Harness inválido (esperado um id de modelo do catálogo com até 256 caracteres)',
+    modelsFor: (names: string) => `Só dá para escolher modelos para workers de ${names}`,
+    effortFor: (names: string) => `Só dá para escolher o esforço de raciocínio para workers de ${names}`,
+    invalidModel: { claude: 'Modelo do Claude inválido (esperado fable, opus, sonnet ou haiku)', opencode: 'Modelo do OpenCode inválido (esperado provedor/modelo sem espaços)', grok: 'Modelo do Grok inválido', muse: 'Modelo do Muse inválido', dsh: 'Modelo do DeepSeek Harness inválido (esperado um id de modelo do catálogo com até 256 caracteres)', pi: 'Modelo do Pi inválido (esperado um nome de modelo ou provedor/modelo sem espaços)' } as Record<string, string>,
   },
   srvUpgrade: {
     checkFailed: (error: string) => `Não deu para procurar atualizações: ${error}`,
@@ -2319,7 +2339,7 @@ Opções:
     passed: (budget: string, spent: string, paused: boolean) => `💸 O gasto de hoje passou do orçamento de ${budget} (${spent})${paused ? ' — sem contratações até amanhã' : ''}`,
   },
   cli: {
-    help: `agent-office — um escritório 3D para o seu time e os workers dele de Claude Code / OpenCode / Codex / Grok / Muse / DeepSeek Harness
+    help: (workers: string) => `agent-office — um escritório 3D para o seu time e os workers dele de ${workers}
 
 Uso:
   agent-office [opções]
@@ -2425,7 +2445,7 @@ reverso, --tls-cert/--tls-key ou --self-signed), a menos que todo mundo esteja n
     password: 'senha',
     defaultAgent: 'agente padrão',
     viaLoginShell: (cmd: string) => `${cmd} (pelo shell de login)`,
-    chooseProvider: 'escolha Claude Code ou OpenCode ao contratar ou enfileirar uma tarefa',
+    chooseProvider: 'escolha um provedor (inclusive o Pi) ao contratar ou enfileirar uma tarefa',
     tip: 'dica: voz e compartilhamento de tela precisam de https fora do localhost — use um proxy reverso ou --self-signed',
     closingKeep: 'fechando o escritório — os workers continuam rodando para o próximo…',
     closing: 'fechando o escritório…',
@@ -2967,10 +2987,52 @@ Opções:
     startsFrom: (branch: string, n: number) => `começa de origin/${branch}, sem ${n === 1 ? 'o commit' : `os ${n} commits`} em ${branch} que o origin não tem`,
     noFolder: 'ela não tem pasta para recolocar',
     gitFailed: 'o git falhou',
+    ghFailed: 'o gh falhou',
   },
   party: {
     dogDancing: '🕺 dançando',
     started: (who: string) => `🎉 ${who} começou uma festa! (/party stop encerra)`,
     stopped: (who: string) => `${who} encerrou a festa`,
+  },
+  termTabs: {
+    tabs: 'Abas',
+    namePlaceholder: 'Nome da aba (ex.: ChatGPT)',
+    name: 'Nome da aba',
+    address: 'Endereço da página',
+    add: 'Adicionar',
+    addTip: 'Deixe uma página da web aberta ao lado deste terminal (um chat, uma documentação, qualquer coisa com endereço)',
+    addLabel: '+ Página',
+    outTip: 'Abrir esta página numa aba própria do navegador (para sites que não aparecem aqui)',
+    out: '↗ Nova aba',
+    terminal: '💻 Terminal',
+    close: (tab: string) => `Fechar a aba ${tab}`,
+    badUrl: 'Isso não parece um endereço da web',
+    onlyHttp: 'Só endereços http:// e https:// abrem numa aba',
+    notOffice: 'As páginas do próprio escritório não abrem numa aba',
+  },
+  clone: {
+    packing: 'O GitHub está empacotando',
+    downloading: 'Baixando',
+    unpacking: 'Descompactando',
+    checking: 'Conferindo',
+    checkingOut: 'Extraindo os arquivos',
+    lfs: 'Baixando arquivos LFS',
+    connecting: 'Conectando ao GitHub',
+    hostKey: 'o ssh da máquina do escritório ainda não aceitou a chave de host do github.com. Rode `ssh -T git@github.com` lá uma vez, ou clone por https com `gh config set git_protocol https`',
+    passphrase: 'a chave ssh do escritório precisa da senha dela. Adicione-a ao agente ssh (`ssh-add`), ou clone por https com `gh config set git_protocol https`',
+    publicKey: 'o GitHub não aceitou a chave ssh do escritório. Adicione-a com `gh ssh-key add`, ou clone por https com `gh config set git_protocol https`',
+    password: 'o git pediu uma senha do GitHub. Rode `gh auth setup-git` na máquina do escritório para o git usar o login do gh',
+    alreadyThere: 'Esse andar já está lá',
+    onlyAdminsStop: 'Só admins, ou quem adicionou, podem parar um andar a caminho',
+    nothingToStop: 'Ainda não há clone para parar — tente de novo em instantes',
+    stillCloning: 'Esse andar ainda está sendo clonado — pare o clone, ou tire o andar quando ele chegar',
+    couldntMake: (dir: string, error: string) => `Não deu para criar ${dir}: ${error}`,
+    failed: (repo: string, why: string) => `Não deu para clonar ${repo}: ${why}`,
+    unfinished: (dir: string, repo: string) => `${dir} é um clone de ${repo} que não terminou — apague essa pasta e adicione o andar de novo`,
+    ghStopped: (signal: string) => `o gh parou (${signal})`,
+    ghExit: (code: number | null) => `o gh falhou (saída ${code})`,
+    stoppedBy: (who: string) => `${who} parou o clone`,
+    stoppedCloning: (who: string, what: string) => `${who} parou de clonar ${what}`,
+    aFloor: 'um andar',
   },
 };
