@@ -392,6 +392,8 @@ const driver = new Driver(player, office.cars, {
     if (!reduceMotion.matches) thud = Math.max(thud, Math.min(0.8, speed / 15));
   },
 });
+/** The telescope has had the mouse captured, so losing it means leaving the scope (see pointerlockchange). */
+let scopeHadMouse = false;
 const telescope = new TelescopeView(
   camera,
   $('telescope-view'),
@@ -401,13 +403,19 @@ const telescope = new TelescopeView(
     player.enabled = false;
     player.clearKeys();
     player.stopWalking();
-    player.yieldMouse();
+    // The mouse turns the scope, as far as you like: captured, with no cursor to run into the edge.
+    player.keepMouse = true;
+    player.lock();
     document.body.classList.add('telescope-active');
     $('telescope-view').setAttribute('aria-hidden', 'false');
     target = null;
     hintKey = 'stale';
   },
   () => {
+    player.keepMouse = false;
+    scopeHadMouse = false;
+    // Back as you were: looking round in first person, or with the cursor in third.
+    if (!player.canLock) player.unlock();
     document.body.classList.remove('telescope-active');
     $('telescope-view').setAttribute('aria-hidden', 'true');
     player.enabled = !modalOpen() && !trip;
@@ -4311,6 +4319,11 @@ function backToGame() {
 }
 document.addEventListener('pointerlockchange', () => {
   if (player.locked) relookOnKey = false;
+  // The browser let go of the mouse the scope had (its own Esc): out of the scope too, not left without a cursor.
+  if (telescope.active) {
+    if (player.locked) scopeHadMouse = true;
+    else if (scopeHadMouse) telescope.exit();
+  }
 });
 
 // ---- Clicking the world: use what's under the crosshair (first person) or the mouse (third) ----------
