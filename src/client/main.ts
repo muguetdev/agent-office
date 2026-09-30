@@ -3580,8 +3580,10 @@ function partyFrame(t: number, dt: number) {
     partyDanceAt = t + 3;
     danceParty();
   }
-  if (partyLevel < 0.01) return partyLights.update(t, djFrame(djAt()), 0);
   const f = djFrame(djAt());
+  // The dog dances too, while it's on.
+  dog.setParty(here ? f.beat : null);
+  if (partyLevel < 0.01) return partyLights.update(t, f, 0);
   partyLights.update(t, f, partyLevel);
   // The house lights down, and the room flashing the track's colour on the kicks and snares.
   const k = partyLevel;
@@ -3850,10 +3852,12 @@ function hintFor(it: Interactable): Hint {
     case 'ball':
       return { k: String(ball.still), parts: [title(L.hints.basketball), ball.still ? aside(L.hints.shootHoops) : '', key('E', ball.still ? L.hints.pickUp : L.hints.catchIt)] };
     case 'dog': {
-      const doing = dog.doing(
-        (id) => store.workers.get(id)?.name,
-        (id) => (id === store.you ? L.hints.youLower : store.peers.get(id)?.name),
-      );
+      const doing = partyOn() && !upTop
+        ? L.party.dogDancing
+        : dog.doing(
+            (id) => store.workers.get(id)?.name,
+            (id) => (id === store.you ? L.hints.youLower : store.peers.get(id)?.name),
+          );
       return { k: `${dog.name}|${doing}`, parts: [title(`🐶 ${dog.name}`), doing ? aside(doing) : '', key('E', L.hints.pet)] };
     }
     case 'telescope':

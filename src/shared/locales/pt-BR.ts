@@ -2533,7 +2533,8 @@ Opções:
   logs: {
     dogName: (error: string) => `não deu para salvar o nome do cachorro: ${error}`,
     noCity: (city: string) => `não deu para achar a cidade "${city}"; o clima vai ser inventado`,
-    noWeather: (city: string, error: string) => `ainda sem clima para ${city} (${error}); tentando de novo em alguns minutos`,
+    weatherBack: (city: string) => `o clima de ${city} chegou`,
+    noWeather: (city: string, error: string) => `ainda sem clima para ${city} (${error}); tentando de novo em instantes`,
     resumeAfter: (error: string) => `os workers vão ser retomados depois do reinício, e não mantidos rodando: ${error}`,
     floorsUnreadable: (file: string, error: string) => `não deu para ler ${file}, então o prédio começa vazio: ${error}`,
     saveFailed: (what: string, error: string) => `não deu para salvar ${what}: ${error}`,
@@ -2968,6 +2969,7 @@ Opções:
     gitFailed: 'o git falhou',
   },
   party: {
+    dogDancing: '🕺 dançando',
     started: (who: string) => `🎉 ${who} começou uma festa! (/party stop encerra)`,
     stopped: (who: string) => `${who} encerrou a festa`,
   },

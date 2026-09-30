@@ -2542,7 +2542,8 @@ Options:
   logs: {
     dogName: (error: string) => `couldn't save the dog's name: ${error}`,
     noCity: (city: string) => `couldn't find the city "${city}"; the weather is made up instead`,
-    noWeather: (city: string, error: string) => `no weather for ${city} yet (${error}); trying again in a couple of minutes`,
+    weatherBack: (city: string) => `the weather for ${city} came through`,
+    noWeather: (city: string, error: string) => `no weather for ${city} yet (${error}); trying again shortly`,
     resumeAfter: (error: string) => `workers will be resumed after the restart, not kept running: ${error}`,
     floorsUnreadable: (file: string, error: string) => `${file} couldn't be read, so the building starts empty: ${error}`,
     saveFailed: (what: string, error: string) => `couldn't save ${what}: ${error}`,
@@ -2977,6 +2978,7 @@ Options:
     gitFailed: 'git failed',
   },
   party: {
+    dogDancing: '🕺 dancing',
     started: (who: string) => `🎉 ${who} started a party! (/party stop ends it)`,
     stopped: (who: string) => `${who} called the party off`,
   },
