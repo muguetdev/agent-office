@@ -150,6 +150,8 @@ sun.shadow.bias = -0.0008;
 // A texel of the shadow map is about 3 cm across (64 m over 2048): walls the sun catches side-on
 // speckle with their own shadow unless the lookup is pushed out by a couple of them.
 sun.shadow.normalBias = 0.06;
+/** How dark the sun's shadows are indoors, of what they are outside (see the frame loop). */
+const INDOOR_SHADOW = 0.4;
 scene.add(sun);
 
 const office = buildOffice();
@@ -4851,6 +4853,9 @@ function frame(ts?: number) {
   else sun.target.position.set(0, 0, 0);
   sun.target.updateMatrixWorld();
   sky.update(dt, t, camera);
+  // Indoors, under the ceiling and the lamps, the sun's shadows are a faint hint of it, not the hard
+  // shadows of the street; they fade as you come in or go out.
+  sun.shadow.intensity += ((indoors() ? INDOOR_SHADOW : 1) - sun.shadow.intensity) * (1 - Math.exp(-dt * 3));
   if (!upTop && inOffice()) office.scenic.cull(camera.position, office.night.street, (scene.fog as THREE.Fog).far);
   // A map of its own lights itself its own way (the castle's torchlit hall), after the sky's had its say.
   if (!upTop) world.mood?.({ sun, hemi, ambient, scene }, sky.daylight, t, camera.position);
