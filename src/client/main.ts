@@ -151,11 +151,14 @@ sun.shadow.bias = -0.0008;
 // speckle with their own shadow unless the lookup is pushed out by a couple of them.
 sun.shadow.normalBias = 0.06;
 /**
- * How dark the sun's shadows are indoors, of what they are outside (see the frame loop): none. The
- * office is lit as if it had no roof, so under the ceiling they'd be the street's sun, falling on the
- * walls from nowhere anyone can see.
+ * Indoors the light that casts shadows comes from the lamps overhead, not the street's sun: the office is
+ * lit as if it had no roof, so the sun's shadows fell across the walls from nowhere anyone could see.
+ * INDOOR_LIGHT is where that light comes from (nearly straight down, a little off so walls aren't
+ * side-on to it), how dark its shadows are, and how bright and warm it is once the lamps are on.
  */
-const INDOOR_SHADOW = 0;
+const INDOOR_LIGHT = { dir: new THREE.Vector3(0.22, 1, 0.14).normalize(), shadow: 0.7, lamp: 0.7, color: new THREE.Color('#ffe2b8') };
+/** 0 outdoors to 1 indoors, eased as you come in or go out. */
+let indoorness = 0;
 scene.add(sun);
 
 const office = buildOffice();
@@ -4857,8 +4860,18 @@ function frame(ts?: number) {
   else sun.target.position.set(0, 0, 0);
   sun.target.updateMatrixWorld();
   sky.update(dt, t, camera);
-  // Indoors, under the ceiling and the lamps, no sun's shadows; they fade as you come in or go out.
-  sun.shadow.intensity += ((indoors() ? INDOOR_SHADOW : 1) - sun.shadow.intensity) * (1 - Math.exp(-dt * 3));
+  // Indoors the shadows fall from the lamps overhead (see INDOOR_LIGHT), and at night the lamps light them.
+  indoorness += ((indoors() ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
+  if (indoorness > 0.001) {
+    const from = sun.position.clone().sub(sun.target.position).normalize();
+    sun.position.copy(sun.target.position).addScaledVector(from.lerp(INDOOR_LIGHT.dir, indoorness).normalize(), 45);
+    const lamp = INDOOR_LIGHT.lamp * sky.lampsOn;
+    if (lamp > sun.intensity) {
+      sun.color.lerp(INDOOR_LIGHT.color, indoorness * Math.min(1, (lamp - sun.intensity) / lamp));
+      sun.intensity += (lamp - sun.intensity) * indoorness;
+    }
+  }
+  sun.shadow.intensity = 1 + (INDOOR_LIGHT.shadow - 1) * indoorness;
   if (!upTop && inOffice()) office.scenic.cull(camera.position, office.night.street, (scene.fog as THREE.Fog).far);
   // A map of its own lights itself its own way (the castle's torchlit hall), after the sky's had its say.
   if (!upTop) world.mood?.({ sun, hemi, ambient, scene }, sky.daylight, t, camera.position);
