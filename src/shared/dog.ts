@@ -60,6 +60,12 @@ export const DOG_COATS: [string, string, string][] = [
   ['#ffffff', '#ffffff', '#f3e9e2'], // white
 ];
 
+/**
+ * How much of its own colour each coat gives off, so a pale one stays pale in the office's warm light
+ * and at dusk rather than going beige (the others are as the light makes them).
+ */
+export const DOG_COAT_GLOW: readonly number[] = [0, 0, 0, 0, 0, 0, 0.42];
+
 /** How many coats a floor's dog is dealt from (see dogDefaults): the ones there were, so none changes colour when one is added. */
 const DEALT_COATS = 6;
 
