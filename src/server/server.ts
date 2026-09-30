@@ -507,7 +507,7 @@ export async function startServer(cfg: Config) {
   writeFileSync(hookPortPath, String(hookPort), { mode: 0o600 });
 
   // Day, night and the weather outside the windows, the same for everyone.
-  const sky = new Sky({ city: cfg.city, weather: cfg.weather }, (state) => broadcast({ t: 'sky', state }));
+  const sky = new Sky({ city: cfg.city, weather: cfg.weather, realTime: cfg.realTimeSky }, (state) => broadcast({ t: 'sky', state }));
   sky.start();
   // Halloween or Christmas all over the building, the same for everyone (⚙️ Settings). On 'auto' it
   // goes by the calendar at the office, the sky's clock.

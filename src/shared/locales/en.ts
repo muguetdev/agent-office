@@ -1841,6 +1841,7 @@ Options:
     letGo: 'Let go of G',
   },
   sky: {
+    timeOutside: (time: string) => `${time} outside`,
     weather: { clear: 'Clear', cloudy: 'Cloudy', rain: 'Rain', storm: 'Thunderstorm', snow: 'Snow', fog: 'Fog' },
     officeTime: (time: string) => `${time} office time`,
   },
@@ -2409,6 +2410,9 @@ Options:
                           whole day and night go by every hour
       --weather <kind>    Pin the weather: clear, cloudy, rain, storm, snow or
                           fog (env AGENT_OFFICE_WEATHER)
+      --real-time-sky     Keep the sky on the office's real clock, so it's night when
+                          it's night there, instead of a day and night every hour
+                          (env AGENT_OFFICE_SKY_CLOCK=real)
   -h, --help              Show this help
 
 Started in a terminal, the office opens in your browser already signed in, with

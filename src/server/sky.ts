@@ -108,7 +108,7 @@ export class Sky {
   private warned = false;
 
   constructor(
-    private opts: { city?: string; weather?: Weather },
+    private opts: { city?: string; weather?: Weather; realTime?: boolean },
     private onChange: (state: SkyState) => void,
   ) {
     const now = new Date();
@@ -134,6 +134,7 @@ export class Sky {
   }
 
   private set(next: SkyState) {
+    if (this.opts.realTime) next = { ...next, realTime: true };
     if (JSON.stringify(next) === JSON.stringify(this.state)) return;
     this.state = next;
     this.onChange(next);

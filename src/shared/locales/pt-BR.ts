@@ -1833,6 +1833,7 @@ Opções:
     letGo: 'Solte o G',
   },
   sky: {
+    timeOutside: (time: string) => `${time} lá fora`,
     weather: { clear: 'Céu limpo', cloudy: 'Nublado', rain: 'Chuva', storm: 'Tempestade', snow: 'Neve', fog: 'Neblina' },
     officeTime: (time: string) => `${time} no horário do escritório`,
   },
@@ -2400,6 +2401,9 @@ Opções:
                           qualquer jeito, um dia e uma noite inteiros passam a cada hora
       --weather <tipo>    Fixa o clima: clear, cloudy, rain, storm, snow ou
                           fog (env AGENT_OFFICE_WEATHER)
+      --real-time-sky     Deixa o céu no relógio real do escritório, então é noite
+                          quando é noite lá, em vez de um dia e uma noite por hora
+                          (env AGENT_OFFICE_SKY_CLOCK=real)
   -h, --help              Mostra esta ajuda
 
 Iniciado num terminal, o escritório abre no seu navegador já logado, com um
