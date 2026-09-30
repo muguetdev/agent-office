@@ -20,8 +20,8 @@
         </svg>
         <span class="loading-shadow" aria-hidden="true"></span>
         <div class="loading-name">Agent Office</div>
-        <div class="loading-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="loading-fill"></span></div>
-        <p class="loading-say">Loading the office</p>
+        <div class="loading-bar" role="progressbar" data-t-aria-label="loadingSteps.loading" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="loading-fill"></span></div>
+        <p class="loading-say" data-t="loadingSteps.loadingOffice">Loading the office</p>
       </div>
     </div>
     <div id="app">
@@ -30,7 +30,7 @@
       <div id="telescope-view" class="telescope-view" aria-hidden="true">
         <div class="telescope-glass"></div>
         <div class="telescope-reticle" aria-hidden="true"></div>
-        <button id="telescope-exit" class="btn telescope-exit" type="button">Exit telescope <span class="key">Esc</span></button>
+        <button id="telescope-exit" class="btn telescope-exit" type="button"><span data-t="loadingSteps.exitTelescope">Exit telescope</span> <span class="key">Esc</span></button>
       </div>
       <div id="hud">
         <div id="compass"></div>

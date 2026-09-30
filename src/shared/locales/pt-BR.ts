@@ -2899,6 +2899,8 @@ Opções:
     open: 'Abrir a visão 2D',
   },
   loadingSteps: {
+    loading: 'Carregando',
+    exitTelescope: 'Sair do telescópio',
     loadingOffice: 'Carregando o escritório',
     unpacking: 'Desempacotando o escritório',
     opening: 'Abrindo as portas',

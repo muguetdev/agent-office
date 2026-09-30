@@ -105,6 +105,8 @@ import { offerLite, touchOnly } from './ui/litesuggest';
 import { openDeskLabel, openExpand } from './ui/floorplan';
 import { L, carName, patternLabel, placeLabel, roleLabel, translatePage } from './i18n';
 
+translatePage();
+
 // The loading screen stays up until there's an office to see (see boot and whoami at the end).
 const loading = loadingScreen(onModelsProgress);
 // Came here from the 2D view's 🏢 3D button: it isn't offered straight back.

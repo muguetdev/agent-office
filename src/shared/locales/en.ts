@@ -2908,6 +2908,8 @@ Options:
     open: 'Open the 2D view',
   },
   loadingSteps: {
+    loading: 'Loading',
+    exitTelescope: 'Exit telescope',
     loadingOffice: 'Loading the office',
     unpacking: 'Unpacking the office',
     opening: 'Opening the doors',
