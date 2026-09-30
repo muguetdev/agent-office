@@ -1694,6 +1694,13 @@ export async function startServer(cfg: Config) {
         toastFloor(floor, L.srv.namedDog(who, name));
         break;
       }
+      case 'dog.breed': {
+        const floor = here();
+        if (!floor) break;
+        const breed = floor.dog.setBreed(msg.breed);
+        if (breed) toastFloor(floor, L.srv.dogBreed(who, floor.dog.dogName, L.settings.dogBreeds[breed]));
+        break;
+      }
       case 'worker.spawn': {
         const floor = here();
         if (!floor) break;

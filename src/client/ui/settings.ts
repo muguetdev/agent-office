@@ -4,7 +4,7 @@ import { askNotifyPermission, notifyPermission, type DesktopNotifier } from '../
 import type { ThemePick, WebhookKind } from '../../shared/protocol';
 import { THEME_PICKS } from '../../shared/theme';
 import { mapChoices } from '../../shared/maps';
-import { DOG_NAME_MAX, cleanDogName } from '../../shared/dog';
+import { DOG_BREEDS, DOG_NAME_MAX, cleanDogName, dogBreed } from '../../shared/dog';
 import { h, openModal, timeAgo } from './dom';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
@@ -480,13 +480,30 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const dogInput = h('input', { type: 'text', maxlength: DOG_NAME_MAX, 'aria-label': L.settings.dogName, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const dogSave = h('button.btn.primary', { type: 'button' }, L.settings.rename);
   const dogNote = h('p.setting-note');
-  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), dogNote);
+  const breedRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.dogBreed });
+  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), breedRow, dogNote);
   const paintDog = () => {
     const dog = store.dog;
     dogSection.classList.toggle('hidden', !dog);
     if (!dog) return;
     dogInput.placeholder = dog.name;
     dogNote.textContent = L.settings.dogNote(dog.name);
+    const breed = dogBreed(dog.breed);
+    breedRow.replaceChildren(
+      ...DOG_BREEDS.map((b) =>
+        h(
+          'button.btn',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': String(b === breed),
+            class: b === breed ? 'on' : '',
+            onclick: () => b !== dogBreed(store.dog?.breed) && net.send({ t: 'dog.breed', breed: b }),
+          },
+          L.settings.dogBreeds[b],
+        ),
+      ),
+    );
   };
   paintDog();
   const renameDog = () => {

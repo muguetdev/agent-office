@@ -690,6 +690,8 @@ Opções:
     goElevator: (floor: string) => `Ir para ${floor}, pelo elevador`,
   },
   settings: {
+    dogBreed: 'Raça',
+    dogBreeds: { pup: '🐶 Vira-lata', corgi: '🦊 Corgi', dachshund: '🌭 Salsicha', pug: '🐾 Pug', shiba: '🍂 Shiba' } as Record<string, string>,
     first: '👀 Primeira pessoa',
     firstNote: 'Veja pelos seus próprios olhos. Clique no escritório para olhar em volta com o mouse e clique nas coisas para usá-las. Esc solta o mouse.',
     third: '🎥 Terceira pessoa',
@@ -1873,6 +1875,7 @@ Opções:
     couldNotMake: 'Não deu para criar sua conta',
   },
   srv: {
+    dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} transformou ${dog} em ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Tentativas demais. Tente de novo em alguns minutos.',
     highScore: (who: string, score: string) => `🏆 ${who} bateu um novo recorde no fliperama: ${score}`,
     checkoutGone: (floor: string, dir: string) => `o checkout do andar ${floor} sumiu (${dir}) — ele fica fechado até voltar`,

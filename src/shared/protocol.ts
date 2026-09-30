@@ -1298,6 +1298,8 @@ export type ClientMsg =
   | { t: 'dog.pet' }
   /** Name the dog on your floor ('' gives it back its first name). */
   | { t: 'dog.name'; name: string }
+  /** Make the dog on your floor another breed (one of DOG_BREEDS). */
+  | { t: 'dog.breed'; breed: string }
   | { t: 'ping'; at: number };
 
 export type ServerMsg =

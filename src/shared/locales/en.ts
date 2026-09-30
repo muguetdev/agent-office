@@ -696,6 +696,8 @@ Options:
     goElevator: (floor: string) => `Go to ${floor}, in its elevator`,
   },
   settings: {
+    dogBreed: 'Breed',
+    dogBreeds: { pup: '🐶 Pup', corgi: '🦊 Corgi', dachshund: '🌭 Dachshund', pug: '🐾 Pug', shiba: '🍂 Shiba' } as Record<string, string>,
     first: '👀 First person',
     firstNote: 'See through your own eyes. Click the office to look around with the mouse and click things to use them. Esc frees the mouse.',
     third: '🎥 Third person',
@@ -1881,6 +1883,7 @@ Options:
     couldNotMake: 'Could not make your account',
   },
   srv: {
+    dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} made ${dog} a ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Too many attempts. Try again in a few minutes.',
     highScore: (who: string, score: string) => `🏆 ${who} set a new arcade high score: ${score}`,
     checkoutGone: (floor: string, dir: string) => `the ${floor} floor's checkout is gone (${dir}) — it stays closed until it's back`,
