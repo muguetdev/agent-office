@@ -3,6 +3,7 @@
 
 import type { WorkerInfo } from '../shared/protocol';
 import { waitingOnSomeone } from './notify';
+import { L } from './i18n';
 
 type Waiting = WorkerInfo & { status: 'needs_input' | 'done' };
 
@@ -20,7 +21,7 @@ export function waitingInOrder(workers: Iterable<WorkerInfo>): Waiting[] {
 export function waitingLabel(waiting: readonly WorkerInfo[]): string {
   const needs = waiting.filter((w) => w.status === 'needs_input').length;
   const done = waiting.length - needs;
-  return [needs && `🙋 ${needs} waiting`, done && `✅ ${done} done`].filter(Boolean).join(' · ');
+  return [needs && L.main.nWaiting(needs), done && L.main.nDone(done)].filter(Boolean).join(' · ');
 }
 
 /**

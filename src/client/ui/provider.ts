@@ -2,12 +2,13 @@ import type { AgentChoice, AgentEffort, AgentProvider, ClaudeModel, ProjectInfo,
 import { AGENT_EFFORTS, CLAUDE_MODELS } from '../../shared/protocol';
 import { store } from '../state';
 import { h } from './dom';
+import { L } from '../i18n';
 
 export const PROVIDER_LABEL: Record<AgentProvider, string> = {
   claude: 'Claude Code',
   opencode: 'OpenCode',
   codex: 'Codex',
-  custom: 'Custom',
+  custom: L.provider.custom,
 };
 
 export const CLAUDE_MODEL_LABEL: Record<ClaudeModel, string> = {
@@ -17,13 +18,7 @@ export const CLAUDE_MODEL_LABEL: Record<ClaudeModel, string> = {
   haiku: 'Haiku',
 };
 
-export const EFFORT_LABEL: Record<AgentEffort, string> = {
-  low: 'Low',
-  medium: 'Medium',
-  high: 'High',
-  xhigh: 'Extra high',
-  max: 'Max',
-};
+export const EFFORT_LABEL: Record<AgentEffort, string> = L.provider.efforts;
 
 /** A short badge for the task card / sidebar: "Opus", "Opus · High", or the raw OpenCode model id. */
 export function modelBadge(provider: AgentProvider | undefined, model: string | undefined, effort: AgentEffort | undefined): string | undefined {
@@ -74,10 +69,10 @@ export function providerUsageState(provider: AgentProvider | undefined, project:
 }
 
 export function providerUsageNote(provider: AgentProvider): string {
-  if (provider === 'claude') return 'Office usage and budget track Claude Code.';
-  if (provider === 'codex') return 'Review Office hooks in /hooks to enable tracking. Codex reports root-session tokens; subagents are excluded and cost is unavailable.';
-  if (provider === 'custom') return 'Usage is untracked unless compatible Claude Code hooks report it.';
-  return 'OpenCode reports model/provider estimates; they are not billing, and arrive after the first report.';
+  if (provider === 'claude') return L.provider.noteClaude;
+  if (provider === 'codex') return L.provider.noteCodex;
+  if (provider === 'custom') return L.provider.noteCustom;
+  return L.provider.noteOpenCode;
 }
 
 /**
@@ -149,53 +144,53 @@ function fetchOpenCodeModels(): Promise<string[]> {
  * The provider, model and effort fields: a provider selector that never offers a provider outside
  * the server's metadata, with a model (and, for Claude, reasoning effort) picker underneath.
  */
-export function agentFields(project: ProjectInfo | null, id: string, initial: AgentChoice, label = 'Provider'): AgentFields {
+export function agentFields(project: ProjectInfo | null, id: string, initial: AgentChoice, label: string = L.provider.provider): AgentFields {
   const options = supportedProviders(project);
   const fallback = resolvedProvider(project?.defaultProvider, project);
-  const select = h('select.provider-select', { id, 'aria-label': 'Worker provider' }) as HTMLSelectElement;
+  const select = h('select.provider-select', { id, 'aria-label': L.provider.workerProvider }) as HTMLSelectElement;
   for (const provider of options) select.append(h('option', { value: provider }, PROVIDER_LABEL[provider]));
   const note = h('small.provider-note');
   const modelInput = h('input', {
     type: 'text',
     id: `${id}-model`,
     list: `${id}-models`,
-    placeholder: 'Default (OpenCode settings)',
-    'aria-label': 'OpenCode model',
+    placeholder: L.provider.openCodeDefault,
+    'aria-label': L.provider.openCodeModel,
     autocomplete: 'off',
     maxlength: MODEL_MAX,
   }) as HTMLInputElement;
-  const modelHint = h('small.provider-model-hint', {}, 'Optional provider/model override; suggestions load when OpenCode is selected.');
+  const modelHint = h('small.provider-model-hint', {}, L.provider.hintLoad);
   const modelListEl = h('datalist', { id: `${id}-models` });
-  const modelChoice = h('div.provider-model', {}, h('label', { for: `${id}-model` }, 'OpenCode model'), modelInput, modelListEl, modelHint);
+  const modelChoice = h('div.provider-model', {}, h('label', { for: `${id}-model` }, L.provider.openCodeModel), modelInput, modelListEl, modelHint);
 
-  const claudeModelSelect = h('select', { id: `${id}-claude-model`, 'aria-label': 'Claude model' }) as HTMLSelectElement;
-  claudeModelSelect.append(h('option', { value: '' }, 'Default (--agent-args)'));
+  const claudeModelSelect = h('select', { id: `${id}-claude-model`, 'aria-label': L.provider.claudeModel }) as HTMLSelectElement;
+  claudeModelSelect.append(h('option', { value: '' }, L.provider.defaultArgs));
   for (const m of CLAUDE_MODELS) claudeModelSelect.append(h('option', { value: m }, CLAUDE_MODEL_LABEL[m]));
-  const effortSelect = h('select', { id: `${id}-effort`, 'aria-label': 'Reasoning effort' }) as HTMLSelectElement;
-  effortSelect.append(h('option', { value: '' }, 'Default'));
+  const effortSelect = h('select', { id: `${id}-effort`, 'aria-label': L.provider.effortLong }) as HTMLSelectElement;
+  effortSelect.append(h('option', { value: '' }, L.provider.default));
   for (const e of AGENT_EFFORTS) effortSelect.append(h('option', { value: e }, EFFORT_LABEL[e]));
   const claudeChoice = h(
     'div.provider-model.claude-model',
     {},
-    h('label', { for: `${id}-claude-model` }, 'Model'),
+    h('label', { for: `${id}-claude-model` }, L.provider.model),
     claudeModelSelect,
-    h('label', { for: `${id}-effort` }, 'Effort'),
+    h('label', { for: `${id}-effort` }, L.provider.effort),
     effortSelect,
-    h('small.provider-model-hint', {}, 'The cost panel tracks each model separately.'),
+    h('small.provider-model-hint', {}, L.provider.costPerModel),
   );
 
   const element = h('div.provider-choice', {}, h('label', { for: id }, label), select, note, modelChoice, claudeChoice);
   /** OpenCode's model suggestions, asked for only once someone can see the field. */
   const loadModels = () => {
     if (select.value !== 'opencode' || !element.isConnected || element.closest('.hidden')) return;
-    modelHint.textContent = modelList ? 'Optional provider/model override; choose a suggestion or enter one manually.' : 'Loading OpenCode models… You can enter a provider/model manually.';
+    modelHint.textContent = modelList ? L.provider.hintChoose : L.provider.hintLoading;
     void fetchOpenCodeModels()
       .then((models) => {
         modelListEl.replaceChildren(...models.map((model) => h('option', { value: model })));
-        modelHint.textContent = 'Optional provider/model override; choose a suggestion or enter one manually.';
+        modelHint.textContent = L.provider.hintChoose;
       })
       .catch(() => {
-        modelHint.textContent = 'Model suggestions unavailable; enter a provider/model manually if needed.';
+        modelHint.textContent = L.provider.hintUnavailable;
       });
   };
   const setModelVisibility = (provider: AgentProvider) => {
@@ -240,7 +235,7 @@ export function agentFields(project: ProjectInfo | null, id: string, initial: Ag
         return true;
       }
       const okay = validModel(modelInput.value);
-      modelInput.setCustomValidity(okay ? '' : 'Use provider/model format without whitespace or control characters (up to 256 characters).');
+      modelInput.setCustomValidity(okay ? '' : L.provider.badModel);
       if (!okay) modelInput.reportValidity();
       return okay;
     },
@@ -251,7 +246,7 @@ export function agentFields(project: ProjectInfo | null, id: string, initial: Ag
  * Which worker to start: the office's default (⚙️ Settings), shown as a line, with an ✏️ Edit button
  * that opens the provider, model and effort fields to pick another for this one.
  */
-export function providerPicker(project: ProjectInfo | null, id: string, label = 'Worker'): ProviderPicker {
+export function providerPicker(project: ProjectInfo | null, id: string, label: string = L.provider.worker): ProviderPicker {
   let editing = false;
   const fields = agentFields(project, id, officeChoice(project));
   fields.element.classList.add('hidden');
@@ -261,10 +256,10 @@ export function providerPicker(project: ProjectInfo | null, id: string, label = 
   const paint = () => {
     const def = officeChoice(project);
     current.textContent = choiceLabel(def);
-    current.title = store.prompts.agent ? 'The office’s default worker, set in ⚙️ Settings' : 'The office’s default worker (its --agent); an admin can pick another in ⚙️ Settings';
+    current.title = store.prompts.agent ? L.provider.defaultSet : L.provider.defaultAgent;
     current.classList.toggle('hidden', editing);
-    edit.textContent = editing ? '↺ Use the default' : '✏️ Edit';
-    edit.title = editing ? `Back to ${choiceLabel(def)}` : 'Pick another provider, model or effort for this one';
+    edit.textContent = editing ? L.provider.useDefault : L.provider.edit;
+    edit.title = editing ? L.settings.backTo(choiceLabel(def)) : L.provider.editTip;
     edit.setAttribute('aria-expanded', String(editing));
     fields.element.classList.toggle('hidden', !editing);
   };

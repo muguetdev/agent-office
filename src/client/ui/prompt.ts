@@ -2,6 +2,7 @@ import type { AgentEffort, AgentProvider, ServerMsg, WorktreeCleanup, WorktreeSt
 import { h, openModal } from './dom';
 import { store } from '../state';
 import { providerPicker, type ProviderPicker } from './provider';
+import { L } from '../i18n';
 
 export interface PromptOptions {
   title: string;
@@ -31,27 +32,27 @@ export function worktreePref(): boolean {
 }
 
 export function openPrompt(opts: PromptOptions) {
-  const ta = h('textarea', { rows: 7, placeholder: opts.placeholder ?? 'What should the worker work on?', 'aria-label': 'Prompt' }) as HTMLTextAreaElement;
+  const ta = h('textarea', { rows: 7, placeholder: opts.placeholder ?? L.prompt.placeholder, 'aria-label': L.hints.prompt }) as HTMLTextAreaElement;
   ta.value = opts.initial ?? '';
   const wtBox = h('input', { type: 'checkbox', id: 'wt-toggle' }) as HTMLInputElement;
   wtBox.checked = worktreePref();
   const wtRow = opts.worktreeOption
     ? h(
         'label',
-        { for: 'wt-toggle', style: 'display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:700;cursor:pointer', title: 'Isolate this worker on its own branch so parallel workers never collide' },
+        { for: 'wt-toggle', style: 'display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:700;cursor:pointer', title: L.prompt.worktreeTip },
         wtBox,
-        '🌿 Work in its own git worktree & branch',
+        L.prompt.worktree,
     )
     : null;
   const provider: ProviderPicker | null = opts.providerOption ? providerPicker(store.project, 'prompt-provider') : null;
-  const submit = h('button.btn.primary', { type: 'submit' }, opts.submitLabel ?? 'Send ✨');
-  const cancel = h('button.btn', { type: 'button' }, 'Cancel');
+  const submit = h('button.btn.primary', { type: 'submit' }, opts.submitLabel ?? L.main.send);
+  const cancel = h('button.btn', { type: 'button' }, L.hints.cancel);
   const form = h(
     'form.modal',
     { role: 'dialog', 'aria-label': opts.title },
     h('header', {}, h('h2', {}, opts.title)),
     h('div.body', {}, opts.warning ? h('p.setting-note.bad', { style: 'margin:0 0 10px', role: 'alert' }, opts.warning) : null, opts.subtitle ? h('p', { style: 'margin:0 0 10px;font-weight:700;color:var(--muted)' }, opts.subtitle) : null, ta, provider?.element ?? null, wtRow),
-    h('footer', {}, h('span.grow', {}, 'Enter to send · Shift+Enter for a new line'), cancel, submit),
+    h('footer', {}, h('span.grow', {}, L.prompt.enterToSend), cancel, submit),
   ) as HTMLFormElement;
   form.noValidate = true;
 
@@ -92,7 +93,7 @@ export function openPrompt(opts: PromptOptions) {
 
 export function confirmDialog(title: string, body: string, confirmLabel: string, onConfirm: () => void) {
   const yes = h('button.btn.danger', { type: 'button' }, confirmLabel);
-  const no = h('button.btn', { type: 'button' }, 'Never mind');
+  const no = h('button.btn', { type: 'button' }, L.prompt.neverMind);
   const el = h('div.modal', { role: 'alertdialog', 'aria-label': title }, h('header', {}, h('h2', {}, title)), h('div.body', {}, h('p', { style: 'margin:0;font-weight:700' }, body)), h('footer', {}, no, yes));
   const modal = openModal(el);
   no.addEventListener('click', () => modal.close());
@@ -130,16 +131,12 @@ function inspectWorktree(workerId: string, ask: () => void): Promise<WorktreeSta
     setTimeout(() => {
       if (worktreeChecks.get(workerId) !== resolve) return;
       worktreeChecks.delete(workerId);
-      resolve({ exists: true, dirty: 0, ahead: 0, unpushed: 0, error: 'the office did not answer' });
+      resolve({ exists: true, dirty: 0, ahead: 0, unpushed: 0, error: L.prompt.noAnswer });
     }, 8000);
   });
 }
 
-const CLEANUP_LABEL: Record<WorktreeCleanup, string> = {
-  all: 'Send home & delete both',
-  worktree: 'Send home & delete worktree',
-  keep: 'Send home',
-};
+const CLEANUP_LABEL: Record<WorktreeCleanup, string> = L.prompt.cleanup;
 
 /**
  * Sending home a worker that has its own worktree: pick what becomes of the worktree and its branch.
@@ -148,9 +145,9 @@ const CLEANUP_LABEL: Record<WorktreeCleanup, string> = {
 export function sendHomeDialog(opts: SendHomeOptions) {
   const { branch, path } = opts.worktree;
   const choices: [WorktreeCleanup, string, string][] = [
-    ['all', 'Delete the worktree and its branch', `Removes ${path} and ${branch}.`],
-    ['worktree', 'Delete the worktree, keep the branch', `${branch} stays for a pull request or a later checkout.`],
-    ['keep', 'Keep both', 'Leaves everything as it is; agent-office prune tidies up later.'],
+    ['all', L.prompt.deleteBoth, L.prompt.removes(path, branch)],
+    ['worktree', L.prompt.deleteWorktree, L.prompt.branchStays(branch)],
+    ['keep', L.prompt.keepBoth, L.prompt.leaves],
   ];
   const radios = new Map<WorktreeCleanup, HTMLInputElement>();
   let touched = false;
@@ -177,16 +174,16 @@ export function sendHomeDialog(opts: SendHomeOptions) {
       return h('label.choice', {}, r, h('span', {}, title, h('small', {}, sub)));
     }),
   );
-  const status = h('p.wt-status', {}, `Checking what ${branch} holds…`);
-  const no = h('button.btn', { type: 'button' }, 'Never mind');
+  const status = h('p.wt-status', {}, L.prompt.checking(branch));
+  const no = h('button.btn', { type: 'button' }, L.prompt.neverMind);
   const form = h(
     'form.modal',
-    { role: 'dialog', 'aria-label': `Send ${opts.name} home?` },
-    h('header', {}, h('h2', {}, `Send ${opts.name} home?`)),
+    { role: 'dialog', 'aria-label': L.main.sendHomeQ(opts.name) },
+    h('header', {}, h('h2', {}, L.main.sendHomeQ(opts.name))),
     h(
       'div.body',
       {},
-      h('p', { style: 'margin:0 0 12px;font-weight:700' }, `This stops the session at ${opts.where} for everyone and frees the desk. ${opts.name} worked in its own worktree on 🌿 ${branch}:`),
+      h('p', { style: 'margin:0 0 12px;font-weight:700' }, L.prompt.stopsWorktree(opts.where, opts.name, branch)),
       list,
       status,
     ),
@@ -206,27 +203,23 @@ export function sendHomeDialog(opts: SendHomeOptions) {
     const lines: string[] = [];
     let risky = false;
     if (s.error) {
-      lines.push(`Couldn't check the worktree: ${s.error}.`);
+      lines.push(L.prompt.couldntCheck(s.error));
       risky = true;
     } else {
-      if (!s.exists) lines.push('The worktree folder is already gone.');
+      if (!s.exists) lines.push(L.prompt.gone);
       if (s.dirty) {
-        lines.push(`⚠️ ${plural(s.dirty, 'uncommitted change')} in the worktree — deleting it loses them.`);
+        lines.push(L.prompt.dirty(s.dirty));
         risky = true;
       }
       if (s.unpushed) {
-        lines.push(`⚠️ ${plural(s.unpushed, 'commit')} on ${branch} that no remote has — deleting the branch loses them.`);
+        lines.push(L.prompt.unpushed(s.unpushed, branch));
         risky = true;
-      } else if (s.ahead) lines.push(`${plural(s.ahead, 'commit')} on ${branch}, all pushed or merged.`);
-      if (!lines.length) lines.push('Nothing on the branch yet and a clean worktree: safe to delete.');
+      } else if (s.ahead) lines.push(L.prompt.ahead(s.ahead, branch));
+      if (!lines.length) lines.push(L.prompt.safe);
     }
     status.replaceChildren(...lines.flatMap((l, i) => (i ? [h('br'), l] : [l])));
     status.classList.toggle('warn', risky);
     if (!touched) pick(risky ? 'keep' : 'all');
   });
   setTimeout(() => yes.focus(), 30);
-}
-
-function plural(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }

@@ -4,6 +4,7 @@ import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { WorktreeState } from '../shared/protocol.js';
+import { L } from './i18n.js';
 
 export type { WorktreeCleanup, WorktreeState } from '../shared/protocol.js';
 
@@ -51,7 +52,7 @@ export class Worktrees {
       this.gitSync(['worktree', 'add', '-b', branch, rel, base]);
       return { path: rel, branch, base, from };
     } catch (err) {
-      return `Could not create a git worktree: ${gitError(err)}`;
+      return L.workers.worktreeFailed(gitError(err));
     }
   }
 
@@ -152,10 +153,10 @@ export class Worktrees {
 
 /** Why deleting this would lose something ("2 uncommitted changes, 1 unpushed commit"), or '' when it wouldn't. */
 export function describeWork(s: WorktreeState): string {
-  if (s.error) return `could not check it (${s.error})`;
+  if (s.error) return L.workers.couldntCheck(s.error);
   const parts: string[] = [];
-  if (s.dirty) parts.push(`${s.dirty} uncommitted change${s.dirty === 1 ? '' : 's'}`);
-  if (s.unpushed) parts.push(`${s.unpushed} unpushed commit${s.unpushed === 1 ? '' : 's'}`);
+  if (s.dirty) parts.push(L.workers.uncommitted(s.dirty));
+  if (s.unpushed) parts.push(L.workers.unpushed(s.unpushed));
   return parts.join(', ');
 }
 

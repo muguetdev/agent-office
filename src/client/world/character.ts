@@ -9,6 +9,7 @@ import { OpenBook } from './book';
 import { HeldCard } from './card';
 import { UNDEAD_SKIN, elfBoot, elfHat, elfWorker, santaHat, warlockHat, zombieWorker } from './costumes';
 import { cardSprite, disposeSprite, mesh, textSprite, toon, toonUnique } from './toon';
+import { L } from '../i18n';
 
 export type Pose = 'stand' | 'walk' | 'sit' | 'type';
 
@@ -1053,13 +1054,13 @@ const STATUS_BULB: Record<string, string> = {
 
 /** Status pill on a worker's task card: [text, background, text color]. */
 const TASK_CHIP: Record<string, [string, string, string]> = {
-  starting: ['⏳ STARTING', STATUS_BULB.starting, '#2b2d42'],
-  idle: ['💬 READY', STATUS_BULB.idle, '#2b2d42'],
-  working: ['⌨️ WORKING', STATUS_BULB.working, '#2b2d42'],
-  needs_input: ['❗ NEEDS YOU', STATUS_BULB.needs_input, '#ffffff'],
-  done: ['✅ DONE', STATUS_BULB.done, '#2b2d42'],
-  exited: ['💤 ASLEEP', STATUS_BULB.exited, '#ffffff'],
-  offline: ['💤 ASLEEP', STATUS_BULB.offline, '#ffffff'],
+  starting: [L.wchar.chips.starting, STATUS_BULB.starting, '#2b2d42'],
+  idle: [L.wchar.chips.idle, STATUS_BULB.idle, '#2b2d42'],
+  working: [L.wchar.chips.working, STATUS_BULB.working, '#2b2d42'],
+  needs_input: [L.wchar.chips.needs_input, STATUS_BULB.needs_input, '#ffffff'],
+  done: [L.wchar.chips.done, STATUS_BULB.done, '#2b2d42'],
+  exited: [L.wchar.chips.asleep, STATUS_BULB.exited, '#ffffff'],
+  offline: [L.wchar.chips.asleep, STATUS_BULB.offline, '#ffffff'],
 };
 
 /** The outline of a worker's bubble, and its pill, once it has a pull request: GitHub's open green, or the PR board's merged purple. */
@@ -1541,7 +1542,7 @@ export class Worker {
     // Not working on or waiting for something more: its pull request in place of ready / done / asleep.
     const prLabel = pr && status !== 'working' && status !== 'needs_input' && status !== 'starting' ? `${PR_ICON[pr.state]} PR #${pr.number} ${pr.state}` : undefined;
     const bubble =
-      prLabel ?? (status === 'needs_input' ? '❗ needs you' : status === 'done' && bounce ? '✅ done!' : status === 'working' ? '⌨️ working' : isAsleep(status) ? '💤' : '');
+      prLabel ?? (status === 'needs_input' ? L.wchar.needsYou : status === 'done' && bounce ? L.wchar.done : status === 'working' ? L.wchar.working : isAsleep(status) ? '💤' : '');
     const key = `${border}|${prLabel}|${task ? `${status}|${bounce}|${task.name}|${task.summary}` : bubble}`;
     if (key === this.bubbleKey) return;
     this.bubbleKey = key;

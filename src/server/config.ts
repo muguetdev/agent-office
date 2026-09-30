@@ -5,6 +5,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { WEATHERS, type Weather } from '../shared/protocol.js';
 import { MAX_WORKER_LIMIT, parseWorkerLimit } from './machine.js';
+import { L } from './i18n.js';
 
 export interface Config {
   /** The office's own folder: the building's data lives in its .agent-office. */
@@ -57,92 +58,13 @@ export interface RTCIceServerLike {
   credential?: string;
 }
 
-const HELP = `agent-office — a 3D office for your team and its Claude Code / OpenCode / Codex workers
-
-Usage:
-  agent-office [options]
-  agent-office [dir] [options]
-  agent-office setup [--projects <dir>] [--project <owner/repo>]...
-  agent-office prune [dir] [--dry-run] [--force]
-  agent-office accounts [list|invite|revoke|role|password] ...
-
-Runs the office. Every project is a floor of the building: ride the elevator,
-pick one of the repositories your \`gh\` login can see, and the office clones it
-into the projects folder as a new floor. Workers, terminals, boards and the
-task queue on a floor all belong to that floor's checkout.
-
-The first time it starts in a terminal with no floors, it walks you through
-where projects are cloned, signing the GitHub CLI in, and your first project.
-
-Started from anywhere, the office keeps its data in --home. Given a [dir] (or
-started in a project where an office already ran), it keeps its data in
-<dir>/.agent-office as it always has, and that project starts out as a floor
-(an admin can take it off in the elevator like any other).
-
-Commands:
-  setup                   Pick the folder projects are cloned into and clone
-                          projects as floors: a walkthrough in a terminal, or
-                          just --projects / --project for scripts (see setup --help)
-  prune                   Remove leftover worker worktrees (.agent-office/worktrees/)
-                          and their office/* branches. Anything with uncommitted
-                          changes or unpushed commits is kept unless --force is given.
-  accounts                Invite, list and revoke people's own accounts, and switch
-                          the shared password off or on (see accounts --help)
-
-Options:
-      --home <dir>        Where the office keeps its data when no [dir] is given
-                          (default ~/agent-office, env AGENT_OFFICE_HOME)
-      --projects <dir>    Where new floors are cloned, as <dir>/<owner>/<repo>
-                          (default ~/agent-office, env AGENT_OFFICE_PROJECTS).
-                          Also settable from ⚙️ Settings in the office
-  -p, --port <n>          Port to listen on (default 4600, env PORT)
-  -H, --host <addr>       Address to bind (default 0.0.0.0)
-      --password <pw>     Office password (env AGENT_OFFICE_PASSWORD).
-                          Without one, a random password is generated once and
-                          saved in <dir>/.agent-office/config.json
-      --claim-token <t>   Show the generated password exactly once, at /claim?t=<t>
-                          (env AGENT_OFFICE_CLAIM_TOKEN). After that only a hash
-                          is kept and the password is never displayed again.
-      --reset-password    Forget the generated password (a new one is made on the
-                          next start) and exit
-      --agent <cmd>       Default agent command (default "claude", env AGENT_OFFICE_AGENT)
-      --agent-args <str>  Extra args for the configured agent, e.g. "--model opus"
-                          Workers can also select Claude Code, OpenCode or Codex in the UI
-      --tls-cert <file>   Serve HTTPS with this certificate (PEM)
-      --tls-key <file>    ...and this private key (PEM)
-      --self-signed       Serve HTTPS with a generated self-signed certificate
-      --trust-proxy       Trust X-Forwarded-* headers (behind Caddy/nginx)
-      --turn <url>        Add a TURN server for voice (repeatable), e.g.
-                          turn:user:pass@turn.example.com:3478
-      --budget <usd>      Daily budget for tracked Claude Code spend (env
-                          AGENT_OFFICE_BUDGET). Everyone is warned when the
-                          day's spend passes it. OpenCode/Codex spend is excluded
-      --budget-pause      ...and no new workers can be hired until the next
-                          day (env AGENT_OFFICE_BUDGET_PAUSE=1)
-      --max-workers <n>   Run at most this many workers at once, across every
-                          floor (env AGENT_OFFICE_MAX_WORKERS). Hiring past it
-                          is refused. Admins can lower the limit from ⚙️
-                          Settings, but not raise it past this
-      --webhook <url>     Post to this Slack or Discord webhook when a worker
-                          needs input or finishes (env AGENT_OFFICE_WEBHOOK).
-                          Also settable from ⚙️ Settings in the office; "" turns it off
-      --city <name>       Put the office in a real city, e.g. "Berlin" or
-                          "Portland, Oregon" (env AGENT_OFFICE_CITY): day, night
-                          and the weather outside follow its live forecast from
-                          open-meteo.com. Without it the sun follows this
-                          machine's clock and the weather is made up
-      --weather <kind>    Pin the weather: clear, cloudy, rain, storm, snow or
-                          fog (env AGENT_OFFICE_WEATHER)
-  -h, --help              Show this help
-
-Voice and screen sharing need a secure context: use https (a reverse proxy,
---tls-cert/--tls-key or --self-signed) unless everyone is on localhost.
-`;
+/** `agent-office --help`, in the language the terminal asks for (see ./i18n.ts). */
+const HELP = L.cli.help;
 
 function takeValue(args: string[], i: number, flag: string): string {
   const v = args[i + 1];
   if (v === undefined || v.startsWith('--')) {
-    console.error(`agent-office: ${flag} needs a value`);
+    console.error(`agent-office: ${L.logs.needsValue(flag)}`);
     process.exit(2);
   }
   return v;
@@ -281,7 +203,7 @@ export function loadConfig(argv: string[]): Config {
         break;
       default:
         if (a.startsWith('-')) {
-          console.error(`agent-office: unknown option ${a}\n`);
+          console.error(`agent-office: ${L.cli.unknownOption(a)}\n`);
           process.stderr.write(HELP);
           process.exit(2);
         }
@@ -294,29 +216,29 @@ export function loadConfig(argv: string[]): Config {
   const cwd = process.cwd();
   if (!project && !homeGiven && cwd !== home && existsSync(path.join(cwd, '.agent-office', 'config.json'))) project = cwd;
   if (project && !existsSync(project)) {
-    console.error(`agent-office: directory not found: ${project}`);
+    console.error(`agent-office: ${L.cli.noDir(project)}`);
     process.exit(2);
   }
   const dir = project || home;
   // New floors go next to the office's data when it has a home of its own, and never into a project.
   const projectsDir = project ? path.join(os.homedir(), 'agent-office') : home;
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-    console.error('agent-office: invalid --port');
+    console.error(`agent-office: ${L.logs.badPort}`);
     process.exit(2);
   }
   const budgetUsd = budget ? Number(budget.replace(/^\$/, '')) : undefined;
   if (budgetUsd !== undefined && !(budgetUsd > 0)) {
-    console.error('agent-office: --budget needs an amount in dollars, e.g. --budget 20');
+    console.error(`agent-office: ${L.cli.badBudget}`);
     process.exit(2);
   }
   const workerLimit = maxWorkers ? parseWorkerLimit(maxWorkers) : undefined;
   if (maxWorkers && workerLimit === undefined) {
-    console.error(`agent-office: --max-workers needs a whole number from 1 to ${MAX_WORKER_LIMIT}, e.g. --max-workers 6`);
+    console.error(`agent-office: ${L.cli.badMaxWorkers(MAX_WORKER_LIMIT)}`);
     process.exit(2);
   }
   weather = weather.trim().toLowerCase();
   if (weather && !(WEATHERS as readonly string[]).includes(weather)) {
-    console.error(`agent-office: --weather is one of ${WEATHERS.join(', ')}`);
+    console.error(`agent-office: ${L.cli.badWeather(WEATHERS.join(', '))}`);
     process.exit(2);
   }
 
@@ -342,7 +264,7 @@ export function loadConfig(argv: string[]): Config {
     delete stored.verifier;
     delete stored.claimedAt;
     save();
-    console.log('agent-office: password forgotten — a new one is generated on the next start');
+    console.log(`agent-office: ${L.cli.forgotten}`);
     process.exit(0);
   }
 
@@ -369,7 +291,7 @@ export function loadConfig(argv: string[]): Config {
   let tls: Config['tls'];
   if (tlsCert || tlsKey) {
     if (!tlsCert || !tlsKey) {
-      console.error('agent-office: --tls-cert and --tls-key go together');
+      console.error(`agent-office: ${L.cli.tlsPair}`);
       process.exit(2);
     }
     tls = { cert: readFileSync(tlsCert, 'utf8'), key: readFileSync(tlsKey, 'utf8') };

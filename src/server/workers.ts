@@ -27,6 +27,7 @@ import { mergeOpenCodeConfigContent, openCodePluginSpecifier, writeOpenCodePlugi
 import { ScrollbackStore, searchTerminal, terminalTail } from './history.js';
 import { screenSnapshot } from './screen.js';
 import type { Capacity } from './machine.js';
+import { L } from './i18n.js';
 
 type HeadlessTerminal = InstanceType<typeof headless.Terminal>;
 
@@ -73,7 +74,7 @@ const USAGE_SCAN_MS = 10_000;
 /** How often a terminal with new output is saved to disk, so even a crash loses at most this much. */
 const SAVE_SCROLLBACK_MS = 15_000;
 /** Between a worker's saved scrollback and what it prints after the office restarted. */
-const RESTORED_NOTE = '\x1b[2m──── the office restarted · earlier output above ────\x1b[0m\r\n';
+const RESTORED_NOTE = `\x1b[2m──── ${L.workers.restarted} ────\x1b[0m\r\n`;
 /**
  * What a worker whose terminal didn't make it through a restart (the machine rebooted, the terminal
  * host was replaced or died) is resumed with when it was in the middle of something, so it carries on
@@ -193,7 +194,7 @@ export class WorkerManager {
       this.emitUpdate(w);
       this.persist();
     });
-    this.host = new PtyHost(dataDir, () => this.events.toast("The workers' terminal host stopped — resuming them", 'warn'));
+    this.host = new PtyHost(dataDir, () => this.events.toast(L.workers.hostStopped, 'warn'));
     this.scrollback = new ScrollbackStore(dataDir);
     this.restore();
     this.scrollback.prune(new Set(this.workers.keys()));
@@ -277,14 +278,14 @@ export class WorkerManager {
     const effortError = validateWorkerEffort(kind, selectedProvider, effort);
     if (effortError) return effortError;
     const seat = DESK_BY_ID.get(deskId);
-    if (!seat) return 'Unknown desk';
-    if (this.deskOccupied(deskId)) return seat.station ? `The ${STATION_AGENT[seat.station].name} is already there` : `That ${seat.beanbag ? 'bean bag' : 'desk'} is taken`;
-    if (kind === 'shell' && seat.station) return 'A board agent is always an agent, not a shell';
-    if (seat.station && !prompt?.trim()) return 'Tell the board agent what to do';
-    if (!seat.room !== !meeting) return seat.room ? 'Only a meeting seats workers at the meeting table: call one in the meeting room' : 'A meeting seats its workers at the meeting table';
-    if (meeting && (kind !== 'agent' || worktree)) return 'A meeting seats agents, in its own worktree';
-    if (kind === 'shell' && provider !== undefined) return 'Shell workers do not have an agent provider';
-    if (kind === 'agent' && selectedProvider === 'custom' && this.defaultProvider !== 'custom') return 'Custom is not the configured agent provider';
+    if (!seat) return L.workers.unknownDesk;
+    if (this.deskOccupied(deskId)) return seat.station ? L.workers.agentThere(L.main.agentNames[seat.station]) : seat.beanbag ? L.workers.beanBagTaken : L.workers.deskTaken;
+    if (kind === 'shell' && seat.station) return L.workers.agentNotShell;
+    if (seat.station && !prompt?.trim()) return L.workers.tellAgent;
+    if (!seat.room !== !meeting) return seat.room ? L.workers.onlyMeeting : L.workers.meetingTable;
+    if (meeting && (kind !== 'agent' || worktree)) return L.workers.meetingAgents;
+    if (kind === 'shell' && provider !== undefined) return L.workers.shellNoProvider;
+    if (kind === 'agent' && selectedProvider === 'custom' && this.defaultProvider !== 'custom') return L.workers.customNotConfigured;
     if (kind === 'agent') {
       const paused = this.ledger.hiringPaused;
       if (paused) return paused;
@@ -335,8 +336,8 @@ export class WorkerManager {
   /** Starts a worker that isn't running again, carrying on its session, with `prompt` as its next message. */
   resume(id: string, prompt?: string): string | undefined {
     const w = this.workers.get(id);
-    if (!w) return 'No such worker';
-    if (w.pty) return 'Worker is already running';
+    if (!w) return L.srv.noSuchWorker;
+    if (w.pty) return L.workers.alreadyRunning;
     w.info.status = 'starting';
     w.info.exitCode = undefined;
     const station = DESK_BY_ID.get(w.info.deskId)?.station;
@@ -359,16 +360,16 @@ export class WorkerManager {
    * the agent and whether it was just hired.
    */
   station(deskId: string, by: string, text: string): { info: WorkerInfo; hired: boolean } | string {
-    if (!DESK_BY_ID.get(deskId)?.station) return 'There is no agent to ask there';
+    if (!DESK_BY_ID.get(deskId)?.station) return L.workers.noAgentThere;
     const clean = text.replace(/\r\n?/g, '\n').trim();
-    if (!clean) return 'Empty prompt';
+    if (!clean) return L.workers.emptyPrompt;
     const w = [...this.workers.values()].find((x) => x.info.deskId === deskId);
     if (!w) {
       const info = this.spawn(deskId, by, clean);
       return typeof info === 'string' ? info : { info, hired: true };
     }
     // Typed into the question it's asking, the prompt would answer it.
-    if (w.info.status === 'needs_input') return `The ${w.info.name} is waiting on an answer in its terminal`;
+    if (w.info.status === 'needs_input') return L.workers.agentWaiting(w.info.name);
     if (!w.pty) w.info.lastInput = { by, at: Date.now() };
     const err = w.pty ? this.prompt(w.info.id, clean, by) : this.resume(w.info.id, clean);
     return err ?? { info: w.info, hired: false };
@@ -414,13 +415,13 @@ export class WorkerManager {
     const name = w.info.name;
     if (!cleanup) {
       const work = describeWork(await this.trees.inspect(wt, landed));
-      if (work) return { note: `Kept ${name}'s worktree and branch ${wt.branch} — it has ${work}` };
+      if (work) return { note: L.workers.keptHas(name, wt.branch, work) };
       cleanup = 'all';
     }
-    if (cleanup === 'keep') return { note: `Kept ${name}'s worktree and branch ${wt.branch}` };
+    if (cleanup === 'keep') return { note: L.workers.kept(name, wt.branch) };
     const error = await this.trees.remove(wt, cleanup);
-    if (error) return { error: `Couldn't delete ${name}'s worktree: ${error}` };
-    return { note: cleanup === 'all' ? `Deleted ${name}'s worktree and branch ${wt.branch}` : `Deleted ${name}'s worktree and kept branch ${wt.branch}` };
+    if (error) return { error: L.workers.couldntDelete(name, error) };
+    return { note: cleanup === 'all' ? L.workers.deletedBoth(name, wt.branch) : L.workers.deletedWorktree(name, wt.branch) };
   }
 
   /** What a worker's worktree holds, so whoever sends it home knows what deleting it would lose. */
@@ -496,10 +497,10 @@ export class WorkerManager {
   /** Types a prompt into the agent's input box and submits it; `by` is the person who sent it, if any. */
   prompt(id: string, text: string, by?: string): string | undefined {
     const w = this.workers.get(id);
-    if (!w) return 'No such worker';
-    if (!w.pty) return 'Worker is not running';
+    if (!w) return L.srv.noSuchWorker;
+    if (!w.pty) return L.workers.notRunning;
     const clean = text.replace(/\r\n?/g, '\n').trim();
-    if (!clean) return 'Empty prompt';
+    if (!clean) return L.workers.emptyPrompt;
     // Bracketed paste keeps multi-line prompts in one message, then Enter submits.
     w.pty.write(`\x1b[200~${clean}\x1b[201~`);
     setTimeout(() => w.pty?.write('\r'), 120);
@@ -517,22 +518,22 @@ export class WorkerManager {
    */
   async openPr(id: string, by: string): Promise<{ number: number; url: string; existed: boolean; dirty: boolean } | string> {
     const w = this.workers.get(id);
-    if (!w) return 'No such worker';
+    if (!w) return L.srv.noSuchWorker;
     const { info } = w;
     const wt = info.worktree;
-    if (!wt) return `${info.name} works in the main checkout — only workers with their own worktree can open a PR`;
-    if (info.prOpening) return `${info.name}'s pull request is already being opened`;
+    if (!wt) return L.main.mainCheckout(info.name);
+    if (info.prOpening) return L.workers.prOpening(info.name);
     if (isBusy(info.status)) {
-      return `${info.name} is still ${info.status === 'needs_input' ? 'waiting on input' : info.status} — wait until it's done`;
+      return L.main.stillBusy(info.name, info.status === 'needs_input' ? L.workers.waitingInput : (L.common.status[info.status] ?? info.status));
     }
     const cwd = path.join(this.dir, wt.path);
-    if (!existsSync(cwd)) return `${info.name}'s worktree is gone (${wt.path})`;
+    if (!existsSync(cwd)) return L.workers.worktreeGone(info.name, wt.path);
     info.prOpening = true;
     this.emitUpdate(w);
     try {
       const commits = (await run('git', ['log', '--reverse', '--format=%h %s', `${wt.base}..${wt.branch}`], cwd)).split('\n').filter(Boolean);
       const dirty = (await run('git', ['status', '--porcelain'], cwd)) !== '';
-      if (!commits.length) return dirty ? `${info.name} hasn't committed anything yet — ask it to commit first` : `${info.name} has no commits on ${wt.branch} yet`;
+      if (!commits.length) return dirty ? L.workers.noCommitsDirty(info.name) : L.workers.noCommits(info.name, wt.branch);
       const open = await findOpenPr(wt.branch, cwd);
       if (open) {
         info.pr = open;
@@ -550,7 +551,7 @@ export class WorkerManager {
       this.persist();
       return { number, url, existed: false, dirty };
     } catch (err) {
-      return `Couldn't open a PR for ${info.name}: ${(err as Error).message}`;
+      return L.workers.prFailed(info.name, (err as Error).message);
     } finally {
       info.prOpening = false;
       // The worker may have been sent home meanwhile; an update would bring it back as a ghost.
@@ -645,7 +646,7 @@ export class WorkerManager {
         }
         break;
       case 'PermissionRequest':
-        w.info.activity = `Wants permission: ${describeTool(payload)}`;
+        w.info.activity = L.workers.wantsPermission(describeTool(payload));
         this.setStatus(w, 'needs_input');
         break;
       case 'Notification':
@@ -705,7 +706,7 @@ export class WorkerManager {
         this.setStatus(w, 'working');
         break;
       case 'PreToolUse':
-        w.info.activity = report.tool ? truncate(report.tool, 80) : 'Using a tool';
+        w.info.activity = report.tool ? truncate(report.tool, 80) : L.workers.usingTool;
         w.info.action = toolAction(report.tool);
         if (report.toolUseId && w.codexTools.size < 256) w.codexTools.set(report.toolUseId, report.tool ?? '');
         if (/(?:^|[.])(?:AskUserQuestion|request_user_input)$/.test(report.tool ?? '')) {
@@ -715,7 +716,7 @@ export class WorkerManager {
         busy();
         break;
       case 'PermissionRequest':
-        w.info.activity = `Wants permission: ${truncate(report.tool ?? 'tool', 80)}`;
+        w.info.activity = L.workers.wantsPermission(truncate(report.tool ?? 'tool', 80));
         // PermissionRequest has no tool_use_id in the native schema. Keep every matching
         // active call pending so an unrelated parallel tool cannot dismiss the prompt.
         const candidates = [...w.codexTools].filter(([, tool]) => tool === report.tool);
@@ -956,7 +957,7 @@ export class WorkerManager {
     const where = { cwd, env, cols: info.cols, rows: info.rows, prelude };
     let proc: Pty;
     try {
-      if (!existsSync(cwd)) throw new Error(`working directory is gone: ${cwd}`);
+      if (!existsSync(cwd)) throw new Error(L.workers.cwdGone(cwd));
       if (isOpenCode) {
         env.AGENT_OFFICE_SESSION_ID = resumeSessionId ?? '';
         env.OPENCODE_CONFIG_CONTENT = mergeOpenCodeConfigContent(env.OPENCODE_CONFIG_CONTENT, openCodePluginSpecifier(this.openCodePlugin));
@@ -1070,14 +1071,14 @@ export class WorkerManager {
       // Resuming a conversation Claude no longer has ("No conversation found") exits before Claude
       // ever starts. Start a fresh one rather than leave the worker asleep.
       if (isClaude && resumeSessionId && info.status === 'starting' && !this.closing) {
-        this.events.toast(`${info.name}'s last conversation couldn't be resumed — starting a fresh one`, 'warn');
+        this.events.toast(L.workers.couldntResume(info.name), 'warn');
         this.launch(w, undefined, undefined);
         return;
       }
       info.exitCode = exitCode;
       info.status = 'exited';
-      const hint = info.kind === 'shell' ? ' — press R to restart' : info.sessionId ? ' — press R to resume' : '';
-      const msg = `\r\n\x1b[2m[${info.name} exited with code ${exitCode}${hint}]\x1b[0m\r\n`;
+      const hint = info.kind === 'shell' ? ` — ${L.workers.pressRestart}` : info.sessionId ? ` — ${L.workers.pressResume}` : '';
+      const msg = `\r\n\x1b[2m[${L.workers.exited(info.name, exitCode)}${hint}]\x1b[0m\r\n`;
       term.write(msg);
       if (w.viewers.size) this.events.data(info.id, msg, [...w.viewers.keys()]);
       w.screenDirty = true;
@@ -1092,8 +1093,8 @@ export class WorkerManager {
       if (isClaude || isCodex) {
         w.bootBlocked = true;
         info.activity = isCodex
-          ? 'Open the terminal: complete login and review Office hooks in /hooks'
-          : 'Waiting on a setup prompt (trust / login) — open the terminal';
+          ? L.workers.codexSetup
+          : L.workers.setupPrompt;
         this.setStatus(w, 'needs_input');
       } else this.setStatus(w, 'idle');
     }, 12000);
@@ -1101,14 +1102,14 @@ export class WorkerManager {
 
   private startFailed(w: Worker, message: string) {
     const what = this.command(w.info);
-    const msg = `\r\n\x1b[31mFailed to start ${what}: ${message}\x1b[0m\r\n`;
+    const msg = `\r\n\x1b[31m${L.workers.failedStart(what, message)}\x1b[0m\r\n`;
     w.info.status = 'exited';
     w.info.exitCode = -1;
     w.term?.write(msg);
     if (w.viewers.size) this.events.data(w.info.id, msg, [...w.viewers.keys()]);
     w.screenDirty = true;
     w.unsaved = true;
-    this.events.toast(`Could not start ${what}: ${message}`, 'error');
+    this.events.toast(L.workers.couldntStart(what, message), 'error');
     this.emitUpdate(w);
   }
 
@@ -1240,8 +1241,8 @@ export class WorkerManager {
     if (blocked && s !== 'needs_input') {
       w.bootBlocked = true;
       w.info.activity = loggedOut
-        ? "Claude isn't signed in on this machine — open the terminal and type /login"
-        : 'Waiting on a setup prompt (trust / login) — open the terminal';
+        ? L.workers.notSignedIn
+        : L.workers.setupPrompt;
       this.setStatus(w, 'needs_input');
     } else if (!blocked && w.bootBlocked && s === 'needs_input') {
       w.bootBlocked = false;
@@ -1621,8 +1622,8 @@ function describeTool(payload: any): string {
 }
 
 function offlineBanner(info: WorkerInfo): string {
-  const hint = info.kind === 'shell' ? ' Press R to restart it.' : info.sessionId ? ' Press R to resume the session.' : '';
-  return `\x1b[2m${info.name} is not running.${hint}\x1b[0m\r\n`;
+  const hint = info.kind === 'shell' ? L.workers.restartIt : info.sessionId ? L.workers.resumeSession : '';
+  return `\x1b[2m${L.workers.isNotRunning(info.name)}${hint}\x1b[0m\r\n`;
 }
 
 /** Runs a command without blocking the office; rejects with the last lines of its stderr. */

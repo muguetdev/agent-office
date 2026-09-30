@@ -1,6 +1,7 @@
 import { Marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { h } from './dom';
+import { L } from '../i18n';
 
 // GitHub-flavored markdown for issue and PR text: rendered by marked, then sanitized by DOMPurify
 // before it touches the page, since anyone who can open an issue writes it.
@@ -23,7 +24,7 @@ purify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-const ALERTS: Record<string, string> = { NOTE: 'ℹ️ Note', TIP: '💡 Tip', IMPORTANT: '❗ Important', WARNING: '⚠️ Warning', CAUTION: '🛑 Caution' };
+const ALERTS: Record<string, string> = L.markdown.alerts;
 
 /** `> [!NOTE]` blockquotes become callouts, as on GitHub. */
 function alerts(root: HTMLElement) {
@@ -93,7 +94,7 @@ function sanitized(html: string): DocumentFragment {
 export function markdown(src: string, itemUrl?: string): HTMLElement {
   const el = h('div.md');
   if (!src.trim()) {
-    el.append(h('p.none', {}, 'No description provided.'));
+    el.append(h('p.none', {}, L.markdown.noDescription));
     return el;
   }
   el.append(sanitized(md.parse(src, { async: false }) as string));

@@ -2,41 +2,45 @@ import { fmtCost, fmtTokens, tokensOf, type AgentProvider, type Usage } from '..
 import { store } from '../state';
 import { $, h } from './dom';
 import { providerUsageState, providerUsageTracked, resolvedProvider } from './provider';
+import { L } from '../i18n';
 
 export { fmtCost, fmtTokens, tokensOf };
 
 function displayedCost(u: Usage): string {
-  return u.costKnown === false ? 'cost unavailable' : fmtCost(u.cost);
+  return u.costKnown === false ? L.usage.noCost : fmtCost(u.cost);
 }
 
 /** e.g. "$0.42 · 38k tokens"; OpenCode's amount is explicitly an estimate. */
 export function usageLabel(u: Usage, provider: AgentProvider = 'claude'): string {
   const money = provider === 'codex' && u.costKnown !== true
-    ? 'cost unavailable'
+    ? L.usage.noCost
     : u.costKnown === false
-      ? 'cost unavailable'
-      : `${fmtCost(u.cost)}${provider === 'opencode' ? ' reported' : ''}`;
-  return `${u.incomplete ? "Partial: " : ""}${money} · ${fmtTokens(tokensOf(u))} tokens`;
+      ? L.usage.noCost
+      : `${fmtCost(u.cost)}${provider === 'opencode' ? ` ${L.usage.reported}` : ''}`;
+  return `${u.incomplete ? L.usage.partialPrefix : ''}${money} · ${fmtTokens(tokensOf(u))} tokens`;
+}
+
+/** Input, output, reasoning and cache tokens, a line each, for a tooltip. */
+function breakdown(input: number, output: number, reasoning: number, cacheWrite: number, cacheRead: number): string[] {
+  return [L.usage.inOut(fmtTokens(input), fmtTokens(output)), L.usage.reasoning(fmtTokens(reasoning)), L.usage.cache(fmtTokens(cacheWrite), fmtTokens(cacheRead))];
 }
 
 /** The breakdown behind a figure, for a tooltip. */
 export function usageTitle(u: Usage, provider: AgentProvider = 'claude'): string {
-  const money = provider === 'codex' && u.costKnown !== true ? 'cost unavailable' : u.costKnown === false ? 'cost unavailable' : fmtCost(u.cost);
+  const money = provider === 'codex' && u.costKnown !== true ? L.usage.noCost : u.costKnown === false ? L.usage.noCost : fmtCost(u.cost);
   const calls = provider === 'codex' || u.callsKnown === false
-    ? 'API call count unavailable'
+    ? L.usage.noCalls
     : provider === 'opencode'
-      ? `${u.calls} reported call${u.calls === 1 ? '' : 's'}`
-      : `${u.calls} API call${u.calls === 1 ? '' : 's'}`;
+      ? L.usage.reportedCalls(u.calls)
+      : L.usage.apiCalls(u.calls);
   return [
-    ...(u.incomplete ? ['Partial metrics: some session history is still loading or unavailable.'] : []),
+    ...(u.incomplete ? [L.usage.partial] : []),
     provider === 'codex'
-      ? `Codex root-session metrics; subagent usage is not included; ${money}; ${calls}`
+      ? L.usage.codexTitle(money, calls)
       : provider === 'opencode'
-        ? `OpenCode reported estimate ${money}; model/provider estimate, not billing; ${calls}`
-        : `${money} over ${calls}`,
-    `input ${fmtTokens(u.input)} · output ${fmtTokens(u.output)}`,
-    `reasoning ${fmtTokens(u.reasoning ?? 0)}`,
-    `cache write ${fmtTokens(u.cacheWrite)} · cache read ${fmtTokens(u.cacheRead)}`,
+        ? L.usage.openCodeTitle(money, calls)
+        : L.usage.over(money, calls),
+    ...breakdown(u.input, u.output, u.reasoning ?? 0, u.cacheWrite, u.cacheRead),
   ].join('\n');
 }
 
@@ -116,7 +120,7 @@ export function renderUsage() {
   }
   const head = $('workers-cost');
   head.textContent = now > 0 ? fmtCost(now) : '';
-  head.title = 'Current desks: tracked Claude Code costs plus reported OpenCode estimates; Codex root-session tokens appear below; sessions with unavailable cost or partial history are excluded.';
+  head.title = L.usage.headTip;
 
   const el = $('usage');
   const any = s.total.calls > 0 || s.budget !== undefined || untracked || currentOpenCodeReports > 0 || openCodeWaiting || currentCodexReports > 0 || codexWaiting;
@@ -130,56 +134,52 @@ export function renderUsage() {
       h(
         'div.row',
         {},
-        h('span', {}, '💸 Claude Code today'),
+        h('span', {}, L.usage.today),
         h('b', { title: usageTitle(s.today, 'claude') }, displayedCost(s.today)),
-        s.budget !== undefined ? h('span.muted', {}, `of ${fmtCost(s.budget)}`) : h('span.muted', {}, `· ${fmtTokens(tokensOf(s.today))} tokens`),
+        s.budget !== undefined ? h('span.muted', {}, L.usage.of(fmtCost(s.budget))) : h('span.muted', {}, `· ${fmtTokens(tokensOf(s.today))} tokens`),
       ),
     );
   }
   if (s.budget !== undefined) {
     const pct = Math.min(100, (s.today.cost / s.budget) * 100);
-    const state = over ? (s.pauseHiring ? 'Budget spent — no new hires until tomorrow' : 'Budget spent') : `${Math.round(pct)}% of today's budget`;
+    const state = over ? (s.pauseHiring ? L.usage.spentPaused : L.usage.spent) : L.usage.pctToday(Math.round(pct));
     rows.push(h('div.budget', { class: over ? 'over' : pct >= 80 ? 'near' : '', title: state, role: 'progressbar', 'aria-valuenow': Math.round(pct) }, h('div.fill', { style: `width:${pct}%` })));
   }
-  if (s.total.calls > 0 || s.budget !== undefined) rows.push(h('div.row.muted', { title: usageTitle(s.total, 'claude') }, `Claude Code all time ${displayedCost(s.total)} · ${fmtTokens(tokensOf(s.total))} tokens`));
+  if (s.total.calls > 0 || s.budget !== undefined) rows.push(h('div.row.muted', { title: usageTitle(s.total, 'claude') }, L.usage.allTime(displayedCost(s.total), fmtTokens(tokensOf(s.total)))));
   if (currentOpenCodeReports > 0) {
-    const amount = currentOpenCodeCostUnknown ? 'cost unavailable' : `${fmtCost(currentOpenCodeCost)} reported`;
+    const amount = currentOpenCodeCostUnknown ? L.usage.noCost : `${fmtCost(currentOpenCodeCost)} ${L.usage.reported}`;
     rows.push(
       h(
         'div.row.muted',
         {
           title: [
-            'OpenCode current-desk metrics are model/provider estimates, not billing.',
-            `input ${fmtTokens(currentOpenCodeInput)} · output ${fmtTokens(currentOpenCodeOutput)}`,
-            `reasoning ${fmtTokens(currentOpenCodeReasoning)}`,
-            `cache write ${fmtTokens(currentOpenCodeCacheWrite)} · cache read ${fmtTokens(currentOpenCodeCacheRead)}`,
+            L.usage.openCodeDesks,
+            ...breakdown(currentOpenCodeInput, currentOpenCodeOutput, currentOpenCodeReasoning, currentOpenCodeCacheWrite, currentOpenCodeCacheRead),
           ].join('\n'),
         },
-        `OpenCode ${currentOpenCodeIncomplete ? "partial" : "current desks"} ${amount} · ${fmtTokens(currentOpenCodeTokens)} tokens`,
+        `OpenCode ${currentOpenCodeIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentOpenCodeTokens)} tokens`,
       ),
     );
   }
-  if (openCodeWaiting) rows.push(h('div.row.muted', { title: 'OpenCode usage appears after its first metrics report.' }, 'OpenCode metrics waiting for first report'));
+  if (openCodeWaiting) rows.push(h('div.row.muted', { title: L.usage.openCodeWaitTip }, L.usage.openCodeWait));
   if (currentCodexReports > 0) {
-    const amount = currentCodexCostUnknown ? 'cost unavailable' : fmtCost(currentCodexCost);
+    const amount = currentCodexCostUnknown ? L.usage.noCost : fmtCost(currentCodexCost);
     rows.push(
       h(
         'div.row.muted',
         {
           title: [
-            'Codex current-desk metrics cover the root session only; subagent usage is not included; cost is unavailable.',
-            `input ${fmtTokens(currentCodexInput)} · output ${fmtTokens(currentCodexOutput)}`,
-            `reasoning ${fmtTokens(currentCodexReasoning)}`,
-            `cache write ${fmtTokens(currentCodexCacheWrite)} · cache read ${fmtTokens(currentCodexCacheRead)}`,
+            L.usage.codexDesks,
+            ...breakdown(currentCodexInput, currentCodexOutput, currentCodexReasoning, currentCodexCacheWrite, currentCodexCacheRead),
           ].join('\n'),
         },
-        `Codex ${currentCodexIncomplete ? 'partial' : 'current desks'} ${amount} · ${fmtTokens(currentCodexTokens)} tokens`,
+        `Codex ${currentCodexIncomplete ? L.usage.partialWord : L.usage.currentDesks} ${amount} · ${fmtTokens(currentCodexTokens)} tokens`,
       ),
     );
   }
-  if (codexWaiting) rows.push(h('div.row.muted', { title: 'Codex usage appears after its first root-session metrics report; subagent usage is not included.' }, 'Codex metrics waiting for first report'));
+  if (codexWaiting) rows.push(h('div.row.muted', { title: L.usage.codexWaitTip }, L.usage.codexWait));
   if (untracked) {
-    rows.push(h('div.row.muted', { title: 'Custom provider usage is not reported by the office.' }, 'Custom usage untracked · budget and totals cover Claude Code only'));
+    rows.push(h('div.row.muted', { title: L.usage.customTip }, L.usage.custom));
   }
   el.replaceChildren(...rows);
 }

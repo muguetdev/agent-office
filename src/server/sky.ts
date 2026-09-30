@@ -1,5 +1,6 @@
 import type { SkyState, Weather } from '../shared/protocol.js';
 import { guessPlace } from '../shared/sun.js';
+import { L } from './i18n.js';
 
 // The sky over the office: where it is (which sets when the sun rises and sets) and the weather.
 // With --city, both follow that city's live forecast from open-meteo.com (free, no key needed).
@@ -152,7 +153,7 @@ export class Sky {
     try {
       this.place ??= await locate(city);
       if (!this.place) {
-        console.warn(`agent-office: couldn't find the city "${city}"; the weather is made up instead`);
+        console.warn(`agent-office: ${L.logs.noCity(city)}`);
         this.opts.city = undefined;
         return this.drift();
       }
@@ -167,7 +168,7 @@ export class Sky {
       this.warned = false;
       this.later(FORECAST_MS, () => void this.forecast());
     } catch (err) {
-      if (!this.warned) console.warn(`agent-office: no weather for ${city} yet (${(err as Error).message}); trying again in a couple of minutes`);
+      if (!this.warned) console.warn(`agent-office: ${L.logs.noWeather(city, (err as Error).message)}`);
       this.warned = true;
       this.later(RETRY_MS, () => void this.forecast());
     }

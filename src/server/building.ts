@@ -5,6 +5,7 @@ import path from 'node:path';
 import { FLOOR_PALETTES, MAX_FLOORS, normalizeRepo, sameRepo } from '../shared/floors.js';
 import type { ProjectsDirState, RepoChoice } from '../shared/protocol.js';
 import { gh } from './github.js';
+import { L } from './i18n.js';
 
 /** A floor as floors.json keeps it. */
 export interface FloorDef {
@@ -88,7 +89,7 @@ export class Building {
     let dir = this.defaultProjectsDir;
     if (text) {
       const typed = untildify(text);
-      if (!path.isAbsolute(typed)) return 'Use a full path, like ~/Workspace';
+      if (!path.isAbsolute(typed)) return L.srvBuilding.fullPath;
       dir = path.resolve(typed);
     }
     if (dir !== this.defaultProjectsDir) {
@@ -96,13 +97,13 @@ export class Building {
       if (why) return why;
       // Cloning into a project would nest checkouts inside its git tree.
       const inside = this.defs.find((d) => within(dir, path.resolve(d.dir)));
-      if (inside) return `${tildify(dir)} is inside ${inside.name}'s checkout — pick a folder outside every project`;
+      if (inside) return L.srvBuilding.inside(tildify(dir), inside.name);
     }
     this.picked = dir === this.defaultProjectsDir ? undefined : { dir, by, at: Date.now() };
     try {
       writeFileSync(this.pickedFile, JSON.stringify(this.picked ?? {}, null, 2), { mode: 0o600 });
     } catch (err) {
-      console.error(`agent-office: couldn't save the projects folder: ${(err as Error).message}`);
+      console.error(`agent-office: ${L.srvBuilding.saveDirFailed((err as Error).message)}`);
     }
     return undefined;
   }
@@ -152,7 +153,7 @@ export class Building {
    */
   remove(id: string, by = '?'): FloorDef | string {
     const def = this.defs.find((d) => d.id === id);
-    if (!def) return [...this.cloning.values()].some((d) => d.id === id) ? "That floor is still being cloned — take it off once it's there" : 'No such floor';
+    if (!def) return [...this.cloning.values()].some((d) => d.id === id) ? L.srvBuilding.stillCloning : L.srv.noSuchFloor;
     this.defs = this.defs.filter((d) => d !== def);
     if (this.isLocal(id)) {
       this.localId = undefined;
@@ -169,10 +170,10 @@ export class Building {
    */
   async add(input: string, by: string, started: (def: FloorDef) => void): Promise<FloorDef | string> {
     const wanted = normalizeRepo(input);
-    if (!wanted) return 'Pick a repository, or type it as owner/name';
-    if (this.defs.some((d) => sameRepo(d.repo, wanted))) return `${wanted} already has a floor`;
-    if (this.cloning.has(wanted.toLowerCase())) return `${wanted} is already being cloned`;
-    if (this.defs.length + this.cloning.size >= MAX_FLOORS) return `The building is full (${MAX_FLOORS} floors)`;
+    if (!wanted) return L.srvBuilding.pickRepo;
+    if (this.defs.some((d) => sameRepo(d.repo, wanted))) return L.srvBuilding.hasFloor(wanted);
+    if (this.cloning.has(wanted.toLowerCase())) return L.srvBuilding.cloning(wanted);
+    if (this.defs.length + this.cloning.size >= MAX_FLOORS) return L.srvBuilding.full(MAX_FLOORS);
     // The office's own checkout, taken off before: it moves back in where it is, not into a second clone.
     const home = this.local;
     if (this.localOff && home && sameRepo(home.repo, wanted) && existsSync(home.dir)) {
@@ -190,14 +191,14 @@ export class Building {
       const view = JSON.parse(await gh(['repo', 'view', wanted, '--json', 'nameWithOwner'], this.dataDir, 30_000)) as { nameWithOwner?: string };
       repo = normalizeRepo(view.nameWithOwner) ?? wanted;
     } catch (err) {
-      return `Couldn't find ${wanted} on GitHub: ${(err as Error).message}`;
+      return L.srvBuilding.notFound(wanted, (err as Error).message);
     }
     const key = repo.toLowerCase();
-    if (this.defs.some((d) => sameRepo(d.repo, repo))) return `${repo} already has a floor`;
-    if (this.cloning.has(key)) return `${repo} is already being cloned`;
+    if (this.defs.some((d) => sameRepo(d.repo, repo))) return L.srvBuilding.hasFloor(repo);
+    if (this.cloning.has(key)) return L.srvBuilding.cloning(repo);
     const [owner, name] = repo.split('/');
     const dest = path.join(this.projectsDir, owner, name);
-    if (this.defs.some((d) => path.resolve(d.dir) === dest)) return `${dest} is already a floor`;
+    if (this.defs.some((d) => path.resolve(d.dir) === dest)) return L.srvBuilding.alreadyFloor(dest);
     const def = this.newDef(name, repo, dest, by);
     this.cloning.set(key, def);
     started(def);
@@ -256,7 +257,7 @@ export class Building {
         });
       }
     } catch (err) {
-      console.error(`agent-office: ${this.file} couldn't be read, so the building starts empty: ${(err as Error).message}`);
+      console.error(`agent-office: ${L.logs.floorsUnreadable(this.file, (err as Error).message)}`);
     }
   }
 
@@ -288,7 +289,7 @@ export class Building {
       if (off) writeFileSync(this.localFile, JSON.stringify(off, null, 2), { mode: 0o600 });
       else rmSync(this.localFile, { force: true });
     } catch (err) {
-      console.error(`agent-office: couldn't save ${this.localFile}: ${(err as Error).message}`);
+      console.error(`agent-office: ${L.logs.saveFailed(this.localFile, (err as Error).message)}`);
     }
   }
 
@@ -296,7 +297,7 @@ export class Building {
     try {
       writeFileSync(this.file, JSON.stringify(this.defs, null, 2), { mode: 0o600 });
     } catch (err) {
-      console.error(`agent-office: couldn't save the floors: ${(err as Error).message}`);
+      console.error(`agent-office: ${L.logs.saveFailed(L.logs.theFloors, (err as Error).message)}`);
     }
   }
 }
@@ -322,10 +323,10 @@ function unwritable(dir: string): string | undefined {
   let at = dir;
   while (!existsSync(at) && path.dirname(at) !== at) at = path.dirname(at);
   try {
-    if (!statSync(at).isDirectory()) return `${tildify(at)} isn't a folder`;
+    if (!statSync(at).isDirectory()) return L.srvBuilding.notAFolder(tildify(at));
     accessSync(at, constants.W_OK);
   } catch {
-    return `The office can't write in ${tildify(at)}`;
+    return L.srvBuilding.cantWrite(tildify(at));
   }
   return undefined;
 }
@@ -343,22 +344,22 @@ export function originRepo(dir: string): string | undefined {
 /** Clones `repo` to `dest`, or checks that what's already there is that repository. Resolves to an error, if any. */
 async function cloneInto(repo: string, dest: string): Promise<string | undefined> {
   if (existsSync(dest)) {
-    if (!statSync(dest).isDirectory()) return `${dest} is already there and isn't a folder`;
+    if (!statSync(dest).isDirectory()) return L.srvBuilding.notFolder(dest);
     if (readdirSync(dest).length) {
       // Cloned before (a floor that was taken off the list, or by hand): move back in.
-      return sameRepo(originRepo(dest), repo) ? undefined : `${dest} already exists and isn't a checkout of ${repo} — move it out of the way first`;
+      return sameRepo(originRepo(dest), repo) ? undefined : L.srvBuilding.notCheckout(dest, repo);
     }
   }
   try {
     mkdirSync(path.dirname(dest), { recursive: true });
   } catch (err) {
-    return `Couldn't make ${path.dirname(dest)}: ${(err as Error).message}`;
+    return L.srvBuilding.mkdirFailed(path.dirname(dest), (err as Error).message);
   }
   return new Promise((resolve) => {
     execFile('gh', ['repo', 'clone', repo, dest], { cwd: path.dirname(dest), timeout: CLONE_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 }, (err, _out, stderr) => {
       if (!err) return resolve(undefined);
       const why = String(stderr || err.message).trim().split('\n').filter(Boolean).slice(-2).join(' ');
-      resolve(`Couldn't clone ${repo}: ${why || 'gh failed'}`);
+      resolve(L.srvBuilding.cloneFailed(repo, why || 'gh failed'));
     });
   });
 }

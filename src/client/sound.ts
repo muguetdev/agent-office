@@ -13,6 +13,7 @@ import type { GongWhy } from '../shared/protocol';
 import { STREAM } from '../shared/jukebox';
 import { TunePlayer } from './music';
 import { DjPlayer } from './dnb';
+import { L } from './i18n';
 
 type Pos = { x: number; y: number; z: number };
 
@@ -1382,7 +1383,7 @@ export class OfficeSound {
     a.src = url;
     a.addEventListener('loadedmetadata', () => this.seekStream(a));
     a.addEventListener('error', () => {
-      if (this.stream === a) this.onMusicError?.("📻 The jukebox can't play that stream in your browser");
+      if (this.stream === a) this.onMusicError?.(L.jukebox.cantPlay);
     });
     this.stream = a;
     this.hearStream();

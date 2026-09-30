@@ -23,6 +23,7 @@ import { landedWorkers } from './leave-on-merge.js';
 import type { Ledger } from './usage.js';
 import type { Capacity } from './machine.js';
 import { officePrompt, type PromptSource } from './prompts.js';
+import { L } from './i18n.js';
 
 type ToastLevel = 'info' | 'warn' | 'error';
 
@@ -191,7 +192,7 @@ export class Floor {
       hiringPaused: () => ctx.ledger.hiringPaused,
       room: () => ctx.capacity.room(),
       emptied: () => {
-        ctx.toast(this, '📋 The queue is empty: every task is done 🎉');
+        ctx.toast(this, L.srvFloor.queueEmpty);
         ctx.emit(this, { t: 'gong', why: 'queue' });
       },
       worktreeNote: () => officePrompt(ctx.prompts, 'queue.worktree'),
@@ -273,7 +274,7 @@ export class Floor {
       if (!this.ctx.leaveOnMerge()) return;
       for (const { worker, pr, head } of landedWorkers(this.workers.list(), this.github.pulls.items, this.queue.state().tasks)) {
         const done = this.workers.kill(worker.id, undefined, head);
-        this.ctx.toast(this, `🏠 ${worker.name} went home: PR #${pr} merged`);
+        this.ctx.toast(this, L.srvFloor.wentHome(worker.name, pr));
         void done.then(({ note, error }) => {
           if (note) this.ctx.toast(this, note);
           if (error) this.ctx.toast(this, error, 'warn');

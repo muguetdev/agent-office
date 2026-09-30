@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BOOKSHELF, FLOOR } from '../../shared/layout';
 import { mergeByMaterial, mesh, textPlane, toon } from './toon';
 import type { Collider, Interactable } from './office';
+import { L } from '../i18n';
 
 // The bookshelf against the south wall: a tall wooden case, five shelves packed with books of every
 // size and color (a few leaning over, a stack lying flat, a plant and a globe among them), and a
@@ -105,7 +106,7 @@ export function buildBookshelf(): BookshelfModel {
   group.add(mergeByMaterial(parts));
 
   // A sign along the crown.
-  const sign = textPlane('📚 Docs', { size: 40, bg: '#fffaf3' });
+  const sign = textPlane(L.signs.docs, { size: 40, bg: '#fffaf3' });
   sign.position.set(0, H + 0.3, 0.02);
   group.add(sign);
 

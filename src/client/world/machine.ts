@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { MachineState } from '../../shared/protocol';
+import { L } from '../i18n';
 
 const FONT = 'Nunito, ui-rounded, system-ui, sans-serif';
 const INK = '#1b1d2e';
@@ -22,7 +23,7 @@ export function officeFull(s: MachineState): boolean {
 
 /** What the hire dialog says while the machine is under pressure. */
 export function pressureNote(s: MachineState): string | undefined {
-  return s.pressure ? `⚠️ This machine is under pressure: ${s.pressure}. Another worker may slow down the ones already working.` : undefined;
+  return s.pressure ? L.machine.pressureNote(s.pressure) : undefined;
 }
 
 /**
@@ -60,9 +61,9 @@ export class MachineTexture {
     g.textAlign = 'left';
     g.fillStyle = '#ffffff';
     g.font = `900 40px ${FONT}`;
-    g.fillText('🖥️ This machine', 30, 62);
+    g.fillText(L.machine.title, 30, 62);
     const full = officeFull(s);
-    const status = !s.memTotal ? ['…', MUTED] : s.pressure ? ['⚠️ Under pressure', '#ef476f'] : full ? ['🚫 Office full', '#ffd166'] : ['✅ Room to hire', '#06d6a0'];
+    const status = !s.memTotal ? ['…', MUTED] : s.pressure ? [L.machine.underPressure, '#ef476f'] : full ? [L.machine.full, '#ffd166'] : [L.machine.room, '#06d6a0'];
     g.font = `800 30px ${FONT}`;
     const tw = g.measureText(status[0]).width;
     g.fillStyle = status[1];
@@ -73,15 +74,15 @@ export class MachineTexture {
     g.fillText(status[0], W - 30 - (tw + 32) / 2, 60);
 
     const memPct = s.memTotal ? Math.round((s.memUsed / s.memTotal) * 100) : 0;
-    this.panel(30, 100, 415, 'CPU', s.cpu, s.cores ? `${s.cores} core${s.cores === 1 ? '' : 's'}` : '', s.history.map(([c]) => c));
-    this.panel(475, 100, 415, 'Memory', memPct, s.memTotal ? `${fmtGb(s.memUsed)} of ${fmtGb(s.memTotal)}` : '', s.history.map(([, m]) => m));
+    this.panel(30, 100, 415, 'CPU', s.cpu, s.cores ? L.machine.cores(s.cores) : '', s.history.map(([c]) => c));
+    this.panel(475, 100, 415, L.machine.memory, memPct, s.memTotal ? L.machine.of(fmtGb(s.memUsed), fmtGb(s.memTotal)) : '', s.history.map(([, m]) => m));
 
     // Footer: the workers, one pip each, against the limit.
     const y = 440;
     g.textAlign = 'left';
     g.font = `800 32px ${FONT}`;
     g.fillStyle = '#ffffff';
-    const label = s.limit === undefined ? `👷 ${s.workers} worker${s.workers === 1 ? '' : 's'} · no limit` : `👷 ${s.workers} of ${s.limit} workers`;
+    const label = s.limit === undefined ? L.machine.noLimit(s.workers) : L.machine.ofLimit(s.workers, s.limit);
     g.fillText(label, 30, y + 12);
     if (s.limit !== undefined) {
       const x0 = 30 + g.measureText(label).width + 28;

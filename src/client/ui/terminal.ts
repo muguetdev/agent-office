@@ -10,6 +10,7 @@ import type { ServerMsg, WorkerInfo } from '../../shared/protocol';
 import { isAsleep } from '../../shared/status';
 import { findLine } from '../../shared/search';
 import { providerLabel, providerUsageNote, providerUsageState, resolvedProvider } from './provider';
+import { L } from '../i18n';
 
 /** A line to scroll to once the terminal has loaded: a search hit (see search.ts). */
 export interface TerminalFind {
@@ -24,9 +25,9 @@ const TYPING_SHOWS_MS = 2500;
 
 /** "Sam is typing…", "Sam and Ada are typing…", "Sam and 2 others are typing…". */
 function typingLine(names: string[]): string {
-  if (names.length === 1) return `${names[0]} is typing…`;
-  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
-  return `${names[0]} and ${names.length - 1} others are typing…`;
+  if (names.length === 1) return L.terminal.typing1(names[0]);
+  if (names.length === 2) return L.terminal.typing2(names[0], names[1]);
+  return L.terminal.typingN(names[0], names.length - 1);
 }
 
 /** Up to two letters for someone's face: "Sam" -> "S", "Ada Lovelace" -> "AL". */
@@ -64,14 +65,14 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const viewers = h('div.viewers', {});
   const modelsBtn = h('button.btn', {
     type: 'button',
-    title: 'OpenCode models: Ctrl+X then M (use /models if custom bindings override it)',
-    'aria-label': 'OpenCode models',
-  }, '🧠 Models');
+    title: L.terminal.modelsTip,
+    'aria-label': L.provider.openCodeModel,
+  }, L.terminal.models);
   const typed = h('span.typed', {});
-  const changesBtn = h('button.btn', { type: 'button', title: 'What this worker changed: files, diff, commit, open a PR (C at the desk)' }, '🌿 Changes');
-  const closeBtn = h('button.btn.close', { title: 'Leave terminal (Esc) · Ctrl+[ sends Esc to the terminal', 'aria-label': 'Close' }, '✕');
+  const changesBtn = h('button.btn', { type: 'button', title: L.terminal.changesTip }, L.terminal.changes);
+  const closeBtn = h('button.btn.close', { title: L.terminal.leaveTip, 'aria-label': L.common.close }, '✕');
   const host = h('div.term-host');
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': `${info.name} terminal` }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, onChanges ? changesBtn : null, closeBtn), host);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, onChanges ? changesBtn : null, closeBtn), host);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -125,12 +126,12 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       ...people.map((v) =>
         h(
           'span.avatar',
-          { class: v.typing ? 'typing' : '', style: `background:${v.color}`, title: `${v.name}${v.you ? ' (you)' : ''}${v.typing ? ' · typing' : ''}` },
+          { class: v.typing ? 'typing' : '', style: `background:${v.color}`, title: `${v.name}${v.you ? ` ${L.hud.you}` : ''}${v.typing ? ` · ${L.terminal.typingWord}` : ''}` },
           initials(v.name),
         ),
       ),
     );
-    viewers.title = people.length ? `In this terminal: ${people.map((v) => (v.you ? `${v.name} (you)` : v.name)).join(', ')}` : '';
+    viewers.title = people.length ? L.terminal.inHere(people.map((v) => (v.you ? `${v.name} ${L.hud.you}` : v.name)).join(', ')) : '';
     const typists = people.filter((v) => v.typing && !v.you).map((v) => v.name);
     typed.classList.toggle('now', typists.length > 0);
     if (typists.length) {
@@ -138,7 +139,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       typed.title = '';
     } else {
       typed.textContent = w.lastInput ? `⌨️ ${w.lastInput.by}` : '';
-      typed.title = w.lastInput ? `${w.lastInput.by} typed here last, ${timeAgo(w.lastInput.at)}` : '';
+      typed.title = w.lastInput ? L.terminal.typedLast(w.lastInput.by, timeAgo(w.lastInput.at)) : '';
     }
   };
   /** Everyone in the terminal, one face per person however many windows they have it open in, you first. */
@@ -179,7 +180,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     pill.textContent = STATUS_LABEL[w.status] ?? w.status;
     const workerProvider = w.kind === 'agent' ? resolvedProvider(w.provider, store.project) : undefined;
     const usageState = w.kind === 'agent' ? providerUsageState(w.provider, store.project, w.usage) : undefined;
-    cost.textContent = w.kind !== 'agent' ? '' : usageState === 'tracked' && w.usage ? usageLabel(w.usage, workerProvider) : workerProvider === 'opencode' && usageState === 'waiting' ? 'waiting for metrics' : workerProvider === 'codex' && usageState === 'waiting' ? 'waiting for first report' : usageState === 'untracked' ? 'usage untracked' : '';
+    cost.textContent = w.kind !== 'agent' ? '' : usageState === 'tracked' && w.usage ? usageLabel(w.usage, workerProvider) : workerProvider === 'opencode' && usageState === 'waiting' ? L.hud.waitingMetrics : workerProvider === 'codex' && usageState === 'waiting' ? L.hud.waitingReport : usageState === 'untracked' ? L.hud.untracked : '';
     cost.title = w.kind === 'agent' && w.usage ? usageTitle(w.usage, workerProvider) : w.kind === 'agent' ? providerUsageNote(workerProvider!) : '';
     renderPresence(w);
     const openCode = w.kind === 'agent' && resolvedProvider(w.provider, store.project) === 'opencode';
@@ -198,7 +199,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const jumpTo = (f: TerminalFind) => {
     const buf = term.buffer.active;
     const row = findLine(buf, f.needle, f.fromEnd);
-    if (row === undefined) return toast('That line has scrolled out of the terminal since', 'warn');
+    if (row === undefined) return toast(L.terminal.scrolledOut, 'warn');
     let end = row;
     while (buf.getLine(end + 1)?.isWrapped) end++;
     // A marker follows the line when the terminal reflows, which it does as the window settles.
@@ -252,7 +253,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
 
   const modal = openModal(el, {
     backdropCloses: true,
-    doing: `💻 in ${info.name}'s terminal`,
+    doing: L.terminal.doing(info.name),
     onClose: () => {
       listeners.delete(onMsg);
       unsub();

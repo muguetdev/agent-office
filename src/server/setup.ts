@@ -8,6 +8,7 @@ import { normalizeRepo, sameRepo } from '../shared/floors.js';
 import type { RepoChoice } from '../shared/protocol.js';
 import { Building, tildify } from './building.js';
 import { officeHome, type Config } from './config.js';
+import { L } from './i18n.js';
 
 // Setting up an office from its terminal: where projects are cloned, signing the GitHub CLI in, and
 // picking the first repositories to clone as floors. A new office walks you through it the first time
@@ -21,25 +22,8 @@ const SHOWN = 12;
 /** Folders people keep their code in, in the home folder: the first one that's there is the suggestion. */
 const CODE_FOLDERS = ['Workspace', 'workspace', 'Developer', 'code', 'Code', 'projects', 'Projects', 'repos', 'src', 'dev', 'git', 'GitHub', 'github'];
 
-const SETUP_HELP = `agent-office setup — pick where projects are cloned and which ones are floors
-
-Usage:
-  agent-office setup [--projects <dir>] [--project <owner/repo>]... [--home <dir>]
-
-In a terminal it walks you through it: the workspace folder new projects are cloned
-into, signing the GitHub CLI in, and picking repositories to clone as floors. Given
---projects or --project it does just that and asks nothing, for scripts.
-
-A new office runs this by itself the first time it starts in a terminal. Run it
-while the office is stopped; while it runs, use its elevator and ⚙️ Settings.
-
-Options:
-      --home <dir>        The office to set up (default ~/agent-office, env AGENT_OFFICE_HOME)
-      --projects <dir>    Clone new projects into <dir>/<owner>/<repo> from now on
-      --project <repo>    Clone this repository (owner/name or a GitHub URL) as a floor.
-                          Repeat it for more than one
-  -h, --help              Show this help
-`;
+/** The setup's words, in the language the terminal asks for (see ./i18n.ts). */
+const m = L.setup;
 
 /** Someone's at a terminal to answer questions. */
 export function interactive(): boolean {
@@ -54,16 +38,10 @@ export async function welcome(cfg: Config): Promise<void> {
   const building = new Building(cfg.dataDir, cfg.projectsDir);
   if (building.list().length) return;
   // --projects is the answer to the first question (the office applies it again as it starts).
-  const folderGiven = !!cfg.projects && !building.setProjectsDir(cfg.projects, 'the command line');
-  console.log(`
-  👋 Welcome to Agent Office!
-
-  Every project is a floor of the building, and this one doesn't have any yet.
-  Let's add your first: pick one of your GitHub repositories and the office
-  clones it. Press Enter to skip any question and do it from the office's
-  elevator instead.`);
+  const folderGiven = !!cfg.projects && !building.setProjectsDir(cfg.projects, L.srv.commandLine);
+  console.log(m.welcome);
   await walkthrough(building, cfg.dataDir, !folderGiven && !building.projectsDirState().custom);
-  console.log(building.list().length ? '\n  All set. Opening the office…' : '\n  Opening the office: its elevator asks for your first project.');
+  console.log(building.list().length ? m.allSet : m.openingEmpty);
 }
 
 /** `agent-office setup …`: returns the exit code. */
@@ -76,20 +54,20 @@ export async function setupCommand(argv: string[]): Promise<number> {
     const value = () => {
       const v = argv[++i];
       if (v === undefined || v.startsWith('-')) {
-        console.error(`agent-office setup: ${a} needs a value`);
+        console.error(m.needsValue(a));
         process.exit(2);
       }
       return v;
     };
     if (a === '-h' || a === '--help') {
-      process.stdout.write(SETUP_HELP);
+      process.stdout.write(m.help);
       return 0;
     } else if (a === '--home') home = path.resolve(value());
     else if (a === '--projects') projects = value();
     else if (a === '--project') repos.push(value());
     else {
-      console.error(`agent-office setup: unknown option ${a}\n`);
-      process.stderr.write(SETUP_HELP);
+      console.error(`${m.unknownOption(a)}\n`);
+      process.stderr.write(m.help);
       return 2;
     }
   }
@@ -105,35 +83,31 @@ export async function setupCommand(argv: string[]): Promise<number> {
   const dataDir = path.join(dir, '.agent-office');
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   if (await officeRunning(dataDir)) {
-    console.error(`agent-office setup: the office in ${tildify(dir)} is running. Add projects from its elevator, and pick the workspace folder in ⚙️ Settings.`);
+    console.error(m.running(tildify(dir)));
     return 1;
   }
   const building = new Building(dataDir, inProject ? path.join(os.homedir(), 'agent-office') : dir);
 
   if (projects || repos.length || !interactive()) {
     if (!projects && !repos.length) {
-      console.error('agent-office setup: nothing to do without a terminal to ask in. Pass --projects <dir> and/or --project <owner/repo>.');
+      console.error(m.nothingToDo);
       return 2;
     }
     let code = 0;
     if (projects) {
       const err = building.setProjectsDir(projects, 'agent-office setup');
       if (err) {
-        console.error(`agent-office setup: --projects: ${err}`);
+        console.error(m.badProjects(err));
         return 1;
       }
-      console.log(`  📁 New projects are cloned into ${building.projectsDirState().dir}/<owner>/<repo>`);
+      console.log(m.clonedInto(building.projectsDirState().dir));
     }
     for (const repo of repos) if (!(await addFloor(building, repo, 'agent-office setup'))) code = 1;
     return code;
   }
 
   const floors = building.list();
-  console.log(
-    floors.length
-      ? `\n  🏢 The office in ${tildify(dir)} has ${floors.length} floor${floors.length === 1 ? '' : 's'}: ${floors.map((f) => f.name).join(', ')}.`
-      : `\n  🏢 The office in ${tildify(dir)} has no floors yet: every project is a floor of the building.`,
-  );
+  console.log(floors.length ? m.hasFloors(tildify(dir), floors.map((f) => f.name)) : m.noFloors(tildify(dir)));
   await walkthrough(building, dataDir, true);
   return 0;
 }
@@ -143,7 +117,7 @@ async function walkthrough(building: Building, dataDir: string, askFolder: boole
   if (askFolder) await pickFolder(building);
   const login = await githubLogin(dataDir);
   if (!login) {
-    console.log('\n  Add projects from the elevator in the office once gh is ready (or run `agent-office setup` again).');
+    console.log(m.addLater);
     return;
   }
   await pickProjects(building, login);
@@ -152,14 +126,14 @@ async function walkthrough(building: Building, dataDir: string, askFolder: boole
 async function pickFolder(building: Building) {
   const now = building.projectsDirState();
   const suggestion = now.custom ? now.dir : tildify(suggestedFolder(building.projectsDir));
-  console.log(`\n  📁 Where should the office clone your projects? Each one goes in <folder>/<owner>/<repo>.`);
+  console.log(m.folderQuestion);
   for (;;) {
-    const answer = (await ask(`     Folder [${suggestion}]: `)) || suggestion;
+    const answer = (await ask(m.folderPrompt(suggestion))) || suggestion;
     const err = building.setProjectsDir(answer, whoAmI());
     if (!err) break;
     console.log(`     ✗ ${err}`);
   }
-  console.log(`     ✓ ${building.projectsDirState().dir}/<owner>/<repo> (admins can change it in ⚙️ Settings)`);
+  console.log(m.folderSet(building.projectsDirState().dir));
 }
 
 /** Where to suggest cloning projects: a code folder that's already in the home folder, else `fallback`. */
@@ -186,20 +160,20 @@ async function githubLogin(cwd: string): Promise<string | undefined> {
   for (let tried = false; ; tried = true) {
     const me = await ghUser(cwd);
     if (me.login) {
-      console.log(`\n  🐙 Signed in to GitHub as ${me.login}`);
+      console.log(m.signedIn(me.login));
       return me.login;
     }
     if (me.missing) {
       const how = process.platform === 'darwin' ? 'brew install gh' : process.platform === 'win32' ? 'winget install GitHub.cli' : 'sudo apt install gh';
-      console.log(`\n  🐙 The office clones projects with the GitHub CLI (gh), which isn't installed.\n     Install it (${how}, or see https://cli.github.com), then run \`gh auth login\`.`);
+      console.log(m.ghMissing(how));
       return undefined;
     }
     if (!me.signedOut || tried) {
-      console.log(`\n  🐙 Couldn't reach GitHub with gh: ${me.error}`);
+      console.log(m.ghUnreachable(me.error ?? ''));
       return undefined;
     }
-    console.log("\n  🐙 The office clones projects with the GitHub CLI (gh), and it isn't signed in.");
-    if (/^n/i.test(await ask('     Sign in to GitHub now? [Y/n] '))) return undefined;
+    console.log(m.ghSignedOut);
+    if (m.no.test(await ask(m.signInNow))) return undefined;
     spawnSync('gh', ['auth', 'login'], { stdio: 'inherit' });
   }
 }
@@ -216,31 +190,29 @@ function ghUser(cwd: string): Promise<{ login?: string; missing?: boolean; signe
 }
 
 async function pickProjects(building: Building, login: string) {
-  process.stdout.write('     Asking GitHub for your repositories…');
+  process.stdout.write(m.askingRepos);
   let repos: RepoChoice[] = [];
   try {
     repos = await building.repos();
     clearLine();
   } catch (err) {
     clearLine();
-    console.log(`     ✗ Couldn't list your repositories: ${(err as Error).message}`);
+    console.log(m.reposFailed((err as Error).message));
   }
   let shown = repos.slice(0, SHOWN);
   if (shown.length) {
-    console.log(`\n  🛗 Your repositories, most recently pushed first${repos.length > SHOWN ? ` (${SHOWN} of ${repos.length}; type a word to search)` : ''}:\n`);
+    console.log(m.reposHeader(SHOWN, repos.length));
     printRepos(shown, building);
-  } else if (!repos.length) console.log('\n  🛗 No repositories to list. Type owner/name to clone any repository you can see.');
+  } else if (!repos.length) console.log(m.noRepos);
   let added = 0;
   for (;;) {
-    const answer = await ask(
-      added ? '\n  Add another? A number, owner/name or a word to search. Enter opens the office: ' : '\n  Pick a number, type owner/name or a word to search. Enter skips: ',
-    );
+    const answer = await ask(added ? m.pickAnother : m.pickFirst);
     if (!answer) return;
     let pick: string | undefined;
     if (/^\d+$/.test(answer)) {
       pick = shown[Number(answer) - 1]?.name;
       if (!pick) {
-        console.log(`     ✗ There's no ${answer} in the list`);
+        console.log(m.notInList(answer));
         continue;
       }
     } else pick = normalizeRepo(answer);
@@ -248,11 +220,11 @@ async function pickProjects(building: Building, login: string) {
       const q = answer.toLowerCase();
       const matches = repos.filter((r) => r.name.toLowerCase().includes(q) || (r.description ?? '').toLowerCase().includes(q));
       if (!matches.length) {
-        console.log(`     Nothing matches “${answer}”. Type owner/name to clone any repository.`);
+        console.log(m.noMatch(answer));
         continue;
       }
       shown = matches.slice(0, SHOWN);
-      console.log(`\n     ${matches.length} repositor${matches.length === 1 ? 'y matches' : 'ies match'} “${answer}”${matches.length > SHOWN ? ` (the first ${SHOWN} here)` : ''}:\n`);
+      console.log(m.matches(matches.length, answer, SHOWN));
       printRepos(shown, building);
       continue;
     }
@@ -263,13 +235,13 @@ async function pickProjects(building: Building, login: string) {
 /** Clones `repo` as a new floor, saying how it went. */
 async function addFloor(building: Building, repo: string, by: string): Promise<boolean> {
   const r = await building.add(repo, by, (def) => {
-    console.log(`     ⏳ Cloning ${def.repo ?? repo} into ${tildify(def.dir)}… (a big repository can take a minute)`);
+    console.log(m.cloning(def.repo ?? repo, tildify(def.dir)));
   });
   if (typeof r === 'string') {
     console.log(`     ✗ ${r}`);
     return false;
   }
-  console.log(`     ✓ ${r.repo ?? r.name} is floor ${building.list().indexOf(r) + 1}`);
+  console.log(m.added(r.repo ?? r.name, building.list().indexOf(r) + 1));
   return true;
 }
 
@@ -278,7 +250,7 @@ function printRepos(list: RepoChoice[], building: Building) {
   const nameWidth = Math.min(40, Math.max(...list.map((r) => r.name.length)));
   const floors = building.list();
   list.forEach((r, i) => {
-    const note = floors.some((f) => sameRepo(f.repo, r.name)) ? '(a floor already)' : [r.private ? 'private' : '', r.description ?? ''].filter(Boolean).join(' · ');
+    const note = floors.some((f) => sameRepo(f.repo, r.name)) ? m.alreadyFloor : [r.private ? m.private : '', r.description ?? ''].filter(Boolean).join(' · ');
     const line = `    ${String(i + 1).padStart(2)}. ${r.name.padEnd(nameWidth)}  ${note}`.trimEnd();
     console.log(line.length > width ? `${line.slice(0, width - 1)}…` : line);
   });

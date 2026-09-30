@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import type { GhCheck, GhCloseReason, GhComment, GhIssue, GhIssueDetail, GhLabel, GhMergeMethod, GhPull, GhPullDetail, GhRepoInfo, GhReviewComment, GhState } from '../shared/protocol.js';
+import { L } from './i18n.js';
 
 const REFRESH_MS = 90_000;
 /** How long the repo's list of labels is kept before the label picker asks GitHub again. */
@@ -7,10 +8,10 @@ const LABELS_MS = 60_000;
 
 /** Turns gh's stderr into something a person standing at the board can act on. */
 function friendly(raw: string): string {
-  if (/no git remotes found|none of the git remotes/i.test(raw)) return 'This project has no GitHub remote yet. Push it to GitHub (git remote add origin <url>) to fill the boards.';
-  if (/not a git repository/i.test(raw)) return "This folder isn't a git repository";
-  if (/auth login|not logged in|authentication/i.test(raw)) return "gh isn't logged in on the server — run `gh auth login`";
-  if (/could not resolve to a repository|not found/i.test(raw)) return "gh can't find this repository on GitHub (check the remote and access)";
+  if (/no git remotes found|none of the git remotes/i.test(raw)) return L.srvGithub.noRemote;
+  if (/not a git repository/i.test(raw)) return L.srvGithub.notRepo;
+  if (/auth login|not logged in|authentication/i.test(raw)) return L.srvGithub.notLoggedIn;
+  if (/could not resolve to a repository|not found/i.test(raw)) return L.srvGithub.notFound;
   return raw;
 }
 
@@ -19,7 +20,7 @@ export function gh(args: string[], cwd: string, timeout = 30_000): Promise<strin
     execFile('gh', args, { cwd, maxBuffer: 32 * 1024 * 1024, timeout }, (err, stdout, stderr) => {
       if (err) {
         const msg = (stderr || err.message || '').trim().split('\n').slice(-2).join(' ');
-        reject(new Error((err as NodeJS.ErrnoException).code === 'ENOENT' ? 'GitHub CLI (gh) is not installed on the server' : friendly(msg)));
+        reject(new Error((err as NodeJS.ErrnoException).code === 'ENOENT' ? L.srvGithub.noGh : friendly(msg)));
       } else resolve(stdout);
     });
   });

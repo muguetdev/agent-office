@@ -16,6 +16,7 @@ import { buildStack, type Stack } from './stack';
 import { buildTower } from './tower';
 import { buildHoop, type HoopView } from './hoop';
 import { HOOP } from '../../shared/hoop';
+import { L } from '../i18n';
 
 export interface Collider {
   minX: number;
@@ -578,7 +579,7 @@ function buildBalcony(group: THREE.Group, colliders: Collider[], interactables: 
   interactables.push(it);
   tray.userData.interact = it;
 
-  const sign = textPlane('🚬 Smoke break', { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
+  const sign = textPlane(L.signs.smoke, { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
   sign.scale.multiplyScalar(0.8);
   sign.position.set(-6.5, 2.2, minZ + 0.02);
   group.add(sign);
@@ -887,7 +888,7 @@ function buildBeanbag(def: DeskDef, index: number): DeskView {
   return { def, group, laptopAnchor, seatAnchor, stage, chair: bag, vacancy, vacancyY };
 }
 
-const KIOSK_SIGN: Record<StationKind, string> = { issues: '📌 Ask me', pulls: '🔀 Ask me', queue: '📋 Ask me' };
+const KIOSK_SIGN: Record<StationKind, string> = { issues: `📌 ${L.wboards.askMe}`, pulls: `🔀 ${L.wboards.askMe}`, queue: `📋 ${L.wboards.askMe}` };
 
 /**
  * A board agent's kiosk: a little counter in its color with a sign on the front, and the agent standing
@@ -1451,7 +1452,7 @@ function buildMeetingRoom(group: THREE.Group, colliders: Collider[], interactabl
       for (const [leaf, x0] of leaves) leaf.position.x = x0 + Math.sign(x0 - dx) * e * (half - 0.06);
     },
   });
-  const label = textPlane('🤝 Meeting room', { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
+  const label = textPlane(L.hints.meetingRoom, { bg: '#2b2d42', color: '#fffaf3', size: 56, border: '#fffaf3' });
   label.scale.multiplyScalar(0.62);
   // In front of the glass wall's frame (out to R.minZ - 0.08) and the sliding leaves (to R.minZ - 0.11),
   // which it runs across once its text is wider than the door.
@@ -1642,7 +1643,7 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   const screen = mesh(new THREE.PlaneGeometry(0.8, 0.45), new THREE.MeshBasicMaterial({ color: '#4cc9f0' }), 0, 1.18, -0.165, false);
   desk.add(screen);
   desk.add(mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.12, 10), toon('#ffd166'), 0.9, 0.89, 0.15));
-  const plate = textPlane('👑 BOSS', { bg: '#ffd166', size: 48 });
+  const plate = textPlane(L.signs.bossPlate, { bg: '#ffd166', size: 48 });
   plate.scale.multiplyScalar(0.55);
   plate.position.set(0, 0.5, -0.55);
   plate.rotation.y = Math.PI;
@@ -1707,12 +1708,12 @@ function buildLoft(group: THREE.Group, colliders: Collider[], interactables: Int
   group.add(lamp);
 
   // Signs: one on the back wall inside, one over the glass for everyone downstairs.
-  const inside = textPlane('👑 Boss Office', { bg: '#fffaf3', size: 64 });
+  const inside = textPlane(L.signs.boss, { bg: '#fffaf3', size: 64 });
   inside.scale.multiplyScalar(0.8);
   inside.position.set(maxX - 3, floorY + 1.9, maxZ - 0.04);
   inside.rotation.y = Math.PI;
   group.add(inside);
-  const outside = textPlane('👑 Boss Office', { bg: '#2b2d42', color: '#fffaf3', size: 64, border: '#fffaf3' });
+  const outside = textPlane(L.signs.boss, { bg: '#2b2d42', color: '#fffaf3', size: 64, border: '#fffaf3' });
   outside.scale.multiplyScalar(1.4);
   // In front of the roof's trim (minZ - 0.04 to minZ), or the trim hides the sign's lower half.
   outside.position.set(cx, roofY + 0.2, minZ - 0.07);

@@ -42,6 +42,7 @@ import { EMOTE_EVERY, EmoteBucket, isEmote } from '../shared/emotes.js';
 import { isThemePick } from '../shared/theme.js';
 import { PROMPTS, PROMPT_MAX, isPromptId } from '../shared/prompts.js';
 import { ROOF, isDrink } from '../shared/rooftop.js';
+import { L } from './i18n.js';
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -172,7 +173,7 @@ function arrivalSpot(at: unknown): { x: number; y: number; z: number; rotY: numb
 }
 const issueNumber = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 ? (v as number) : undefined);
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
-const TOO_MANY_ATTEMPTS = 'Too many attempts. Try again in a few minutes.';
+const TOO_MANY_ATTEMPTS = L.srv.tooMany;
 /** WebSocket close code for a session that stopped counting: the account was revoked, or the shared password switched off. */
 const SIGNED_OUT = 4001;
 /** The most chat lines, and lines per worker's terminal, a search answers with. */
@@ -191,10 +192,10 @@ export async function startServer(cfg: Config) {
   const highScores = new HighScores(cfg.dataDir);
   const arcade = new Arcade(highScores, (first) => {
     for (const f of floors.values()) cabinetChanged(f);
-    if (first) toastFloor(floors.get(first.floor), `🏆 ${first.score.name} set a new arcade high score: ${scoreText(first.score.score)}`);
+    if (first) toastFloor(floors.get(first.floor), L.srv.highScore(first.score.name, scoreText(first.score.score)));
   });
   /** What the office is called where it has no project of its own to go by (webhooks, invites). */
-  const officeName = cfg.project ? path.basename(cfg.project) : 'the office';
+  const officeName = cfg.project ? path.basename(cfg.project) : L.srv.theOffice;
   const modelCommand = configuredProvider(cfg.agentCmd) === 'opencode' ? cfg.agentCmd : 'opencode';
   const openCodeModels = createOpenCodeModelCatalogue(
     modelCommand.includes('/') ? path.resolve(modelCommand) : modelCommand,
@@ -217,7 +218,7 @@ export async function startServer(cfg: Config) {
   // --- The building: a floor per project, each with its own workers, boards and queue -----------
   const building = new Building(cfg.dataDir, cfg.projectsDir);
   if (cfg.projects) {
-    const err = building.setProjectsDir(cfg.projects, 'the command line');
+    const err = building.setProjectsDir(cfg.projects, L.srv.commandLine);
     if (err) console.error(`agent-office: --projects: ${err}`);
   }
   const floors = new Map<string, Floor>();
@@ -325,7 +326,7 @@ export async function startServer(cfg: Config) {
     const err = floor.queue.add(str(body?.prompt, 20000), agent.name, str(body?.title, 200) || undefined, issue);
     if (err) return send(res, 400, { error: err });
     const task = floor.queue.state().tasks.at(-1)!;
-    toastFloor(floor, `📋 The ${agent.name} queued ${issue !== undefined ? `issue #${issue}` : `“${task.title}”`}`);
+    toastFloor(floor, L.srv.agentQueued(agent.name, issue !== undefined ? L.srv.issueN(issue) : `“${task.title}”`));
     send(res, 200, { ok: true, task: { id: task.id, title: task.title, status: task.status } });
   };
   // Workers' terminals outlive a restart of the office (see ptys.ts) with this address in their
@@ -382,7 +383,7 @@ export async function startServer(cfg: Config) {
   // Slack / Discord pings for workers that need input or finish (set from ⚙️ Settings or --webhook).
   webhook = new Webhook(cfg.dataDir, (workerId) => (workerId && workerFloor(workerId)?.def.name) || officeName, (state) => broadcast({ t: 'notify', state }));
   if (cfg.webhook !== undefined) {
-    const err = webhook.set(cfg.webhook, 'the command line');
+    const err = webhook.set(cfg.webhook, L.srv.commandLine);
     if (err) console.error(`agent-office: --webhook: ${err}`);
   }
 
@@ -452,7 +453,7 @@ export async function startServer(cfg: Config) {
   };
   const openFloor = (def: FloorDef): Floor | undefined => {
     if (!existsSync(def.dir)) {
-      console.error(`agent-office: the ${def.name} floor's checkout is gone (${def.dir}) — it stays closed until it's back`);
+      console.error(`agent-office: ${L.srv.checkoutGone(def.name, def.dir)}`);
       return undefined;
     }
     try {
@@ -460,12 +461,12 @@ export async function startServer(cfg: Config) {
       floors.set(def.id, floor);
       return floor;
     } catch (err) {
-      console.error(`agent-office: couldn't open the ${def.name} floor: ${(err as Error).message}`);
+      console.error(`agent-office: ${L.srv.couldntOpen(def.name, (err as Error).message)}`);
       return undefined;
     }
   };
   // Started in a project: it's a floor too (the one it has always been).
-  if (cfg.project) building.ensureLocal(cfg.project, 'the office');
+  if (cfg.project) building.ensureLocal(cfg.project, L.srv.theOffice);
   for (const def of building.list()) openFloor(def);
   // Workers still running from the last office are back at their desks before anyone walks in.
   await Promise.all([...floors.values()].map((f) => f.ready));
@@ -592,13 +593,13 @@ export async function startServer(cfg: Config) {
     const password = str(guess.body.password, 512);
     if (name) {
       const account = await accounts.check(name, password);
-      if (!account) return send(res, 401, { error: 'Wrong name or password' });
+      if (!account) return send(res, 401, { error: L.srv.wrongNamePassword });
       auth.recordSuccess(guess.ip);
       return send(res, 200, { ok: true }, signedIn(req, account.id));
     }
-    if (!accounts.sharedPassword) return send(res, 401, { error: 'Sign in with your name and your own password' });
+    if (!accounts.sharedPassword) return send(res, 401, { error: L.srv.signInOwn });
     if (!(await auth.checkPassword(password))) {
-      return send(res, 401, { error: accounts.any ? 'Wrong password. With an account of your own, type your name too.' : 'Wrong password' });
+      return send(res, 401, { error: accounts.any ? L.srv.wrongPasswordName : L.srv.wrongPassword });
     }
     auth.recordSuccess(guess.ip);
     return send(res, 200, { ok: true }, signedIn(req));
@@ -615,12 +616,12 @@ export async function startServer(cfg: Config) {
     if (!guess) return;
     const token = str(guess.body.token, 128);
     const invite = accounts.findInvite(token);
-    if (!invite) return send(res, 410, { error: 'This invite link has expired or was already used. Ask whoever sent it for a new one.' });
+    if (!invite) return send(res, 410, { error: L.srv.inviteExpired });
     auth.recordSuccess(guess.ip);
     if (guess.body.peek === true) return send(res, 200, { name: invite.name, role: invite.role, by: invite.createdBy, project: officeName });
     const r = await accounts.join(token, str(guess.body.name, 64), str(guess.body.password, 1024));
     if (typeof r === 'string') return send(res, 400, { error: r });
-    console.log(`  ${r.name} joined the office with an invite from ${r.createdBy}`);
+    console.log(`  ${L.srv.joined(r.name, r.createdBy)}`);
     accountsChanged();
     return send(res, 200, { ok: true, name: r.name }, signedIn(req, r.id));
   };
@@ -663,12 +664,12 @@ export async function startServer(cfg: Config) {
       if (p === '/api/claim' && req.method === 'POST') {
         const guess = await readGuess(req, res);
         if (!guess) return;
-        if (!claimable) return send(res, 410, { error: 'This office has already been claimed. Sign in with the password you saved.' });
-        if (!auth.checkToken(str(guess.body.token, 256), cfg.claimToken!)) return send(res, 403, { error: 'That claim link is not valid.' });
+        if (!claimable) return send(res, 410, { error: L.srv.claimed });
+        if (!auth.checkToken(str(guess.body.token, 256), cfg.claimToken!)) return send(res, 403, { error: L.srv.badClaim });
         const password = cfg.password!;
         cfg.markClaimed();
         auth.recordSuccess(guess.ip);
-        console.log('  the office password was claimed — it will not be shown again');
+        console.log(`  ${L.srv.passwordClaimed}`);
         return send(res, 200, { password }, signedIn(req));
       }
       if (p === '/api/logout' && req.method === 'POST') {
@@ -689,7 +690,7 @@ export async function startServer(cfg: Config) {
 
       const session = auth.fromRequest(req);
       if (!session) {
-        if (p.startsWith('/api/')) return send(res, 401, { error: 'Not logged in' });
+        if (p.startsWith('/api/')) return send(res, 401, { error: L.srv.notLoggedIn });
         res.writeHead(302, { location: '/login' }).end();
         return;
       }
@@ -698,7 +699,7 @@ export async function startServer(cfg: Config) {
         try {
           return send(res, 200, { models: await openCodeModels.get() });
         } catch {
-          return send(res, 502, { error: 'Could not load OpenCode models' });
+          return send(res, 502, { error: L.srv.noModels });
         }
       }
       if (p === '/api/image' && req.method === 'GET') {
@@ -721,10 +722,10 @@ export async function startServer(cfg: Config) {
       const floor = floors.get(url.searchParams.get('floor') ?? '');
       if (p === '/api/whiteboard/file') {
         // Pictures on the whiteboard. Their ids are hashes of what's in them, so they never change.
-        if (!floor) return send(res, 404, { error: 'No such floor' });
+        if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
         if (req.method === 'GET') {
           const f = floor.whiteboard.file(url.searchParams.get('id') ?? '');
-          if (!f) return send(res, 404, { error: 'No such picture' });
+          if (!f) return send(res, 404, { error: L.srv.noSuchPicture });
           return send(res, 200, f, { 'cache-control': 'private, max-age=31536000, immutable' });
         }
         if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
@@ -733,7 +734,7 @@ export async function startServer(cfg: Config) {
         try {
           body = JSON.parse(await readBody(req, WB_MAX_FILE_BYTES + 4096));
         } catch (err) {
-          if ((err as Error).message === 'too large') return send(res, 413, { error: 'That picture is too big for the whiteboard' });
+          if ((err as Error).message === 'too large') return send(res, 413, { error: L.srv.pictureTooBig });
           return send(res, 400, { error: 'Bad request' });
         }
         const error = floor.whiteboard.addFile(body);
@@ -746,8 +747,8 @@ export async function startServer(cfg: Config) {
         const file = str(url.searchParams.get('path'), 4096);
         const side = url.searchParams.get('side');
         if (!workerId || !file || (side !== 'old' && side !== 'new')) return send(res, 400, { error: 'Bad request' });
-        if (!floor) return send(res, 404, { error: 'No such floor' });
-        if (!floor.workers.get(workerId)) return send(res, 404, { error: 'No such worker' });
+        if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
+        if (!floor.workers.get(workerId)) return send(res, 404, { error: L.srv.noSuchWorker });
         const r = await floor.changes.file(workerId, file, side);
         if ('error' in r) return send(res, r.status, { error: r.error });
         res.writeHead(200, {
@@ -764,7 +765,7 @@ export async function startServer(cfg: Config) {
       }
       if (p.startsWith('/api/docs') && req.method === 'GET') {
         // The bookshelf: the project's Markdown files, one to read, and the pictures in it (see docs.ts).
-        if (!floor) return send(res, 404, { error: 'No such floor' });
+        if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
         if (p === '/api/docs') return send(res, 200, await floor.docs.list());
         const file = str(url.searchParams.get('path'), 4096);
         if (!file) return send(res, 400, { error: 'Bad request' });
@@ -794,7 +795,7 @@ export async function startServer(cfg: Config) {
         const n = Number(url.searchParams.get('number'));
         // The repo's labels (for the label picker) are the one thing not about a single issue or PR.
         if (p !== '/api/gh/labels' && (!Number.isSafeInteger(n) || n <= 0)) return send(res, 400, { error: 'Bad number' });
-        if (!floor) return send(res, 404, { error: 'No such floor' });
+        if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
         const github = floor.github;
         try {
           if (p === '/api/gh/pull') return send(res, 200, await github.pullDetail(n));
@@ -1055,8 +1056,8 @@ export async function startServer(cfg: Config) {
       if (c.peer.floor === floor.id || (!next && c.peer.floor === ROOF)) {
         if (next) goToFloor(c, next);
         else toLobby(c);
-        sendTo(c, { t: 'toast', text: next ? `🛗 ${who} took ${name} off the building, so you rode the elevator to ${next.def.name}` : `🛗 ${who} took ${name}, the last floor, off the building`, level: 'warn' });
-      } else sendTo(c, { t: 'toast', text: `🛗 ${who} took ${name} off the building`, level: 'info' });
+        sendTo(c, { t: 'toast', text: next ? L.srv.floorRemovedRode(who, name, next.def.name) : L.srv.lastFloorRemoved(who, name), level: 'warn' });
+      } else sendTo(c, { t: 'toast', text: L.srv.floorRemoved(who, name), level: 'info' });
     }
     floors.delete(floor.id);
     floor.shutdown();
@@ -1104,7 +1105,7 @@ export async function startServer(cfg: Config) {
    */
   const takeIssue = (c: Client, floor: Floor, n: number) => {
     floor.queue.dropIssue(n);
-    void floor.github.claim(n).then((err) => warn(c, err && `Couldn't assign issue #${n} on GitHub: ${err}`));
+    void floor.github.claim(n).then((err) => warn(c, err && L.srv.couldntAssign(n, err)));
   };
 
   const handleMessage = (c: Client, msg: ClientMsg) => {
@@ -1112,7 +1113,7 @@ export async function startServer(cfg: Config) {
     /** The floor `c` is on, or a note to them that they have to be on one. */
     const here = (): Floor | undefined => {
       const f = floorOf(c);
-      if (!f) warn(c, 'Take the elevator to a floor first');
+      if (!f) warn(c, L.srv.elevatorFirst);
       return f;
     };
     /** A worker by id, with the floor it sits on. */
@@ -1224,18 +1225,18 @@ export async function startServer(cfg: Config) {
       case 'floor.go': {
         if (msg.floor === ROOF) {
           if (floors.size) goToRoof(c);
-          else warn(c, 'There is no building to go up on yet');
+          else warn(c, L.srv.noBuilding);
           break;
         }
         const floor = floors.get(str(msg.floor, 64));
-        if (!floor) warn(c, building.pending().some((d) => d.id === msg.floor) ? "That floor is still being cloned — it'll be ready in a moment" : 'No such floor');
+        if (!floor) warn(c, building.pending().some((d) => d.id === msg.floor) ? L.srv.stillCloning : L.srv.noSuchFloor);
         else goToFloor(c, floor, arrivalSpot(msg.at));
         break;
       }
       case 'floor.repos':
         void building.repos(msg.refresh === true).then(
           (repos) => sendTo(c, { t: 'floor.repos', repos }),
-          (err: Error) => sendTo(c, { t: 'floor.repos', repos: [], error: `Couldn't list your repositories with gh: ${err.message}` }),
+          (err: Error) => sendTo(c, { t: 'floor.repos', repos: [], error: L.srv.listReposFailed(err.message) }),
         );
         break;
       case 'floor.add': {
@@ -1243,26 +1244,26 @@ export async function startServer(cfg: Config) {
         void building
           .add(repo, who, (def) => {
             floorsChanged();
-            toastAll(`🛗 ${who} is adding a floor for ${def.repo ?? def.name}…`);
+            toastAll(L.srv.addingFloor(who, def.repo ?? def.name));
           })
           .then((r) => {
             floorsChanged();
             if (typeof r === 'string') return sendTo(c, { t: 'floor.added', repo, error: r });
             const floor = openFloor(r);
-            if (!floor) return sendTo(c, { t: 'floor.added', repo, error: `Cloned ${r.repo}, but couldn't open its floor — see the office's log` });
-            console.log(`  ${who} added a floor for ${r.repo} (${r.dir})`);
-            toastAll(`🛗 New floor: ${r.name}, added by ${who}`);
+            if (!floor) return sendTo(c, { t: 'floor.added', repo, error: L.srv.clonedNoFloor(r.repo ?? r.name) });
+            console.log(`  ${L.srv.addedFloorLog(who, r.repo ?? r.name, r.dir)}`);
+            toastAll(L.srv.newFloor(r.name, who));
             sendTo(c, { t: 'floor.added', repo, floor: floor.id });
           });
         break;
       }
       case 'floor.remove': {
         // Everyone's workers on it stop: admins do it.
-        if (!meOf(c.accountId).admin) return warn(c, 'Only admins can take a floor off the building');
+        if (!meOf(c.accountId).admin) return warn(c, L.srv.adminsFloor);
         const id = str(msg.floor, 64);
         const r = building.remove(id, who);
         if (typeof r === 'string') return warn(c, r);
-        console.log(`  ${who} took the ${r.name} floor off the building (${r.dir} stays where it is)`);
+        console.log(`  ${L.srv.tookFloorLog(who, r.name, r.dir)}`);
         const floor = floors.get(id);
         if (floor) closeFloor(floor, who);
         else floorsChanged();
@@ -1270,12 +1271,12 @@ export async function startServer(cfg: Config) {
       }
       case 'floor.projectsDir': {
         // It's a folder on the office's machine that `gh` writes into: admins pick it.
-        const err = meOf(c.accountId).admin ? building.setProjectsDir(str(msg.dir, 1024), who) : 'Only admins can move the workspace folder';
+        const err = meOf(c.accountId).admin ? building.setProjectsDir(str(msg.dir, 1024), who) : L.srv.adminsDir;
         warn(c, err);
         if (err) break;
         const state = building.projectsDirState();
         broadcast({ t: 'projectsDir', state });
-        toastAll(state.custom ? `📁 ${who} moved the workspace folder to ${state.dir}` : `📁 ${who} put the workspace folder back to ${state.dir}`);
+        toastAll(state.custom ? L.srv.movedDir(who, state.dir) : L.srv.dirBack(who, state.dir));
         break;
       }
       case 'ball.take':
@@ -1295,7 +1296,7 @@ export async function startServer(cfg: Config) {
         const floor = here();
         if (!floor) break;
         const name = floor.dog.rename(str(msg.name, 200));
-        toastFloor(floor, `🐶 ${who} named the dog ${name}`);
+        toastFloor(floor, L.srv.namedDog(who, name));
         break;
       }
       case 'worker.spawn': {
@@ -1303,7 +1304,7 @@ export async function startServer(cfg: Config) {
         if (!floor) break;
         const kind = msg.kind === 'shell' ? 'shell' : 'agent';
         if (kind === 'agent' && msg.provider !== undefined && (!isAgentProvider(msg.provider) || !floor.project.agentProviders.includes(msg.provider))) {
-          warn(c, 'Unknown agent provider');
+          warn(c, L.srv.unknownProvider);
           break;
         }
         const model = msg.model === undefined ? undefined : str(msg.model, OPEN_CODE_MODEL_MAX + 1);
@@ -1311,13 +1312,13 @@ export async function startServer(cfg: Config) {
         const r = floor.workers.spawn(str(msg.deskId, 32), who, str(msg.prompt, 20000) || undefined, msg.worktree === true, kind, msg.provider, model, effort);
         const issue = kind === 'agent' ? issueNumber(msg.issue) : undefined;
         if (typeof r === 'string') warn(c, r);
-        else toastFloor(floor, kind === 'shell' ? `${who} opened a shell at a desk` : `${who} hired ${r.name}${issue ? ` for issue #${issue}` : r.prompt ? ' with a task' : ''}`);
+        else toastFloor(floor, kind === 'shell' ? L.srv.openedShell(who) : L.srv.hired(who, r.name, issue, !!r.prompt));
         if (typeof r !== 'string' && issue) takeIssue(c, floor, issue);
         break;
       }
       case 'worker.resume': {
         const w = worker(msg.workerId);
-        warn(c, w ? w.floor.workers.resume(w.wid) : 'No such worker');
+        warn(c, w ? w.floor.workers.resume(w.wid) : L.srv.noSuchWorker);
         break;
       }
       case 'worker.kill': {
@@ -1359,11 +1360,11 @@ export async function startServer(cfg: Config) {
       }
       case 'worker.prompt': {
         const w = worker(msg.workerId);
-        const err = w ? w.floor.workers.prompt(w.wid, str(msg.prompt, 20000), who) : 'No such worker';
+        const err = w ? w.floor.workers.prompt(w.wid, str(msg.prompt, 20000), who) : L.srv.noSuchWorker;
         warn(c, err);
         const issue = w?.info.kind === 'agent' ? issueNumber(msg.issue) : undefined;
         if (w && !err && issue) {
-          toastFloor(w.floor, `${who} handed issue #${issue} to ${w.info.name}`);
+          toastFloor(w.floor, L.srv.handedIssue(who, issue, w.info.name));
           takeIssue(c, w.floor, issue);
         }
         break;
@@ -1373,7 +1374,7 @@ export async function startServer(cfg: Config) {
         if (!floor) break;
         const r = floor.workers.station(str(msg.deskId, 32), who, str(msg.prompt, 20000));
         if (typeof r === 'string') warn(c, r);
-        else if (r.hired) toastFloor(floor, `${who} asked the ${r.info.name} something`);
+        else if (r.hired) toastFloor(floor, L.srv.askedAgent(who, r.info.name));
         break;
       }
       case 'worker.pr': {
@@ -1382,9 +1383,9 @@ export async function startServer(cfg: Config) {
         const { floor, wid } = w;
         void floor.workers.openPr(wid, who).then((r) => {
           if (typeof r === 'string') return warn(c, r);
-          const name = floor.workers.get(wid)?.name ?? 'the worker';
-          toastFloor(floor, r.existed ? `${name}'s branch already has PR #${r.number}` : `${who} opened PR #${r.number} for ${name}`);
-          if (r.dirty) warn(c, `${name} still has uncommitted changes in its worktree — they are not in the PR`);
+          const name = floor.workers.get(wid)?.name ?? L.srv.theWorker;
+          toastFloor(floor, r.existed ? L.srv.branchHasPr(name, r.number) : L.srv.openedPr(who, r.number, name));
+          if (r.dirty) warn(c, L.srv.dirtyPr(name));
           // Put it on the board now rather than at the next poll. A refresh already in flight
           // returns at once and can miss it, so look again shortly after.
           void floor.github.refresh().then(() => {
@@ -1433,7 +1434,7 @@ export async function startServer(cfg: Config) {
         void floor.github.merge(n, method, msg.deleteBranch === true, msg.auto === true).then((error) => {
           sendTo(c, { t: 'gh.merged', number: n, error });
           if (error) return;
-          toastFloor(floor, msg.auto ? `${who} set PR #${n} to merge once its checks pass` : `🎉 ${who} merged PR #${n}`);
+          toastFloor(floor, msg.auto ? L.srv.autoMerge(who, n) : L.srv.merged(who, n));
           // An auto-merge rings once GitHub gets round to it and the boards see it merged.
           if (!msg.auto) floor.merged(n, who);
         });
@@ -1446,14 +1447,14 @@ export async function startServer(cfg: Config) {
         if (!floor || !Number.isSafeInteger(n) || n <= 0) break;
         const body = typeof msg.body === 'string' ? msg.body : '';
         // Refused rather than cut short: a comment that silently lost its end would read as finished.
-        const invalid = !body.trim() ? 'The comment is empty' : body.length > GH_COMMENT_MAX ? `GitHub takes comments of up to ${GH_COMMENT_MAX} characters` : '';
+        const invalid = !body.trim() ? L.srv.emptyComment : body.length > GH_COMMENT_MAX ? L.srv.commentTooLong(GH_COMMENT_MAX) : '';
         if (invalid) {
           sendTo(c, { t: 'gh.commented', kind, number: n, error: invalid });
           break;
         }
         void floor.github.comment(kind, n, body).then((r) => {
           sendTo(c, { t: 'gh.commented', kind, number: n, ...r });
-          if (r.comment) toastFloor(floor, `💬 ${who} commented on ${kind === 'pull' ? 'PR' : 'issue'} #${n}`);
+          if (r.comment) toastFloor(floor, L.srv.commented(who, kind === 'pull', n));
         });
         break;
       }
@@ -1481,10 +1482,10 @@ export async function startServer(cfg: Config) {
         void floor.github.close(kind, n, { comment: str(msg.comment, 20000).trim() || undefined, reason, deleteBranch: msg.deleteBranch === true }).then((error) => {
           sendTo(c, { t: 'gh.closed', kind, number: n, error });
           if (error) return;
-          if (kind === 'pull') return toastFloor(floor, `${who} closed PR #${n} without merging`);
+          if (kind === 'pull') return toastFloor(floor, L.srv.closedPr(who, n));
           // Nobody should be seated for an issue that's closed.
           const dropped = floor.queue.dropIssue(n);
-          toastFloor(floor, `${who} closed issue #${n}${reason === 'not planned' ? ' as not planned' : ''}${dropped ? ' and took it off the queue' : ''}`);
+          toastFloor(floor, L.srv.closedIssue(who, n, reason === 'not planned', !!dropped));
         });
         break;
       }
@@ -1497,7 +1498,7 @@ export async function startServer(cfg: Config) {
         const add = names(msg.add);
         const remove = names(msg.remove).filter((l) => !add.includes(l));
         if (!add.length && !remove.length) {
-          sendTo(c, { t: 'gh.labeled', kind, number: n, error: 'No labels to change' });
+          sendTo(c, { t: 'gh.labeled', kind, number: n, error: L.srv.noLabels });
           break;
         }
         void floor.github.setLabels(kind, n, add, remove).then((r) => {
@@ -1510,7 +1511,7 @@ export async function startServer(cfg: Config) {
         const floor = here();
         if (!floor) break;
         if (msg.provider !== undefined && (!isAgentProvider(msg.provider) || !floor.project.agentProviders.includes(msg.provider))) {
-          warn(c, 'Unknown agent provider');
+          warn(c, L.srv.unknownProvider);
           break;
         }
         const issue = Number.isInteger(msg.issue) && (msg.issue as number) > 0 ? (msg.issue as number) : undefined;
@@ -1544,7 +1545,7 @@ export async function startServer(cfg: Config) {
         const floor = here();
         if (!floor) break;
         if (msg.provider !== undefined && (!isAgentProvider(msg.provider) || !floor.project.agentProviders.includes(msg.provider))) {
-          warn(c, 'Unknown agent provider');
+          warn(c, L.srv.unknownProvider);
           break;
         }
         const count = (v: unknown) => (Number.isInteger(v) && (v as number) > 0 ? (v as number) : undefined);
@@ -1580,11 +1581,11 @@ export async function startServer(cfg: Config) {
         const url = str(msg.url, 4096).trim();
         const err = webhook.set(url, who);
         warn(c, err);
-        if (!err) toastAll(url ? `📣 ${who} set up team notifications` : `${who} turned off team notifications`);
+        if (!err) toastAll(url ? L.srv.notifyOn(who) : L.srv.notifyOff(who));
         break;
       }
       case 'notify.test':
-        void webhook.test(who).then((err) => sendTo(c, { t: 'toast', text: err ?? '📣 Sent a test message', level: err ? 'warn' : 'info' }));
+        void webhook.test(who).then((err) => sendTo(c, { t: 'toast', text: err ?? L.srv.testSent, level: err ? 'warn' : 'info' }));
         break;
       case 'theme.set': {
         if (!isThemePick(msg.pick)) return;
@@ -1593,29 +1594,29 @@ export async function startServer(cfg: Config) {
         const now = themes.state().active;
         toastAll(
           msg.pick === 'halloween'
-            ? `🎃 ${who} dressed the office up for Halloween`
+            ? L.srv.halloween(who)
             : msg.pick === 'christmas'
-              ? `🎄 ${who} dressed the office up for Christmas`
+              ? L.srv.christmas(who)
               : msg.pick === 'off'
-                ? `${who} took the holiday decorations down`
-                : `📅 ${who} set the decorations to follow the calendar${now ? ` (it's ${now === 'halloween' ? 'Halloween 🎃' : 'Christmas 🎄'} season)` : ''}`,
+                ? L.srv.decorDown(who)
+                : L.srv.decorCalendar(who, now === 'halloween' ? L.srv.seasonHalloween : now ? L.srv.seasonChristmas : undefined),
         );
         break;
       }
       case 'prompts.set': {
-        if (!meOf(c.accountId).admin) return warn(c, 'Only admins can change the office’s prompts');
+        if (!meOf(c.accountId).admin) return warn(c, L.srv.adminsPrompts);
         if (!isPromptId(msg.id) || (msg.text !== null && typeof msg.text !== 'string')) return;
         const custom = !!prompts.state().custom[msg.id];
         const err = prompts.setPrompt(msg.id, msg.text === null ? null : str(msg.text, PROMPT_MAX + 1), who);
         if (err) return warn(c, err);
         const now = !!prompts.state().custom[msg.id];
-        const { label } = PROMPTS[msg.id];
-        if (now) toastAll(`📝 ${who} rewrote the “${label}” prompt`);
-        else if (custom) toastAll(`📝 ${who} put the default “${label}” prompt back`);
+        const label = L.promptMeta.prompts[msg.id]?.label ?? PROMPTS[msg.id].label;
+        if (now) toastAll(L.srv.rewrote(who, label));
+        else if (custom) toastAll(L.srv.promptBack(who, label));
         break;
       }
       case 'prompts.agent': {
-        if (!meOf(c.accountId).admin) return warn(c, 'Only admins can pick the office’s default worker');
+        if (!meOf(c.accountId).admin) return warn(c, L.srv.adminsWorker);
         const ch = msg.choice;
         if (ch !== null && (!ch || typeof ch !== 'object')) return;
         const choice = ch && {
@@ -1625,26 +1626,26 @@ export async function startServer(cfg: Config) {
         };
         const err = prompts.setAgent(choice, who);
         if (err) return warn(c, err);
-        toastAll(choice ? `🤖 ${who} set the office’s default worker` : `🤖 ${who} put the office’s default worker back to ${path.basename(cfg.agentCmd)}`);
+        toastAll(choice ? L.srv.setDefaultWorker(who) : L.srv.defaultWorkerBack(who, path.basename(cfg.agentCmd)));
         break;
       }
       case 'leaveOnMerge.set': {
         const on = msg.on === true;
         if (on === leaveOnMerge.on) break;
         leaveOnMerge.set(on, who);
-        toastAll(on ? `🏠 ${who} set workers to go home by themselves once their pull request merges` : `🪑 ${who} set workers whose pull request merged to stay until they're sent home`);
+        toastAll(on ? L.srv.leaveOn(who) : L.srv.leaveOff(who));
         // The ones already merged go now.
         if (on) for (const f of floors.values()) f.sendLandedHome();
         break;
       }
       case 'machine.limit': {
-        if (!meOf(c.accountId).admin) return warn(c, 'Only admins can change the worker limit');
+        if (!meOf(c.accountId).admin) return warn(c, L.srv.adminsLimit);
         const limit = msg.limit === null ? undefined : parseWorkerLimit(msg.limit);
-        if (msg.limit !== null && limit === undefined) return warn(c, `The worker limit is a whole number from 1 to ${MAX_WORKER_LIMIT}`);
+        if (msg.limit !== null && limit === undefined) return warn(c, L.srv.limitRange(MAX_WORKER_LIMIT));
         const err = machine.setLimit(limit, who);
         if (err) return warn(c, err);
         const now = machine.limit;
-        toastAll(limit !== undefined ? `⚙️ ${who} set the worker limit to ${now}` : now === undefined ? `⚙️ ${who} took the worker limit off` : `⚙️ ${who} put the worker limit back to ${now} (--max-workers)`);
+        toastAll(limit !== undefined ? L.srv.limitSet(who, now) : now === undefined ? L.srv.limitOff(who) : L.srv.limitBack(who, now));
         pumpQueues();
         break;
       }
@@ -1664,7 +1665,7 @@ export async function startServer(cfg: Config) {
         const file = str(msg.path, 4096);
         const floor = workerFloor(workerId);
         if (!floor) {
-          sendTo(c, { t: 'changes.diff', workerId, path: file, diff: '', truncated: false, error: 'No such worker' });
+          sendTo(c, { t: 'changes.diff', workerId, path: file, diff: '', truncated: false, error: L.srv.noSuchWorker });
           break;
         }
         void floor.changes.diff(workerId, file).then((r) => {
@@ -1694,7 +1695,7 @@ export async function startServer(cfg: Config) {
       case 'upgrade.start':
         void upgrader.start(who).then((err) => {
           if (err) warn(c, err);
-          else toastAll(`${who} is upgrading the office — it restarts when the new version is built`);
+          else toastAll(L.srv.upgrading(who));
         });
         break;
       case 'limits.refresh':
@@ -1708,7 +1709,7 @@ export async function startServer(cfg: Config) {
         void team.invite(user).then(async (r) => {
           sendTo(c, { t: 'team.invited', github: user, ...r });
           if ('error' in r) return;
-          toastAll(`${who} invited ${r.name} to the office`);
+          toastAll(L.srv.invited(who, r.name));
           await teamChanged();
         });
         break;
@@ -1753,7 +1754,7 @@ export async function startServer(cfg: Config) {
         const d = floor.decor.remove(str(msg.id, 32));
         if (!d) break;
         decorChanged(floor);
-        toastFloor(floor, `${who} took down ${d.title ? `“${d.title}”` : 'a picture'}`);
+        toastFloor(floor, L.srv.tookDown(who, d.title));
         break;
       }
       case 'wb.open':
@@ -1793,7 +1794,7 @@ export async function startServer(cfg: Config) {
         if ('error' in r) return warn(c, r.error);
         if (!r.changed) break;
         jukeboxChanged(floor);
-        toastFloor(floor, floor.jukebox.state().track === STREAM ? `📻 ${who} tuned the jukebox to ${floor.jukebox.title()}` : `🎵 ${who} put on “${floor.jukebox.title()}”`);
+        toastFloor(floor, floor.jukebox.state().track === STREAM ? L.srv.tuned(who, floor.jukebox.title()) : L.srv.putOn(who, floor.jukebox.title()));
         break;
       }
       case 'jukebox.skip': {
@@ -1801,7 +1802,7 @@ export async function startServer(cfg: Config) {
         if (!floor) break;
         floor.jukebox.skip(who);
         jukeboxChanged(floor);
-        toastFloor(floor, `⏭️ ${who} skipped to “${floor.jukebox.title()}”`);
+        toastFloor(floor, L.srv.skipped(who, floor.jukebox.title()));
         break;
       }
       case 'cabinet.play': {
@@ -1809,14 +1810,14 @@ export async function startServer(cfg: Config) {
         if (!floor || (c.playing && msg.game === c.game)) break;
         const at = cabinetPlayer(floor);
         if (at && at !== c) {
-          warn(c, `${at.peer.name} is on the arcade — press E there to watch`);
+          warn(c, L.srv.onArcade(at.peer.name));
           sendTo(c, { t: 'cabinet', state: cabinetState(floor) });
           break;
         }
         // Already at it: that game's over, and this is the next one.
         if (c.playing) arcade.leave(c.game, floor.id);
         c.game = arcade.start({ owner: c.accountId ? `account:${c.accountId}` : `name:${who}`, name: who, color: c.peer.color, connection: c.id }, msg.game);
-        if (c.game !== msg.game && !arcade.counts(c.game)) warn(c, "🕹️ That's a lot of new games in a row, so this one won't go on the high-score table");
+        if (c.game !== msg.game && !arcade.counts(c.game)) warn(c, L.srv.tooManyGames);
         c.playing = true;
         c.frame = undefined;
         cabinetChanged(floor);
@@ -1830,7 +1831,7 @@ export async function startServer(cfg: Config) {
         const frame = checkFrame(msg.frame);
         if (!c.playing || !floor || !frame) break;
         // Every frame counts towards the score, even one that comes too soon after the last to pass on.
-        if (arcade.frame(c.game, frame, floor.id) === 'void') warn(c, "🕹️ The office couldn't follow this game, so its score won't go on the high-score table");
+        if (arcade.frame(c.game, frame, floor.id) === 'void') warn(c, L.srv.lostGame);
         c.frame = frame;
         const now = Date.now();
         if (now - c.lastFrameAt < 40) break;
@@ -1842,7 +1843,7 @@ export async function startServer(cfg: Config) {
         const floor = here();
         if (!floor || !floor.jukebox.stop(who)) break;
         jukeboxChanged(floor);
-        toastFloor(floor, `🔇 ${who} turned the jukebox off`);
+        toastFloor(floor, L.srv.jukeboxOff(who));
         break;
       }
       case 'ping':
@@ -1854,7 +1855,7 @@ export async function startServer(cfg: Config) {
   /** Inviting, listing and revoking people. Admins only: an admin account, or the shared password. */
   const handleAccounts = (c: Client, msg: Extract<ClientMsg, { t: `accounts.${string}` }>) => {
     const who = c.peer.name;
-    if (!meOf(c.accountId).admin) return warn(c, 'Only admins can manage accounts');
+    if (!meOf(c.accountId).admin) return warn(c, L.srv.adminsAccounts);
     switch (msg.t) {
       case 'accounts.get':
         sendTo(c, { t: 'accounts', state: accounts.state(onlineAccounts()) });
@@ -1871,30 +1872,30 @@ export async function startServer(cfg: Config) {
         break;
       case 'accounts.revoke': {
         const id = str(msg.accountId, 32);
-        if (id === c.accountId) return warn(c, "You can't revoke your own account");
+        if (id === c.accountId) return warn(c, L.srv.revokeSelf);
         const a = accounts.revoke(id);
         if (!a) break;
-        console.log(`  ${who} revoked ${a.name}'s account`);
+        console.log(`  ${L.logs.revoked(who, a.name)}`);
         toastAll(`${who} revoked ${a.name}'s account`);
         accountsChanged(); // signs them out everywhere
         break;
       }
       case 'accounts.role': {
         const id = str(msg.accountId, 32);
-        if (id === c.accountId) return warn(c, "You can't change your own role");
+        if (id === c.accountId) return warn(c, L.srv.ownRole);
         const a = accounts.setRole(id, msg.role === 'admin' ? 'admin' : 'member');
         if (!a) break;
-        toastAll(a.role === 'admin' ? `${who} made ${a.name} an admin` : `${a.name} is no longer an admin`);
+        toastAll(a.role === 'admin' ? L.srv.madeAdmin(who, a.name) : L.srv.noLongerAdmin(a.name));
         accountsChanged();
         break;
       }
       case 'accounts.shared': {
         if (msg.on === accounts.sharedPassword) break;
         // Only someone who can still get in without it may switch it off.
-        if (!msg.on && !c.accountId) return warn(c, 'Sign in with an admin account of your own first, or nobody could get back in');
+        if (!msg.on && !c.accountId) return warn(c, L.srv.adminFirst);
         accounts.setSharedPassword(!!msg.on);
-        console.log(`  ${who} switched the shared office password ${msg.on ? 'on' : 'off'}`);
-        toastAll(msg.on ? `${who} switched the shared office password back on` : `🔑 ${who} switched off the shared office password — everyone signs in with their own account now`);
+        console.log(`  ${msg.on ? L.srv.sharedOnLog(who) : L.srv.sharedOffLog(who)}`);
+        toastAll(msg.on ? L.srv.sharedOn(who) : L.srv.sharedOff(who));
         accountsChanged(); // signs out whoever came in with it
         break;
       }

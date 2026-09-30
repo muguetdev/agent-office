@@ -1,10 +1,11 @@
 import type { FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
 import { floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
-import { ROOF, ROOF_NAME } from '../../shared/rooftop';
+import { ROOF } from '../../shared/rooftop';
 import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo, type Modal } from './dom';
 import { confirmDialog } from './prompt';
+import { L } from '../i18n';
 
 // The elevator's panel: a button for every floor (every project), and "add a project", which clones
 // one of the repositories the office's gh login can see and makes it a new floor. The first time
@@ -49,18 +50,18 @@ export function openElevator(opts: ElevatorOptions): void {
 
   const floorsEl = h('div.floors');
   const addEl = h('div.add');
-  const input = h('input', { type: 'text', placeholder: 'Search your repositories, or type owner/name', 'aria-label': 'Repository', autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
-  const listEl = h('div.repo-list', { role: 'listbox', 'aria-label': 'Repositories' });
+  const input = h('input', { type: 'text', placeholder: L.elevator.searchRepos, 'aria-label': L.elevator.repository, autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
+  const listEl = h('div.repo-list', { role: 'listbox', 'aria-label': L.elevator.repositories });
   const statusEl = h('div');
-  const addBtn = h('button.btn.primary', { type: 'button' }, '🛗 Add floor');
-  const refreshBtn = h('button.btn', { type: 'button', title: 'Ask GitHub for the list again' }, '↻');
-  const close = setup ? null : h('button.btn.close', { 'aria-label': 'Close' }, '✕');
+  const addBtn = h('button.btn.primary', { type: 'button' }, L.elevator.addFloor);
+  const refreshBtn = h('button.btn', { type: 'button', title: L.elevator.refresh }, '↻');
+  const close = setup ? null : h('button.btn.close', { 'aria-label': L.common.close }, '✕');
 
   // Where clones go. Admins can move it right here: a new office's elevator can't be closed to reach
   // ⚙️ Settings until it has a floor, and the first project is when it matters.
-  const dirInput = h('input', { type: 'text', placeholder: '~/Workspace', 'aria-label': 'Workspace folder', spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
-  const dirSave = h('button.btn.primary', { type: 'button' }, 'Save');
-  const dirCancel = h('button.btn', { type: 'button' }, 'Cancel');
+  const dirInput = h('input', { type: 'text', placeholder: '~/Workspace', 'aria-label': L.elevator.workspaceFolder, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
+  const dirSave = h('button.btn.primary', { type: 'button' }, L.common.save);
+  const dirCancel = h('button.btn', { type: 'button' }, L.hints.cancel);
   const dirEl = h('div.webhook.dir-pick.hidden', {}, dirInput, dirSave, dirCancel);
   const editDir = (on: boolean) => {
     dirEl.classList.toggle('hidden', !on);
@@ -95,18 +96,18 @@ export function openElevator(opts: ElevatorOptions): void {
     const here = f.id === store.floor;
     const p = floorPalette(f.palette);
     const stats: (HTMLElement | string)[] = [];
-    if (f.cloning) stats.push('⏳ Cloning…');
+    if (f.cloning) stats.push(L.elevator.cloningShort);
     else {
-      if (f.busy) stats.push(h('span', { title: 'Working' }, `👷 ${f.busy}`));
-      if (f.waiting) stats.push(h('span.waiting', { title: 'Waiting on someone' }, `🙋 ${f.waiting}`));
-      stats.push(h('span', { title: 'Workers at desks' }, `💻 ${f.workers}`));
-      if (f.people) stats.push(h('span', { title: 'People on this floor' }, `🧑 ${f.people}`));
+      if (f.busy) stats.push(h('span', { title: L.elevator.working }, `👷 ${f.busy}`));
+      if (f.waiting) stats.push(h('span.waiting', { title: L.elevator.waiting }, `🙋 ${f.waiting}`));
+      stats.push(h('span', { title: L.elevator.atDesks }, `💻 ${f.workers}`));
+      if (f.people) stats.push(h('span', { title: L.elevator.peopleHere }, `🧑 ${f.people}`));
     }
     const btn = h(
       'button.floor-btn',
-      { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? "You're on this floor" : f.cloning ? 'Still being cloned' : `Ride to ${f.name}` },
+      { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
-      h('span.floor-text', {}, h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, 'you are here') : null), h('span.floor-sub', {}, f.repo ?? f.dir)),
+      h('span.floor-text', {}, h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : null), h('span.floor-sub', {}, f.repo ?? f.dir)),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
     );
     btn.addEventListener('click', () => {
@@ -121,18 +122,18 @@ export function openElevator(opts: ElevatorOptions): void {
   const floorRow = (f: FloorInfo, i: number) => {
     const btn = floorButton(f, i);
     if (!store.me.admin || f.cloning) return btn;
-    const off = h('button.btn.floor-off', { type: 'button', title: `Take ${f.name} off the building`, 'aria-label': `Remove ${f.name}` }, '🗑');
+    const off = h('button.btn.floor-off', { type: 'button', title: L.elevator.takeOff(f.name), 'aria-label': L.elevator.remove(f.name) }, '🗑');
     off.addEventListener('click', () => confirmRemove(f));
     return h('div.floor-row', {}, btn, off);
   };
 
   const confirmRemove = (f: FloorInfo) => {
     const next = store.floors.find((o) => o.id !== f.id && !o.cloning);
-    const workers = f.workers ? `Its ${f.workers} worker${f.workers === 1 ? '' : 's'} stop${f.workers === 1 ? 's' : ''}. ` : '';
-    const people = f.people ? `Everyone on it rides the elevator to ${next ? next.name : 'the lobby'}. ` : '';
+    const workers = f.workers ? L.elevator.workersStop(f.workers) : '';
+    const people = f.people ? L.elevator.everyoneRides(next ? next.name : L.main.lobby) : '';
     // The office was started in it: its accounts, password and chat live in that .agent-office too, and stay.
-    const own = f.local ? ' The office keeps its own settings there too, so it carries on as before, just without this floor.' : '';
-    confirmDialog(`Take ${f.name} off the building?`, `${workers}${people}Nothing is deleted: its checkout stays in ${f.dir}, .agent-office folder and all.${own}`, '🗑 Remove floor', () => net.send({ t: 'floor.remove', floor: f.id }));
+    const own = f.local ? L.elevator.keepsOwn : '';
+    confirmDialog(L.elevator.takeOffQ(f.name), `${workers}${people}${L.elevator.nothingDeleted(f.dir)}${own}`, L.elevator.removeFloor, () => net.send({ t: 'floor.remove', floor: f.id }));
   };
 
   /** The roof, over every floor: the rooftop bar. */
@@ -141,10 +142,10 @@ export function openElevator(opts: ElevatorOptions): void {
     const people = [...store.peers.values()].filter((p) => p.floor === ROOF).length;
     const btn = h(
       'button.floor-btn',
-      { type: 'button', class: here ? 'here' : '', disabled: here, title: here ? "You're up on the roof" : `Ride up to the ${ROOF_NAME.toLowerCase()}` },
+      { type: 'button', class: here ? 'here' : '', disabled: here, title: here ? L.elevator.onRoof : L.elevator.rideUpRoof },
       h('span.floor-no', { style: 'background:#2b2d42' }, '🍸'),
-      h('span.floor-text', {}, h('span.floor-name', {}, ROOF_NAME, here ? h('span.here-tag', {}, 'you are here') : null), h('span.floor-sub', {}, 'The roof: a DJ playing drum and bass, a bar, and the city all around')),
-      h('span.floor-stats', {}, people ? h('span', { title: 'People up there' }, `🧑 ${people}`) : ''),
+      h('span.floor-text', {}, h('span.floor-name', {}, L.menu.roof, here ? h('span.here-tag', {}, L.elevator.youAreHere) : null), h('span.floor-sub', {}, L.elevator.roofSub)),
+      h('span.floor-stats', {}, people ? h('span', { title: L.elevator.peopleUp }, `🧑 ${people}`) : ''),
     );
     btn.addEventListener('click', () => {
       if (here) return;
@@ -159,7 +160,7 @@ export function openElevator(opts: ElevatorOptions): void {
     // Top floor first, the way an elevator's buttons stack, with the roof over them and floor 1 at the bottom.
     floorsEl.replaceChildren(
       ...(floors.some((f) => !f.cloning) ? [roofButton()] : []),
-      ...(floors.length ? floors.map(floorRow).reverse() : [h('p.empty', {}, 'No floors yet.')]),
+      ...(floors.length ? floors.map(floorRow).reverse() : [h('p.empty', {}, L.elevator.noFloors)]),
     );
   };
 
@@ -169,9 +170,9 @@ export function openElevator(opts: ElevatorOptions): void {
       'div.repo',
       { role: 'option', class: selected && sameRepo(selected, r.name) ? 'sel' : '', 'aria-selected': String(!!selected && sameRepo(selected, r.name)), title: r.description ?? r.name },
       h('span.nm', {}, r.name),
-      r.private ? h('span', { title: 'Private' }, '🔒') : null,
+      r.private ? h('span', { title: L.elevator.private } , '🔒') : null,
       h('span.desc', {}, r.description ?? ''),
-      floor ? h('span.pill', {}, floor.id === store.floor ? 'you are here' : `floor ${store.floors.indexOf(floor) + 1}`) : r.pushedAt ? h('span.when', {}, timeAgo(r.pushedAt)) : null,
+      floor ? h('span.pill', {}, floor.id === store.floor ? L.elevator.youAreHere : L.elevator.floorN(store.floors.indexOf(floor) + 1)) : r.pushedAt ? h('span.when', {}, timeAgo(r.pushedAt)) : null,
     );
     row.addEventListener('click', () => {
       if (adding) return;
@@ -194,7 +195,7 @@ export function openElevator(opts: ElevatorOptions): void {
 
   const renderAdd = () => {
     if (!showAdd) {
-      const open = h('button.btn', { type: 'button' }, '➕ Add a project');
+      const open = h('button.btn', { type: 'button' }, L.elevator.addProject);
       open.addEventListener('click', () => {
         showAdd = true;
         needRepos();
@@ -212,28 +213,28 @@ export function openElevator(opts: ElevatorOptions): void {
     const matches = r.list.filter((x) => !q || x.name.toLowerCase().includes(q) || (x.description ?? '').toLowerCase().includes(q));
     const rows: HTMLElement[] = [];
     // owner/name that isn't in the list (someone else's public repository): offer it anyway.
-    if (typed && !r.list.some((x) => sameRepo(x.name, typed))) rows.push(repoRow({ name: typed, private: false, description: 'Not in your list — the office will try to clone it' }));
+    if (typed && !r.list.some((x) => sameRepo(x.name, typed))) rows.push(repoRow({ name: typed, private: false, description: L.elevator.notInList }));
     rows.push(...matches.slice(0, SHOWN).map(repoRow));
-    if (!rows.length) rows.push(h('p.empty', { style: 'padding:10px' }, r.loading ? 'Asking GitHub for your repositories…' : r.error ? '' : q ? 'Nothing matches. Type owner/name to clone any repository.' : 'No repositories.'));
-    if (matches.length > SHOWN) rows.push(h('p.empty', { style: 'padding:8px 10px' }, `…and ${matches.length - SHOWN} more — type to narrow it down`));
+    if (!rows.length) rows.push(h('p.empty', { style: 'padding:10px' }, r.loading ? L.elevator.asking : r.error ? '' : q ? L.elevator.noMatch : L.elevator.noRepos));
+    if (matches.length > SHOWN) rows.push(h('p.empty', { style: 'padding:8px 10px' }, L.elevator.more(matches.length - SHOWN)));
     listEl.replaceChildren(...rows);
     const pick = choice();
-    const dest = pick ? `${store.projectsDir.dir}/${pick}` : `${store.projectsDir.dir}/<owner>/<repo>`;
-    const change = store.me.admin ? h('button.btn.dir-change', { type: 'button', title: 'Clone new projects into another folder on the office’s machine' }, '📁 Change folder') : null;
+    const dest = pick ? `${store.projectsDir.dir}/${pick}` : `${store.projectsDir.dir}/${L.elevator.ownerRepo}`;
+    const change = store.me.admin ? h('button.btn.dir-change', { type: 'button', title: L.elevator.changeFolderTip }, L.elevator.changeFolder) : null;
     change?.addEventListener('click', () => editDir(true));
     statusEl.replaceChildren(
       adding
-        ? h('p.note.busy', {}, `⏳ Cloning ${adding} into ${store.projectsDir.dir}/${adding}… A big repository can take a minute.`)
-        : h('p.note', {}, `Cloned into ${dest} with this machine's gh login. Everything on the new floor works in that checkout.`, change),
+        ? h('p.note.busy', {}, L.elevator.cloning(adding, `${store.projectsDir.dir}/${adding}`))
+        : h('p.note', {}, L.elevator.clonedInto(dest), change),
       ...[r.error, error].filter(Boolean).map((e) => h('p.err', {}, e)),
     );
     addBtn.disabled = !!adding || !pick || store.floors.some((f) => sameRepo(f.repo, pick));
-    addBtn.textContent = adding ? '⏳ Cloning…' : pick ? `🛗 Add ${pick}` : '🛗 Add floor';
+    addBtn.textContent = adding ? L.elevator.cloningShort : pick ? L.elevator.addRepo(pick) : L.elevator.addFloor;
     input.disabled = !!adding;
     if (!built) {
       built = true;
       addEl.replaceChildren(
-        h('h3', {}, setup && !store.floors.length ? 'Pick your first project' : '➕ Add a project'),
+        h('h3', {}, setup && !store.floors.length ? L.elevator.pickFirst : L.elevator.addProject),
         h('div.repo-search', {}, input, refreshBtn),
         listEl,
         statusEl,
@@ -254,7 +255,7 @@ export function openElevator(opts: ElevatorOptions): void {
     if (!adding || msg.repo !== adding) return;
     adding = null;
     if (msg.error || !msg.floor) {
-      error = msg.error ?? 'The floor could not be added';
+      error = msg.error ?? L.elevator.couldNotAdd;
       renderAdd();
       return;
     }
@@ -292,20 +293,20 @@ export function openElevator(opts: ElevatorOptions): void {
         'p.intro',
         {},
         store.floors.length
-          ? 'Every project is a floor of this building. Pick a floor to ride to, or add another project.'
-          : "Every project is a floor of this building, and it doesn't have any yet. Pick one of your repositories: the office clones it and it becomes the first floor.",
+          ? L.elevator.introFloors
+          : L.elevator.introEmpty,
       )
     : null;
   const el = h(
     'div.modal.elevator',
-    { role: 'dialog', 'aria-label': 'Elevator' },
-    h('header', {}, h('h2', {}, setup ? '🏢 Welcome to Agent Office' : '🛗 Elevator'), close),
+    { role: 'dialog', 'aria-label': L.menu.elevator },
+    h('header', {}, h('h2', {}, setup ? L.elevator.welcome : L.hints.elevator), close),
     h('div.body', {}, intro, floorsEl, addEl),
-    h('footer', {}, h('span.grow', {}, setup ? 'Your office, one floor per project' : 'Pick a floor · Esc to stay here'), addBtn),
+    h('footer', {}, h('span.grow', {}, setup ? L.elevator.footSetup : L.elevator.foot), addBtn),
   );
   const unsubs = [store.on('floors', () => (renderFloors(), renderAdd())), store.on('repos', renderAdd), store.on('projectsDir', () => (editDir(false), renderAdd())), store.on('floor', renderFloors), store.on('peers', renderFloors), store.on('me', () => (renderFloors(), renderAdd()))];
   const modal = openModal(el, {
-    doing: '🛗 at the elevator',
+    doing: L.elevator.doing,
     escCloses: !setup,
     backdropCloses: !setup,
     onClose: () => {
