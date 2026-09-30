@@ -164,6 +164,15 @@ scene.add(sun);
 
 const office = buildOffice();
 scene.add(office.group);
+/**
+ * The office's outside walls (see buildWalls): indoors they take no shadows, or the light from overhead
+ * would streak them down from the hoop, the TV and the boards hanging on them.
+ */
+const officeWalls: THREE.Object3D[] = [];
+office.group.traverse((o) => {
+  if (o.userData.wall) officeWalls.push(o);
+});
+let wallsShaded = true;
 /** A /party's club lights (see world/party.ts), over the office's floor. */
 const partyLights = buildPartyLights(FLOOR, WALL_HEIGHT);
 scene.add(partyLights.group);
@@ -4935,6 +4944,10 @@ function frame(ts?: number) {
     }
   }
   sun.shadow.intensity = 1 + (INDOOR_LIGHT.shadow - 1) * indoorness;
+  if (wallsShaded !== indoorness < 0.5) {
+    wallsShaded = indoorness < 0.5;
+    for (const w of officeWalls) w.receiveShadow = wallsShaded;
+  }
   partyFrame(t, dt);
   if (!upTop && inOffice()) office.scenic.cull(camera.position, office.night.street, (scene.fog as THREE.Fog).far);
   // A map of its own lights itself its own way (the castle's torchlit hall), after the sky's had its say.
