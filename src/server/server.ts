@@ -1701,6 +1701,12 @@ export async function startServer(cfg: Config) {
         if (breed) toastFloor(floor, L.srv.dogBreed(who, floor.dog.dogName, L.settings.dogBreeds[breed]));
         break;
       }
+      case 'dog.coat': {
+        const floor = here();
+        if (!floor) break;
+        if (floor.dog.setCoat(msg.coat)) toastFloor(floor, L.srv.dogCoat(who, floor.dog.dogName, L.settings.dogCoats[msg.coat] ?? ''));
+        break;
+      }
       case 'worker.spawn': {
         const floor = here();
         if (!floor) break;

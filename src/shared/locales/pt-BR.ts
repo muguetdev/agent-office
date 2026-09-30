@@ -690,6 +690,8 @@ Opções:
     goElevator: (floor: string) => `Ir para ${floor}, pelo elevador`,
   },
   settings: {
+    dogCoat: 'Pelagem',
+    dogCoats: ['Dourada', 'Preta e branca', 'Chocolate', 'Creme', 'Cinza', 'Ruiva', 'Branquinha'],
     dogBreed: 'Raça',
     dogBreeds: { pup: '🐶 Vira-lata', corgi: '🦊 Corgi', dachshund: '🌭 Salsicha', pug: '🐾 Pug', shiba: '🍂 Shiba', pomeranian: '🧸 Lulu da Pomerânia' } as Record<string, string>,
     first: '👀 Primeira pessoa',
@@ -1875,6 +1877,7 @@ Opções:
     couldNotMake: 'Não deu para criar sua conta',
   },
   srv: {
+    dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} deixou ${dog} com a pelagem ${coat.toLowerCase()}`,
     dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} transformou ${dog} em ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Tentativas demais. Tente de novo em alguns minutos.',
     highScore: (who: string, score: string) => `🏆 ${who} bateu um novo recorde no fliperama: ${score}`,

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { DESK_BY_ID, FLOOR, KIOSK, type DeskDef } from '../shared/layout.js';
-import { DOG_BREEDS, cleanDogName, dogAt, dogDefaults, legSeconds, type DogAct, type DogBreed, type DogState } from '../shared/dog.js';
+import { DOG_BREEDS, DOG_COATS, cleanDogName, dogAt, dogDefaults, legSeconds, type DogAct, type DogBreed, type DogState } from '../shared/dog.js';
 import { deskPoint, nearestWalkable, route, walkable, type Pt } from '../shared/nav.js';
 import type { PeerInfo, WorkerInfo } from '../shared/protocol.js';
 import { L } from './i18n.js';
@@ -51,12 +51,12 @@ type Leg = Omit<DogState, 'name' | 'coat' | 'breed' | 'elapsed'> & { start: numb
  * A floor's dog. It naps under the desks of workers who are busy, trots after people for a while,
  * sniffs around and hangs out on the lounge rug. When a worker needs input it drops everything, runs
  * to that desk and barks (the browsers do the barking; see client/world/dog.ts). Its name is kept
- * in the floor's .agent-office/dog.json, with its breed once someone picks one; its coat, and its breed
- * until then, come from the floor's id (see dogDefaults).
+ * in the floor's .agent-office/dog.json, with its breed and coat once someone picks them; until then they
+ * come from the floor's id (see dogDefaults).
  */
 export class Dog {
   private name: string;
-  private readonly coat: number;
+  private coat: number;
   private breed: DogBreed;
   private readonly fallbackName: string;
   private readonly file: string;
@@ -85,6 +85,7 @@ export class Dog {
     const saved = this.load();
     this.name = saved.name ?? d.name;
     this.breed = saved.breed ?? d.breed;
+    if (saved.coat !== undefined) this.coat = saved.coat;
     // Lying on the rug when the office opens, and up and about a few seconds later.
     const spot = pick(LOUNGE);
     this.leg = { path: [spot], speed: 0, act: 'lie', face: Math.PI / 2 + rand(-0.6, 0.6), start: Date.now() - 60_000 };
@@ -167,9 +168,18 @@ export class Dog {
     return breed;
   }
 
+  /** Gives it another coat, for everyone on the floor; false when there's no such coat. */
+  setCoat(raw: unknown): boolean {
+    if (!Number.isInteger(raw) || (raw as number) < 0 || (raw as number) >= DOG_COATS.length) return false;
+    this.coat = raw as number;
+    this.save();
+    this.send();
+    return true;
+  }
+
   private save() {
     try {
-      writeFileSync(this.file, JSON.stringify({ name: this.name, breed: this.breed }, null, 2), { mode: 0o600 });
+      writeFileSync(this.file, JSON.stringify({ name: this.name, breed: this.breed, coat: this.coat }, null, 2), { mode: 0o600 });
     } catch (err) {
       console.error(`agent-office: ${L.logs.dogName((err as Error).message)}`);
     }
@@ -180,13 +190,14 @@ export class Dog {
     clearTimeout(this.timer);
   }
 
-  private load(): { name?: string; breed?: DogBreed } {
+  private load(): { name?: string; breed?: DogBreed; coat?: number } {
     if (!existsSync(this.file)) return {};
     try {
-      const saved = JSON.parse(readFileSync(this.file, 'utf8')) as { name?: unknown; breed?: unknown };
+      const saved = JSON.parse(readFileSync(this.file, 'utf8')) as { name?: unknown; breed?: unknown; coat?: unknown };
       return {
         name: typeof saved.name === 'string' ? cleanDogName(saved.name) || undefined : undefined,
         breed: DOG_BREEDS.find((b) => b === saved.breed),
+        coat: Number.isInteger(saved.coat) && (saved.coat as number) >= 0 && (saved.coat as number) < DOG_COATS.length ? (saved.coat as number) : undefined,
       };
     } catch {
       return {};

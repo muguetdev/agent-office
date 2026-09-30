@@ -4,7 +4,7 @@ import { askNotifyPermission, notifyPermission, type DesktopNotifier } from '../
 import type { ThemePick, WebhookKind } from '../../shared/protocol';
 import { THEME_PICKS } from '../../shared/theme';
 import { mapChoices } from '../../shared/maps';
-import { DOG_BREEDS, DOG_NAME_MAX, cleanDogName, dogBreed } from '../../shared/dog';
+import { DOG_BREEDS, DOG_COATS, DOG_NAME_MAX, cleanDogName, dogBreed } from '../../shared/dog';
 import { h, openModal, timeAgo } from './dom';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
@@ -481,7 +481,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const dogSave = h('button.btn.primary', { type: 'button' }, L.settings.rename);
   const dogNote = h('p.setting-note');
   const breedRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.dogBreed });
-  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), breedRow, dogNote);
+  const coatRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.settings.dogCoat });
+  const dogSection = setting(L.settings.officeDog, 'floor', h('div.webhook', {}, dogInput, dogSave), breedRow, coatRow, dogNote);
   const paintDog = () => {
     const dog = store.dog;
     dogSection.classList.toggle('hidden', !dog);
@@ -502,6 +503,20 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
           },
           L.settings.dogBreeds[b],
         ),
+      ),
+    );
+    coatRow.replaceChildren(
+      ...DOG_COATS.map(([body, light], i) =>
+        h('button.swatch', {
+          type: 'button',
+          role: 'radio',
+          title: L.settings.dogCoats[i],
+          'aria-label': L.settings.dogCoats[i],
+          'aria-checked': String(i === dog.coat),
+          class: i === dog.coat ? 'sel' : '',
+          style: `background:linear-gradient(135deg, ${body} 55%, ${light} 55%)`,
+          onclick: () => i !== store.dog?.coat && net.send({ t: 'dog.coat', coat: i }),
+        }),
       ),
     );
   };

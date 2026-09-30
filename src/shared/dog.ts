@@ -57,7 +57,11 @@ export const DOG_COATS: [string, string, string][] = [
   ['#f3dcb0', '#fffaf0', '#d9a066'], // cream
   ['#a4acb6', '#f4f6f8', '#6f7884'], // grey
   ['#cf6a45', '#fbe1d2', '#9c4527'], // red
+  ['#ffffff', '#ffffff', '#f3e9e2'], // white
 ];
+
+/** How many coats a floor's dog is dealt from (see dogDefaults): the ones there were, so none changes colour when one is added. */
+const DEALT_COATS = 6;
 
 /** Once it gets to a desk whose worker needs input, it barks this often... */
 export const BARK_EVERY_S = 14;
@@ -74,7 +78,7 @@ export function dogDefaults(floorId: string): { name: string; coat: number; bree
   let h = 0;
   for (const ch of floorId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const stirred = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-  return { name: DOG_NAMES[h % DOG_NAMES.length], coat: (h >>> 8) % DOG_COATS.length, breed: DEALT[(stirred >>> 16) % DEALT.length] };
+  return { name: DOG_NAMES[h % DOG_NAMES.length], coat: (h >>> 8) % DEALT_COATS, breed: DEALT[(stirred >>> 16) % DEALT.length] };
 }
 
 /** Takes control characters out and trims to DOG_NAME_MAX; '' when nothing's left. */

@@ -1300,6 +1300,8 @@ export type ClientMsg =
   | { t: 'dog.name'; name: string }
   /** Make the dog on your floor another breed (one of DOG_BREEDS). */
   | { t: 'dog.breed'; breed: string }
+  /** Give the dog on your floor another coat (an index into DOG_COATS). */
+  | { t: 'dog.coat'; coat: number }
   | { t: 'ping'; at: number };
 
 export type ServerMsg =

@@ -696,6 +696,8 @@ Options:
     goElevator: (floor: string) => `Go to ${floor}, in its elevator`,
   },
   settings: {
+    dogCoat: 'Coat',
+    dogCoats: ['Golden', 'Black and white', 'Chocolate', 'Cream', 'Grey', 'Red', 'White'],
     dogBreed: 'Breed',
     dogBreeds: { pup: '🐶 Pup', corgi: '🦊 Corgi', dachshund: '🌭 Dachshund', pug: '🐾 Pug', shiba: '🍂 Shiba', pomeranian: '🧸 Pomeranian' } as Record<string, string>,
     first: '👀 First person',
@@ -1883,6 +1885,7 @@ Options:
     couldNotMake: 'Could not make your account',
   },
   srv: {
+    dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} gave ${dog} a ${coat.toLowerCase()} coat`,
     dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} made ${dog} a ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Too many attempts. Try again in a few minutes.',
     highScore: (who: string, score: string) => `🏆 ${who} set a new arcade high score: ${score}`,
