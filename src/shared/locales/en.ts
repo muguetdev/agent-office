@@ -3024,6 +3024,11 @@ Options:
     stopped: (who: string) => `${who} called the party off`,
   },
   code: {
+    smaller: 'Smaller text (Ctrl −)',
+    bigger: 'Bigger text (Ctrl +)',
+    wrap: 'Wrap long lines (Alt+Z)',
+    full: 'Full screen',
+    resize: 'Drag to make the files wider or narrower',
     loading: 'Opening the editor…',
     find: 'Find a file (Ctrl+P)',
     pick: 'Pick a file on the left',

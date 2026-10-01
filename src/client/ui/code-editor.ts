@@ -20,6 +20,35 @@ monaco.editor.defineTheme('office', {
 
 /** How often an open file is checked for changes made elsewhere. */
 const WATCH_MS = 2000;
+/** What you've set the editor to, kept in this browser: the window full screen, how wide the files are, the text size, wrapping. */
+interface Prefs {
+  full: boolean;
+  side: number;
+  font: number;
+  wrap: boolean;
+}
+const PREFS_KEY = 'agent-office.code';
+const FONT = { min: 10, max: 24 };
+const SIDE = { min: 160, max: 600 };
+function loadPrefs(): Prefs {
+  const p: Prefs = { full: false, side: 250, font: 14, wrap: false };
+  try {
+    Object.assign(p, JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}'));
+  } catch {
+    // storage blocked
+  }
+  p.font = Math.min(FONT.max, Math.max(FONT.min, Number(p.font) || 14));
+  p.side = Math.min(SIDE.max, Math.max(SIDE.min, Number(p.side) || 250));
+  return p;
+}
+function savePrefs(p: Prefs) {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+  } catch {
+    // storage blocked
+  }
+}
+
 /** How many matches finding a file by name lists. */
 const MAX_MATCHES = 200;
 /** What you'd changed and not saved when the window closed, by worker and file, and the version it was made from. */
@@ -64,13 +93,28 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const pathEl = h('span.code-path', {}, L.code.pick);
   const state = h('span.code-state');
   const saveBtn = h('button.btn.code-save', { type: 'button', disabled: true, title: 'Ctrl+S' }, L.code.save) as HTMLButtonElement;
+  const prefs = loadPrefs();
+  const smaller = h('button.code-tool', { type: 'button', title: L.code.smaller }, 'A−');
+  const bigger = h('button.code-tool', { type: 'button', title: L.code.bigger }, 'A+');
+  const wrapBtn = h('button.code-tool', { type: 'button', title: L.code.wrap }, '↵');
+  const fullBtn = h('button.code-tool', { type: 'button', title: L.code.full }, '⛶');
+  const split = h('div.code-split', { title: L.code.resize });
   const banner = h('div.code-banner.hidden');
   // Esc is the editor's while you're in it (its suggestions, its find box): see openModal.
   const surface = h('div.code-surface', { 'data-own-esc': '' });
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, saveBtn), banner, surface);
-  host.replaceChildren(side, main);
+  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, smaller, bigger, wrapBtn, fullBtn, saveBtn), banner, surface);
+  host.replaceChildren(side, split, main);
 
-  const editor = monaco.editor.create(surface, { theme: 'office', automaticLayout: true, fontSize: 13, minimap: { enabled: true }, scrollBeyondLastLine: false, tabSize: 2, model: null });
+  const editor = monaco.editor.create(surface, {
+    theme: 'office',
+    automaticLayout: true,
+    fontSize: prefs.font,
+    wordWrap: prefs.wrap ? 'on' : 'off',
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    tabSize: 2,
+    model: null,
+  });
   let files: string[] = [];
   let open: Open | null = null;
   /** Folders you've opened in the tree. */
@@ -249,6 +293,55 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => void save());
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => filter.focus());
   saveBtn.addEventListener('click', () => void save());
+
+  // ---- Sizes: the window full screen, how wide the files are, the text, wrapping long lines.
+  const modal = host.closest<HTMLElement>('.modal.term');
+  const apply = () => {
+    modal?.classList.toggle('full', prefs.full);
+    fullBtn.classList.toggle('on', prefs.full);
+    wrapBtn.classList.toggle('on', prefs.wrap);
+    side.style.width = `${prefs.side}px`;
+    editor.updateOptions({ fontSize: prefs.font, wordWrap: prefs.wrap ? 'on' : 'off' });
+    savePrefs(prefs);
+  };
+  const zoom = (by: number) => {
+    prefs.font = Math.min(FONT.max, Math.max(FONT.min, prefs.font + by));
+    apply();
+  };
+  smaller.addEventListener('click', () => zoom(-1));
+  bigger.addEventListener('click', () => zoom(1));
+  wrapBtn.addEventListener('click', () => {
+    prefs.wrap = !prefs.wrap;
+    apply();
+  });
+  fullBtn.addEventListener('click', () => {
+    prefs.full = !prefs.full;
+    apply();
+  });
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal, () => zoom(1));
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Minus, () => zoom(-1));
+  editor.addCommand(monaco.KeyMod.Alt | monaco.KeyCode.KeyZ, () => {
+    prefs.wrap = !prefs.wrap;
+    apply();
+  });
+  // Dragging the line between the files and the editor.
+  split.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    split.setPointerCapture(e.pointerId);
+    const from = e.clientX - prefs.side;
+    const move = (m: PointerEvent) => {
+      prefs.side = Math.min(SIDE.max, Math.max(SIDE.min, m.clientX - from));
+      side.style.width = `${prefs.side}px`;
+    };
+    const up = () => {
+      split.removeEventListener('pointermove', move);
+      split.removeEventListener('pointerup', up);
+      apply();
+    };
+    split.addEventListener('pointermove', move);
+    split.addEventListener('pointerup', up);
+  });
+  apply();
   filter.addEventListener('input', renderTree);
   filter.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {

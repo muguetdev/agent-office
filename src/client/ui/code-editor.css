@@ -11,10 +11,14 @@
   flex-direction: column;
   width: 250px;
   flex: none;
-  border-right: 2px solid #2d2f45;
+  min-width: 0;
   background: #191a27;
 }
-.term-codehost .code-filter {
+/* Over the windows' own text boxes (white, as wide as the window): this one sits inside the files. */
+.modal .term-codehost input.code-filter {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  min-width: 0;
   margin: 8px;
   padding: 6px 8px;
   border: 2px solid #3a3d5c;
@@ -116,4 +120,37 @@
 .code-surface {
   flex: 1;
   min-height: 0;
+}
+/* The line between the files and the editor: drag it to make the files wider or narrower. */
+.code-split {
+  width: 6px;
+  flex: none;
+  cursor: col-resize;
+  background: #2d2f45;
+}
+.code-split:hover {
+  background: #4a4e7a;
+}
+.code-tool {
+  padding: 3px 8px;
+  border: 2px solid #3a3d5c;
+  border-radius: 8px;
+  background: none;
+  color: #c9cbe0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.code-tool:hover,
+.code-tool.on {
+  background: #33365a;
+  color: #fff;
+}
+/* Full screen (⛶): the whole window, for the editor (and the terminal with it). */
+.modal.term.full {
+  width: calc(100vw - 32px);
+  height: calc(100vh - 32px);
+  max-width: none;
+  max-height: none;
 }

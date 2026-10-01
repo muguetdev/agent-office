@@ -3015,6 +3015,11 @@ Opções:
     stopped: (who: string) => `${who} encerrou a festa`,
   },
   code: {
+    smaller: 'Letra menor (Ctrl −)',
+    bigger: 'Letra maior (Ctrl +)',
+    wrap: 'Quebrar linhas compridas (Alt+Z)',
+    full: 'Tela cheia',
+    resize: 'Arraste para alargar ou estreitar os arquivos',
     loading: 'Abrindo o editor…',
     find: 'Buscar um arquivo (Ctrl+P)',
     pick: 'Escolha um arquivo à esquerda',
