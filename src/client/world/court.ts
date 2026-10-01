@@ -144,6 +144,19 @@ export class Court {
     }
   }
 
+  /** Puts `id` straight at `stop`, as if it had walked there already (a page just opened on its break). */
+  placeAt(id: string, stop: Stop) {
+    const c = this.people.get(id);
+    if (!c || c.state !== 'seated') return;
+    this.detach(c);
+    c.goal = { stop };
+    c.model.root.position.set(stop.x, this.ground(stop.x, stop.z, 2) - FEET + (stop.sit ?? 0), stop.z);
+    c.model.root.rotation.set(0, stop.rotY, 0);
+    c.state = 'stand';
+    c.out = stop.through ? [...stop.through].reverse() : [];
+    this.freeSpots();
+  }
+
   /** Sends `id` (on a break) to `stop`, or back to its seat (null). */
   visit(id: string, stop: Stop | null) {
     const c = this.people.get(id);

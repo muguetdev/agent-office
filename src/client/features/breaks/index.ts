@@ -99,6 +99,8 @@ export function installBreaks(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views'>) 
   let wispIn = 0;
   /** What each worker on a break has in its hand, for the model it has now. */
   const hands = new Map<string, { root: THREE.Object3D; kit: BreakHands }>();
+  /** Models looked at already: one new on a break that's been going a while (the page just opened) starts where it is for everyone else. */
+  const seen = new WeakSet<THREE.Object3D>();
   function kitOf(id: string, root: THREE.Object3D): BreakHands | undefined {
     let h = hands.get(id);
     if (!h || h.root !== root) {
@@ -150,6 +152,8 @@ export function installBreaks(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views'>) 
     for (const w of store.workers.values()) {
       const v = parts.views.workerViews.get(w.id);
       if (!v) continue;
+      const fresh = !seen.has(v.model.root);
+      seen.add(v.model.root);
       if (!w.resting) {
         if (court.stopOf(w.id)) court.visit(w.id, null);
         hands.get(w.id)?.kit.hold(null);
@@ -159,6 +163,7 @@ export function installBreaks(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views'>) 
       const i = spotAt(w.id, w.resting, Math.max(0, Date.now() - w.resting), taken);
       taken.add(i);
       const stop = stopsOf(w.id)[i];
+      if (fresh && Date.now() - w.resting > 5000) court.placeAt(w.id, stop);
       court.visit(w.id, stop);
       const there = court.arrived(w.id) && court.stopOf(w.id) === stop;
       if (!kit) continue;
