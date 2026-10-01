@@ -36,7 +36,7 @@ agent-office [dir] [options]
       --weather <kind>    Pin the weather: clear, cloudy, rain, storm, snow or fog
       --real-time-sky     Start the sky on the real clock, not a day an hour (env AGENT_OFFICE_SKY_CLOCK=real; ⚙️ Settings can switch it)
 
-The office speaks the language in `AGENT_OFFICE_LANG` (`en` or `pt-BR`), else the terminal's `LC_ALL`, `LC_MESSAGES` or `LANG`; an admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or their browser's.
+The office speaks the language in `AGENT_OFFICE_LANG` (`en` or `pt-BR`), else English (not the terminal's `LANG`, so an office already running doesn't switch on an upgrade); an admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or their browser's.
 
 agent-office setup [--projects <dir>] [--project <owner/repo>]... [--home <dir>]
 
