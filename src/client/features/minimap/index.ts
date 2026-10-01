@@ -21,7 +21,7 @@ import { BUZZ_SECONDS } from '../coffee/caffeine';
 import { $, h, openModal } from '../../ui/dom';
 import { L } from '../../i18n';
 
-/** Where the model's cut off, over your feet: under the ceiling and the lamps, over the furniture. */
+/** Where the model's cut off indoors, over your feet: under the ceiling and the lamps, over the furniture. */
 const CUT = 2.3;
 /** How far under your feet it still draws: your floor, not the street or the floor below. */
 const BELOW = 0.6;
@@ -109,7 +109,7 @@ class TopView {
   }
 }
 
-export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' | 'peers' | 'walking' | 'dog' | 'actions' | 'coffee' | 'bar'>) {
+export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' | 'peers' | 'walking' | 'dog' | 'actions' | 'coffee' | 'bar' | 'place'>) {
   const panel = $('minimap');
   /** The window the model's drawn into (on the game's own canvas, behind it), and the icons over it. */
   const view = h('div.minimap-view');
@@ -143,7 +143,10 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     return p.view === 'first' ? p.camYaw + Math.PI : p.facing;
   }
 
-  /** Draws the scene through `cam` as a model: cut off over head height, without name tags, bubbles or you. */
+  /**
+   * Draws the scene through `cam` as a model: indoors cut off over head height (outdoors the trees and
+   * buildings stay whole), without name tags, bubbles or you.
+   */
   function renderModel(cam: THREE.Camera) {
     const { renderer, scene, me } = ctx;
     const y = ctx.player.pos.y;
@@ -160,7 +163,8 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     scene.background = BACKDROP;
     // The sun's shadows are worked out already this frame.
     renderer.shadowMap.autoUpdate = false;
-    renderer.clippingPlanes = clip;
+    // Indoors the ceiling's cut off; outside there's no ceiling, just what's under your feet.
+    renderer.clippingPlanes = parts.place.indoors() ? clip : [clip[1]];
     renderer.render(scene, cam);
     renderer.clippingPlanes = [];
     renderer.shadowMap.autoUpdate = shadows;
