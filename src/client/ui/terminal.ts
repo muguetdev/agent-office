@@ -12,7 +12,7 @@ import { isAsleep } from '../../shared/status';
 import { findLine } from '../../shared/search';
 import { DROP_MAX_BYTES, droppedPaths } from '../../shared/drops';
 import { providerLabel, providerUsageNote, providerUsageState, providerWaitingLabel, resolvedProvider } from './provider';
-import { naturalKey } from './termkeys';
+import { keyLabels, naturalKey } from './termkeys';
 import { L } from '../i18n';
 import { termTabs } from './termtabs';
 
@@ -114,7 +114,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const viewers = h('div.viewers', {});
   const modelsBtn = h('button.btn', {
     type: 'button',
-    title: L.terminal.modelsTip,
+    title: keyLabels(L.terminal.modelsTip),
     'aria-label': L.provider.openCodeModel,
   }, L.terminal.models);
   const typed = h('span.typed', {});
@@ -122,11 +122,11 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   // Claude's /skills, or to interrupt it. Ctrl+[ does the same from the keyboard.
   const escBtn = h('button.btn', {
     type: 'button',
-    title: L.term2.escTip,
+    title: keyLabels(L.term2.escTip),
     'aria-label': L.term2.escLabel,
   }, '⎋ Esc');
   const changesBtn = h('button.btn', { type: 'button', title: L.terminal.changesTip }, L.terminal.changes);
-  const closeBtn = h('button.btn.close', { title: L.term2.leaveTip, 'aria-label': L.common.close }, '✕');
+  const closeBtn = h('button.btn.close', { title: keyLabels(L.term2.leaveTip), 'aria-label': L.common.close }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
   const say = h('input', { type: 'text', placeholder: L.term2.reply, 'aria-label': L.hints.prompt, enterkeyhint: 'send', autocomplete: 'off' }) as HTMLInputElement;
@@ -324,7 +324,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     doing: L.terminal.doing(info.name),
     onClose: (byEsc) => {
       // Leaving with Esc while the program wanted one (you were in /skills, say): say how to send it one.
-      if (byEsc && ready && screenMentionsEsc(term)) toast(L.term2.escLeft(store.workers.get(workerId)?.name ?? info.name));
+      if (byEsc && ready && screenMentionsEsc(term)) toast(keyLabels(L.term2.escLeft(store.workers.get(workerId)?.name ?? info.name)));
       listeners.delete(onMsg);
       unsub();
       unsubPeers();

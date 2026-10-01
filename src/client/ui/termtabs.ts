@@ -5,6 +5,7 @@
 import './termtabs.css';
 import { clip, h, toast } from './dom';
 import { store } from '../state';
+import { keyLabels } from './termkeys';
 import { L } from '../i18n';
 
 /** A web page pinned open beside a worker's terminal. */
@@ -55,7 +56,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
 
   const render = () => {
     const mainTab = h('div.term-tab', { class: active === 'main' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'main'), onclick: () => show('main') }, L.termTabs.terminal));
-    const codeTab = h('div.term-tab', { class: active === 'code' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'code'), title: L.termTabs.codeTip, onclick: () => show('code') }, L.termTabs.code));
+    const codeTab = h('div.term-tab', { class: active === 'code' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'code'), title: keyLabels(L.termTabs.codeTip), onclick: () => show('code') }, L.termTabs.code));
     tabsBar.replaceChildren(
       mainTab,
       codeTab,

@@ -5,6 +5,22 @@ export type TermKey = Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'altKey' | 'shiftK
 export const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 
 /**
+ * The shortcuts in `text` as this machine writes them. The office's own (save, find a file, the
+ * palette, posting a comment, the text size) take ⌘ on a Mac where they take Ctrl elsewhere; the keys
+ * a terminal gets (Ctrl+[ for Esc, Ctrl+] to leave, OpenCode's Ctrl+X) are Control on a Mac too, so
+ * they're ⌃ there. Alt is ⌥. Elsewhere "⌘/Ctrl+Enter" is just Ctrl+Enter.
+ */
+export function keyLabels(text: string, mac = IS_MAC): string {
+  if (!mac) return text.replace(/⌘\/Ctrl\+/g, 'Ctrl+');
+  return text
+    .replace(/⌘\/Ctrl\+/g, '⌘')
+    .replace(/Ctrl ?\+ ?([[\]X])/g, '⌃$1')
+    .replace(/Ctrl ?([+−-])(?=\)|$|\s|,)/g, '⌘$1')
+    .replace(/Ctrl ?\+ ?/g, '⌘')
+    .replace(/Alt ?\+ ?/g, '⌥');
+}
+
+/**
  * The editing keys people expect from their own terminal ("Natural Text Editing" in iTerm2, and
  * what VS Code's terminal sends), which xterm.js leaves out: it sends a plain backspace for ⌘⌫ and
  * Ctrl+⌫, a plain Enter for Shift+Enter, and nothing at all for ⌘← / ⌘→. Returns the bytes to send

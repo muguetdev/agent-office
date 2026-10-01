@@ -9,6 +9,7 @@ import 'monaco-editor/basic-languages/monaco.contribution';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import { h, toast } from './dom';
 import { L } from '../i18n';
+import { keyLabels } from './termkeys';
 
 (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment = { getWorker: () => new EditorWorker() };
 // Dark: Dracula's colours (draculatheme.com, MIT). Light: GitHub's light colours.
@@ -164,16 +165,16 @@ function fuzzy(name: string, query: string): number | null {
 /** Puts the editor in `host` for `workerId`'s folder on `floor`. */
 export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const q = (params: Record<string, string>) => new URLSearchParams({ floor, worker: workerId, ...params }).toString();
-  const filter = h('input.code-filter', { type: 'text', placeholder: L.code.find, 'aria-label': L.code.find, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
+  const filter = h('input.code-filter', { type: 'text', placeholder: keyLabels(L.code.find), 'aria-label': keyLabels(L.code.find), spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const list = h('div.code-tree', { role: 'tree' });
   const side = h('aside.code-side', {}, filter, list);
   const pathEl = h('span.code-path', {}, L.code.pick);
   const state = h('span.code-state');
-  const saveBtn = h('button.btn.code-save', { type: 'button', disabled: true, title: 'Ctrl+S' }, L.code.save) as HTMLButtonElement;
+  const saveBtn = h('button.btn.code-save', { type: 'button', disabled: true, title: keyLabels('Ctrl+S') }, L.code.save) as HTMLButtonElement;
   const prefs = loadPrefs();
-  const smaller = h('button.code-tool', { type: 'button', title: L.code.smaller }, 'A−');
-  const bigger = h('button.code-tool', { type: 'button', title: L.code.bigger }, 'A+');
-  const wrapBtn = h('button.code-tool', { type: 'button', title: L.code.wrap }, '↵');
+  const smaller = h('button.code-tool', { type: 'button', title: keyLabels(L.code.smaller) }, 'A−');
+  const bigger = h('button.code-tool', { type: 'button', title: keyLabels(L.code.bigger) }, 'A+');
+  const wrapBtn = h('button.code-tool', { type: 'button', title: keyLabels(L.code.wrap) }, '↵');
   const fullBtn = h('button.code-tool', { type: 'button', title: L.code.full }, '⛶');
   const themeBtn = h('button.code-tool', { type: 'button', title: L.code.theme });
   const split = h('div.code-split', { title: L.code.resize });

@@ -5,6 +5,7 @@ import { markdown } from '../markdown';
 import { commentWaiters } from './api';
 import { DRAFT_KEY, pref, savePref } from './prefs';
 import { L } from '../../i18n';
+import { keyLabels } from '../termkeys';
 
 // ---- Comment box --------------------------------------------------------------------------------
 
@@ -26,7 +27,7 @@ export function commentBox(kind: 'issue' | 'pull', number: number, itemUrl: stri
   const waitKey = `${kind}#${number}`;
   let busy = false;
   let timer = 0;
-  const ta = h('textarea', { rows: 4, placeholder: L.pull.commentPlaceholder, 'aria-label': L.pull.comment }) as HTMLTextAreaElement;
+  const ta = h('textarea', { rows: 4, placeholder: keyLabels(L.pull.commentPlaceholder), 'aria-label': L.pull.comment }) as HTMLTextAreaElement;
   ta.value = pref<string>(draftKey, '');
   const shown = h('div.gh-compose-preview.hidden');
   const write = h('button.btn.on', { type: 'button' }, L.pull.write);
