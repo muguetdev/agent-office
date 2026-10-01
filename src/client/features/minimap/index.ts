@@ -129,6 +129,8 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   const v = new THREE.Vector3();
   const size = new THREE.Vector2();
   const forward = new THREE.Vector3();
+  /** The floor you're on: where your feet last were on the ground, so a jump doesn't lift the map off it. */
+  let floorY = 0;
 
   /** What the big map covers: the floor, and on the office's, the balcony out front. */
   function floorBounds(): Bounds {
@@ -149,7 +151,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
    */
   function renderModel(cam: THREE.Camera) {
     const { renderer, scene, me } = ctx;
-    const y = ctx.player.pos.y;
+    const y = floorY;
     clip[0].constant = y + CUT;
     clip[1].constant = -(y - BELOW);
     const hidden: THREE.Object3D[] = [];
@@ -363,6 +365,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     const shown = !panel.classList.contains('hud-off') && !document.body.classList.contains('telescope-active');
     panel.classList.toggle('away', !shown);
     // How fast you're going, for how far back it pulls.
+    if (player.grounded) floorY = player.pos.y;
     if (dt > 0) speed += (last.distanceTo(player.pos) / dt - speed) * Math.min(1, dt * 4);
     last.copy(player.pos);
     const want = ctx.activities.running('driver') ? DIST.drive : speed > 5.5 ? DIST.run : DIST.stand;
@@ -382,11 +385,14 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     const yaw = heading();
     forward.set(Math.sin(yaw), 0, Math.cos(yaw));
     const p = player.pos;
-    const look = new THREE.Vector3().copy(p).addScaledVector(forward, dist * AHEAD);
+    const look = new THREE.Vector3()
+      .copy(p)
+      .setY(floorY)
+      .addScaledVector(forward, dist * AHEAD);
     camera.position
       .copy(look)
       .addScaledVector(forward, -dist * Math.cos(TILT))
-      .setY(p.y + dist * Math.sin(TILT));
+      .setY(floorY + dist * Math.sin(TILT));
     camera.lookAt(look);
     camera.aspect = r.width / r.height;
     camera.updateProjectionMatrix();
@@ -417,7 +423,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // The big map, ten times a second.
     if (big && now - bigAt > 100) {
       bigAt = now;
-      big.view.frame(big.bounds, p.y);
+      big.view.frame(big.bounds, floorY);
       const bg = big.canvas.getContext('2d')!;
       big.view.draw(renderModel, renderer, bg);
       drawBigBlips(bg, big.bounds, big.view.w / (big.bounds.maxX - big.bounds.minX), (now / 900) % 1);
