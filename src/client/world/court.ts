@@ -144,6 +144,16 @@ export class Court {
     }
   }
 
+  /** Moves `id` on `seconds` at once, and quietly: catching up with where everyone else sees it. */
+  advance(id: string, seconds: number) {
+    const c = this.people.get(id);
+    if (!c) return;
+    const footstep = this.footstep;
+    this.footstep = () => {};
+    for (let t = Math.min(seconds, 60); t > 0; t -= 0.1) this.step(c, Math.min(0.1, t));
+    this.footstep = footstep;
+  }
+
   /** Puts `id` straight at `stop`, as if it had walked there already (a page just opened on its break). */
   placeAt(id: string, stop: Stop) {
     const c = this.people.get(id);

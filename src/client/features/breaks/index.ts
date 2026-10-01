@@ -12,7 +12,7 @@ import type { Pt } from '../../../shared/nav';
 import type { Ctx } from '../../core/context';
 import type { Parts } from '../../core/parts';
 import { store } from '../../state';
-import type { Stop } from '../../world/court';
+import type { Court, Stop } from '../../world/court';
 import { BreakHands, type Held } from '../../world/character/worker-break';
 
 /** Somewhere to go on a break, what it has in its hand there, and whether only a smoker goes. */
@@ -112,6 +112,18 @@ export function installBreaks(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views'>) 
     return h.kit;
   }
 
+  /**
+   * A page just opened on `id`'s break: it starts where it was when it set off for `stop` (the stop
+   * before, or its desk), and walks on as far as it has got for everyone else.
+   */
+  function catchUp(court: Court, id: string, resting: number, stop: Stop) {
+    const ms = Math.max(0, Date.now() - resting);
+    const n = Math.floor(ms / (STAY * 1000));
+    if (n > 0) court.placeAt(id, stopsOf(id)[spotAt(id, resting, ms - STAY * 1000, new Set())]);
+    court.visit(id, stop);
+    court.advance(id, (ms - n * STAY * 1000) / 1000);
+  }
+
   function stopsOf(id: string): Stop[] {
     let s = mine.get(id);
     if (!s) {
@@ -163,8 +175,8 @@ export function installBreaks(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views'>) 
       const i = spotAt(w.id, w.resting, Math.max(0, Date.now() - w.resting), taken);
       taken.add(i);
       const stop = stopsOf(w.id)[i];
-      if (fresh && Date.now() - w.resting > 5000) court.placeAt(w.id, stop);
-      court.visit(w.id, stop);
+      if (fresh) catchUp(court, w.id, w.resting, stop);
+      else court.visit(w.id, stop);
       const there = court.arrived(w.id) && court.stopOf(w.id) === stop;
       if (!kit) continue;
       kit.hold(there ? (all[i].held ?? null) : null);
