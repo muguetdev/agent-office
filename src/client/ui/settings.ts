@@ -11,6 +11,7 @@ import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { L } from '../i18n';
 import { dogSetting } from './settings-dog';
 import { languageSettings } from './settings-language';
+import { skyClockSetting } from './settings-sky';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', L.settings.first, L.settings.firstNote],
@@ -482,6 +483,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const { section: dogSection, paint: paintDog } = dogSetting(net, (body) => setting(L.settings.officeDog, 'floor', ...body));
   // Your language and the office's (see settings-language.ts).
   const langs = languageSettings(net, (title, scope, body) => setting(title, scope, ...body));
+  const skyClock = skyClockSetting(net);
 
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
@@ -514,7 +516,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
               L.settings.outside,
               'office',
               h('p.outside-now', {}, outside.now),
-              h('p.setting-note', {}, outside.live ? L.settings2.skyLive : L.settings2.skyFake),
+              skyClock.row,
+              h('p.setting-note', {}, outside.live ? L.settings.skyLive : L.settings.skyFake),
             ),
           ]
         : []),
@@ -578,6 +581,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       offNotify();
       offDog();
       offTheme();
+      skyClock.off();
       offMap();
       offLeave();
       offLang.forEach((f) => f());

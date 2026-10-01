@@ -34,7 +34,7 @@ agent-office [dir] [options]
       --webhook <url>     Post to this Slack / Discord webhook when a worker needs input or finishes
       --city <name>       Put the office in a real city: its sun and live weather (open-meteo.com)
       --weather <kind>    Pin the weather: clear, cloudy, rain, storm, snow or fog
-      --real-time-sky     Keep the sky on the office's real clock, not a day an hour (env AGENT_OFFICE_SKY_CLOCK=real)
+      --real-time-sky     Start the sky on the real clock, not a day an hour (env AGENT_OFFICE_SKY_CLOCK=real; ⚙️ Settings can switch it)
 
 The office speaks the language in `AGENT_OFFICE_LANG` (`en` or `pt-BR`), else the terminal's `LC_ALL`, `LC_MESSAGES` or `LANG`; an admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or their browser's.
 
