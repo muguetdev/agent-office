@@ -483,7 +483,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const { section: dogSection, paint: paintDog } = dogSetting(net, (body) => setting(L.settings.officeDog, 'floor', ...body));
   // Your language and the office's (see settings-language.ts).
   const langs = languageSettings(net, (title, scope, body) => setting(title, scope, ...body));
-  const skyClock = skyClockSetting(net);
+  const skyClock = skyClockSetting(net, outside?.now ?? '');
 
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
@@ -515,7 +515,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
             setting(
               L.settings.outside,
               'office',
-              h('p.outside-now', {}, outside.now),
+              skyClock.now,
               skyClock.row,
               h('p.setting-note', {}, outside.live ? L.settings.skyLive : L.settings.skyFake),
             ),
