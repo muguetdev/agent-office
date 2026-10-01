@@ -139,7 +139,12 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
       const w = store.workers.get(id);
       if (!w) continue;
       const desk = ctx.plan().byId.get(w.deskId);
-      out.push({ at: v.model.root.getWorldPosition(new THREE.Vector3()), color: w.resting ? RESTING : (WORKER[w.status] ?? IDLE), pulse: w.status === 'needs_input', go: desk ? () => parts.actions.standAt(desk) : undefined });
+      out.push({
+        at: v.model.root.getWorldPosition(new THREE.Vector3()),
+        color: w.resting ? RESTING : (WORKER[w.status] ?? IDLE),
+        pulse: w.status === 'needs_input',
+        go: desk ? () => parts.actions.standAt(desk) : undefined,
+      });
     }
     for (const [id, r] of parts.peers.remotes) {
       if (!r.person.root.visible) continue;
