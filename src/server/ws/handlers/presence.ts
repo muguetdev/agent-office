@@ -110,10 +110,12 @@ export const presenceHandlers = {
     const who = c.peer.name;
     const text = str(msg.text, 500).trim();
     if (!text) return;
-    // /party starts one for everyone (/party stop ends it) instead of saying it.
+    // /party starts one for everyone on your floor (/party stop ends it) instead of saying it.
     if (/^\/(party|festa)\b/i.test(text)) {
+      const floor = ctx.floorOf(c);
+      if (!floor) return;
       const stop = /\b(stop|parar|fim|off)\b/i.test(text);
-      ctx.broadcast({ t: 'party', until: stop ? 0 : Date.now() + PARTY_MS, by: who });
+      ctx.toFloor(floor, { t: 'party', until: stop ? 0 : Date.now() + PARTY_MS, by: who });
       return;
     }
     const line: ChatLine = { from: c.id, name: who, color: c.peer.color, text, at: Date.now(), ...(c.accountId ? { account: true } : {}) };

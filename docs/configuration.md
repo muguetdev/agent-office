@@ -36,6 +36,8 @@ agent-office [dir] [options]
       --weather <kind>    Pin the weather: clear, cloudy, rain, storm, snow or fog
       --real-time-sky     Keep the sky on the office's real clock, not a day an hour (env AGENT_OFFICE_SKY_CLOCK=real)
 
+The office speaks the language in `AGENT_OFFICE_LANG` (`en` or `pt-BR`), else the terminal's `LC_ALL`, `LC_MESSAGES` or `LANG`; an admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or their browser's.
+
 agent-office setup [--projects <dir>] [--project <owner/repo>]... [--home <dir>]
 
   The first-start walkthrough again: the workspace folder, GitHub sign-in and

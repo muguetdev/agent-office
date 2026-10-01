@@ -1903,6 +1903,8 @@ Options:
     couldNotMake: 'Could not make your account',
   },
   srv: {
+    adminsLanguage: 'Only admins can change the language the office speaks',
+    languageSet: (who: string) => `🌐 ${who} changed the office’s language to English`,
     dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} gave ${dog} a ${coat.toLowerCase()} coat`,
     dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} made ${dog} a ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Too many attempts. Try again in a few minutes.',
@@ -2887,6 +2889,12 @@ Options:
     },
   },
   settings2: {
+    myLanguage: 'Your language',
+    languageAuto: 'Automatic (your browser’s)',
+    myLanguageNote: 'The office’s windows, signs and hints in this browser. It reloads the page.',
+    officeLanguage: 'The office’s language',
+    officeLanguageNote: 'What the office says in its notices and errors, in the terminal it runs in and in Slack or Discord.',
+    setBy: (who: string, when: string) => `Set by ${who}${when ? ` ${when}` : ''}.`,
     youBlurb: 'How you look, how you see the office, and how you’re signed in.',
     sound: 'Sound & voice',
     soundBlurb: 'How loud the office is for you, and how voice chat works.',
@@ -3000,7 +3008,7 @@ Options:
   },
   party: {
     dogDancing: '🕺 dancing',
-    started: (who: string) => `🎉 ${who} started a party! (/party stop ends it)`,
+    started: (who: string) => `🎉 ${who} started a party on this floor! (/party stop ends it)`,
     stopped: (who: string) => `${who} called the party off`,
   },
   termTabs: {

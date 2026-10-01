@@ -11,6 +11,7 @@ import type { Ctx } from '../../office/context.js';
 import { str } from '../../office/input.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
+import { matchLocale } from '../../../shared/i18n.js';
 
 /** The floor's Services board: its own workers' web servers. */
 export const servicesView: ViewPieces['services'] = (ctx, floor) => ctx.servicesState(floor);
@@ -92,6 +93,14 @@ export const settingsHandlers = {
       return;
     }
     mapNews(ctx, was, who);
+  },
+  'language.set'(ctx, c, msg) {
+    const who = c.peer.name;
+    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsLanguage);
+    const lang = matchLocale(typeof msg.lang === 'string' ? msg.lang : undefined);
+    if (!lang || lang === ctx.language.state().lang) return;
+    ctx.language.set(lang, who);
+    ctx.toastAll(L.srv.languageSet(who));
   },
   'leaveOnMerge.set'(ctx, c, msg) {
     const who = c.peer.name;

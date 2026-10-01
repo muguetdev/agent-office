@@ -1,6 +1,6 @@
 /**
- * /party in the chat (the office says so to everyone: see server/ws/handlers/presence.ts): for a
- * minute every worker and board agent up on its desk dancing, the dog too, the DJ's set playing on
+ * /party in the chat (the office tells everyone on that floor: see server/ws/handlers/presence.ts): for
+ * a minute every worker and board agent up on its desk dancing, the dog too, the DJ's set playing on
  * the floor, and the room a club (the lights down, lasers, a mirror ball, spots on the floor and
  * flashes on the beat, in the track's colour). When it's over the music stops and the lights fade back.
  */
@@ -49,6 +49,13 @@ export function installParty(ctx: Ctx, deps: PartyDeps) {
     danceAt = 0;
     music();
     toast(msg.until ? L.party.started(msg.by) : L.party.stopped(msg.by));
+  });
+
+  // A party is its floor's: off to another floor (or up on the roof), and it's over for you.
+  store.on('floor', () => {
+    if (!partyUntil) return;
+    partyUntil = 0;
+    music();
   });
 
   // After the sky has lit the room (see updateSky in core/loop.ts): the club turns the lights down.

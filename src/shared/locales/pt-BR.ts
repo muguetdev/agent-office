@@ -1895,6 +1895,8 @@ Opções:
     couldNotMake: 'Não deu para criar sua conta',
   },
   srv: {
+    adminsLanguage: 'Só admins podem mudar o idioma do escritório',
+    languageSet: (who: string) => `🌐 ${who} mudou o idioma do escritório para português`,
     dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} deixou ${dog} com a pelagem ${coat.toLowerCase()}`,
     dogBreed: (who: string, dog: string, breed: string) => `🐶 ${who} transformou ${dog} em ${breed.replace(/^\S+ /, '')}`,
     tooMany: 'Tentativas demais. Tente de novo em alguns minutos.',
@@ -2878,6 +2880,12 @@ Opções:
     },
   },
   settings2: {
+    myLanguage: 'Seu idioma',
+    languageAuto: 'Automático (o do navegador)',
+    myLanguageNote: 'As janelas, placas e dicas do escritório neste navegador. A página recarrega.',
+    officeLanguage: 'Idioma do escritório',
+    officeLanguageNote: 'O que o escritório diz nos avisos e erros, no terminal em que roda e no Slack ou Discord.',
+    setBy: (who: string, when: string) => `Definido por ${who}${when ? ` ${when}` : ''}.`,
     youBlurb: 'Sua aparência, como você vê o escritório e como está logado.',
     sound: 'Som e voz',
     soundBlurb: 'O volume do escritório para você, e como funciona o chat de voz.',
@@ -2991,7 +2999,7 @@ Opções:
   },
   party: {
     dogDancing: '🕺 dançando',
-    started: (who: string) => `🎉 ${who} começou uma festa! (/party stop encerra)`,
+    started: (who: string) => `🎉 ${who} começou uma festa neste andar! (/party stop encerra)`,
     stopped: (who: string) => `${who} encerrou a festa`,
   },
   termTabs: {

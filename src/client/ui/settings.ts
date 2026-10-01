@@ -10,6 +10,7 @@ import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { L } from '../i18n';
 import { dogSetting } from './settings-dog';
+import { languageSettings } from './settings-language';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', L.settings.first, L.settings.firstNote],
@@ -479,6 +480,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
 
   // The dog on this floor: its name, breed and coat, for everyone here (see settings-dog.ts).
   const { section: dogSection, paint: paintDog } = dogSetting(net, (body) => setting(L.settings.officeDog, 'floor', ...body));
+  // Your language and the office's (see settings-language.ts).
+  const langs = languageSettings(net, (title, scope, body) => setting(title, scope, ...body));
 
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
@@ -488,6 +491,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     you: [
       setting(L.settings.yourCharacter, null, character),
       setting(L.settings.camera, 'you', seg, note),
+      langs.yours,
       setting(L.settings.signedIn, null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? L.settings.asAccount(account.name, account.role) : L.settings.sharedPassword)),
     ],
     sound: [
@@ -502,6 +506,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     ],
     building: [
       setting(L.settings2.map, 'office', mapRow, mapNote, mapBad),
+      langs.office,
       setting(L.settings.holiday, 'office', themeRow, themeNote),
       ...(outside
         ? [
@@ -563,6 +568,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const offTheme = store.on('theme', paintTheme);
   const offMap = store.on('map', paintMap);
   const offLeave = store.on('leaveOnMerge', paintLeave);
+  const offLang = [store.on('language', langs.paint), store.on('me', langs.paint)];
   const offLimit = [store.on('machine', paintLimit), store.on('me', paintLimit)];
   const offDir = [store.on('projectsDir', paintDir), store.on('me', paintDir)];
   const offPrompts = [store.on('prompts', paintAgent), store.on('prompts', paintPrompts), store.on('me', paintAgent), store.on('me', paintPrompts)];
@@ -574,6 +580,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       offTheme();
       offMap();
       offLeave();
+      offLang.forEach((f) => f());
       offLimit.forEach((off) => off());
       offDir.forEach((off) => off());
       offPrompts.forEach((off) => off());

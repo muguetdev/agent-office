@@ -26,6 +26,29 @@ function pickLocale(): Locale {
 }
 
 export const locale = pickLocale();
+
+/** The language picked for this browser in ⚙️ Settings, or null to go by the browser's own. */
+export function chosenLocale(): Locale | null {
+  try {
+    return matchLocale(localStorage.getItem(KEY) ?? undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Picks `l` for this browser (null: the browser's own) and reloads the page in it. */
+export function chooseLocale(l: Locale | null) {
+  try {
+    if (l) localStorage.setItem(KEY, l);
+    else localStorage.removeItem(KEY);
+  } catch {
+    // no storage: it can only go by the address (?lang=)
+  }
+  const url = new URL(location.href);
+  url.searchParams.delete('lang');
+  if (l) url.searchParams.set('lang', l);
+  location.replace(url.toString());
+}
 if (typeof document !== 'undefined') document.documentElement.lang = locale;
 
 /** The page's words, in its language (see ../shared/locales). */
