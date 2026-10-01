@@ -1,0 +1,44 @@
+/* The minimap in the bottom-right corner, and the big map J opens (see index.ts). */
+#minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px;
+  line-height: 0;
+  cursor: zoom-in;
+  pointer-events: auto;
+}
+#minimap.away,
+#minimap.hud-off,
+body.telescope-active #minimap {
+  display: none;
+}
+.minimap-canvas {
+  display: block;
+  border-radius: 8px;
+  background: #8d7b68;
+}
+.modal.minimap-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  max-width: calc(100vw - 32px);
+}
+.modal.minimap-big header {
+  align-self: stretch;
+}
+.minimap-big-canvas {
+  display: block;
+  border-radius: 10px;
+  background: #8d7b68;
+  cursor: pointer;
+  max-width: 100%;
+}
+.minimap-tip {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  opacity: 0.75;
+}

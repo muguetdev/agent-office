@@ -547,6 +547,7 @@ Opções:
       limits: { label: 'Limites do Claude', what: 'As 5 horas e a semana do plano' },
       chat: { label: 'Chat', what: 'T abre de qualquer jeito' },
       floor: { label: 'Detalhes do andar', what: 'Branch, pasta, agente padrão' },
+      map: { label: 'Minimapa', what: 'O andar visto de cima (J abre grande)' },
     },
     menu: 'Menu',
     menuTip: 'Menu: todo o resto, e o que aparece na tela (Tab)',
@@ -587,6 +588,7 @@ Opções:
       ['B', 'Abrir um shell compartilhado (servidores de dev, git, testes) numa mesa vazia'],
       ['R', 'Retomar um worker dormindo'],
       ['X', 'Mandar um worker para casa (libera a mesa)'],
+      ['J', 'O mapa do andar, grande: clique em alguém para ir até lá (o minimapa no canto aparece ou some pelo menu ☰)'],
       ['Z', 'Descansar: um worker que terminou levanta e passeia pelo escritório (café, sofá, jukebox, golfe na varanda, um cigarro para os fumantes). Z de novo, ou uma tarefa nova, o traz de volta à mesa'],
       ['L', 'Pendurar uma placa grande sobre a mesa à sua frente ("Operações", "Limpeza de código"), ou trocar ou tirar a que já está lá'],
       ['🚧', 'Espaço para crescer: E na placa da parede norte depois do gongo derruba a parede para um escritório dos fundos com mais 2 mesas, e de novo para mais 2. A mesma placa fecha uma fileira de volta'],
@@ -3011,6 +3013,12 @@ Opções:
     dogDancing: '🕺 dançando',
     started: (who: string) => `🎉 ${who} começou uma festa neste andar! (/party stop encerra)`,
     stopped: (who: string) => `${who} encerrou a festa`,
+  },
+  minimap: {
+    title: 'Mapa do andar',
+    open: 'O andar visto de cima (J abre grande)',
+    tip: 'Clique em alguém para ir até lá, ou no chão para andar até ali · J ou Esc fecha',
+    there: 'ali',
   },
   termTabs: {
     tabs: 'Abas',

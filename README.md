@@ -328,6 +328,7 @@ deploy/dokploy.sh ssh 'node /opt/agent-office/bin/agent-office.js accounts invit
 | N | Go to the next worker that's waiting on you |
 | X | Send a worker home |
 | Z | Send a finished worker on a break, or back to its desk |
+| J | The floor map, big |
 | L | Hang a sign over a desk ("Operations", "Code cleanup") |
 | T / Enter | Chat |
 | V | Join voice; then hold V to talk |

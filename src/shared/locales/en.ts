@@ -553,6 +553,7 @@ Options:
       limits: { label: 'Claude limits', what: 'The plan’s 5-hour and week' },
       chat: { label: 'Chat', what: 'T opens it either way' },
       floor: { label: 'Floor details', what: 'Branch, folder, default agent' },
+      map: { label: 'Minimap', what: 'The floor from above (J opens it big)' },
     },
     menu: 'Menu',
     menuTip: 'Menu: everything else, and what shows on screen (Tab)',
@@ -593,6 +594,7 @@ Options:
       ['B', 'Open a shared shell (dev servers, git, tests) at an empty desk'],
       ['R', 'Resume a sleeping worker'],
       ['X', 'Send a worker home (frees the desk)'],
+      ['J', 'The floor map, big: click someone to walk over to them (the minimap in the corner shows or hides from the ☰ menu)'],
       ['Z', 'Take a break: a finished worker gets up and wanders the office (coffee, the couch, the jukebox, golf on the balcony, a cigarette for the smokers). Z again, or a new task, brings it back to its desk'],
       ['L', 'Hang a big sign over the desk you face ("Operations", "Code cleanup"), or change or take down the one there'],
       ['🚧', 'Room to grow: E at the sign on the north wall past the gong knocks through into a back office with 2 more desks, and again for 2 more. The same sign walls a row back up'],
@@ -3020,6 +3022,12 @@ Options:
     dogDancing: '🕺 dancing',
     started: (who: string) => `🎉 ${who} started a party on this floor! (/party stop ends it)`,
     stopped: (who: string) => `${who} called the party off`,
+  },
+  minimap: {
+    title: 'Floor map',
+    open: 'The floor from above (J opens it big)',
+    tip: 'Click someone to walk over to them, or the floor to walk there · J or Esc closes it',
+    there: 'there',
   },
   termTabs: {
     tabs: 'Tabs',
