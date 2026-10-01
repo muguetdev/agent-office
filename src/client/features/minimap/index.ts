@@ -3,8 +3,8 @@
  * seen at a slant from behind and above, cut off a little over head height so there's no ceiling in the
  * way, turning as you turn so what's ahead of you is up. It's drawn straight onto the screen every
  * frame (no lag), into the panel's window. Icons (blips) mark what's there: the coffee machine, the
- * elevator, the boards, the jukebox…, the workers by what they're doing, the people on the floor and
- * the dog; whoever's waiting on you, and the people, stay on its edge when they're off it, pointing the
+ * elevator, the boards, the jukebox…, the workers by what they're doing and the people on the floor;
+ * whoever's waiting on you, and the people, stay on its edge when they're off it, pointing the
  * way. It pulls back while you run, and further while you drive. Under it, bars for your coffee buzz
  * and how much you've had at the bar. J (or a click on it) opens the whole floor big, north up, where a
  * click on someone walks you over to them, and a click on the floor walks you there.
@@ -186,7 +186,6 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
       if (!r.person.root.visible) continue;
       out.push({ at: r.person.root.position.clone(), color: store.peers.get(id)?.color ?? '#ef476f', edge: true, go: () => parts.walking.walkTo(id) });
     }
-    out.push({ at: parts.dog.root.getWorldPosition(new THREE.Vector3()), icon: '🐶' });
     return out;
   }
 
