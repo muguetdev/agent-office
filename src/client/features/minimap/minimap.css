@@ -1,12 +1,17 @@
-/* The minimap in the bottom-right corner, and the big map J opens (see index.ts). */
+/* The round minimap in the bottom-right corner, and the big map J opens (see index.ts). */
 #minimap {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 6px;
-  line-height: 0;
+  right: 16px;
+  bottom: 16px;
+  width: 190px;
+  height: 190px;
+  padding: 0;
+  border-radius: 50%;
+  border-width: 4px;
+  overflow: visible;
   cursor: zoom-in;
   pointer-events: auto;
+  box-shadow: 0 4px 0 var(--ink), 0 10px 24px rgba(0, 0, 0, 0.25);
 }
 #minimap.away,
 #minimap.hud-off,
@@ -15,8 +20,41 @@ body.telescope-active #minimap {
 }
 .minimap-canvas {
   display: block;
-  border-radius: 8px;
-  background: #8d7b68;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+/* You, in the middle, always facing up: the map turns round you. */
+.minimap-you {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin: -9px 0 0 -8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 18px solid #ef476f;
+  filter: drop-shadow(0 0 1.5px #fffaf3) drop-shadow(0 0 1px #fffaf3);
+  pointer-events: none;
+}
+/* North, on the rim, wherever it's turned to. */
+.minimap-north {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  color: #d62828;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
 }
 .modal.minimap-big {
   display: flex;
@@ -32,7 +70,6 @@ body.telescope-active #minimap {
 .minimap-big-canvas {
   display: block;
   border-radius: 10px;
-  background: #8d7b68;
   cursor: pointer;
   max-width: 100%;
 }
