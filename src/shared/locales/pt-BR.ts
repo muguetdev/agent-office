@@ -317,8 +317,8 @@ Opções:
     footer: 'As bebidas sobem para a cabeça por mais ou menos um minuto, e a vista vai junto. Tudo por conta da casa.',
   },
   hints: {
-    takeBreak: '☕ Descansar',
-    backToWork: '💻 Voltar ao trabalho',
+    takeBreak: 'Descansar',
+    backToWork: 'Voltar ao trabalho',
     open: 'Abrir',
     takeIt: 'Pegar',
     readIt: 'Ler',

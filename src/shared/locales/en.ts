@@ -321,8 +321,8 @@ Options:
     footer: 'Drinks go to your head for a minute or so, and the view goes with them. Everything is on the house.',
   },
   hints: {
-    takeBreak: '☕ Take a break',
-    backToWork: '💻 Back to work',
+    takeBreak: 'Take a break',
+    backToWork: 'Back to work',
     open: 'Open',
     takeIt: 'Take it',
     readIt: 'Read it',
