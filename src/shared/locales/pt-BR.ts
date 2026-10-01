@@ -317,6 +317,8 @@ Opções:
     footer: 'As bebidas sobem para a cabeça por mais ou menos um minuto, e a vista vai junto. Tudo por conta da casa.',
   },
   hints: {
+    takeBreak: '☕ Descansar',
+    backToWork: '💻 Voltar ao trabalho',
     open: 'Abrir',
     takeIt: 'Pegar',
     readIt: 'Ler',
@@ -585,6 +587,7 @@ Opções:
       ['B', 'Abrir um shell compartilhado (servidores de dev, git, testes) numa mesa vazia'],
       ['R', 'Retomar um worker dormindo'],
       ['X', 'Mandar um worker para casa (libera a mesa)'],
+      ['Z', 'Descansar: um worker que terminou levanta e passeia pelo escritório (café, sofá, jukebox, golfe na varanda, um cigarro para os fumantes). Z de novo, ou uma tarefa nova, o traz de volta à mesa'],
       ['L', 'Pendurar uma placa grande sobre a mesa à sua frente ("Operações", "Limpeza de código"), ou trocar ou tirar a que já está lá'],
       ['🚧', 'Espaço para crescer: E na placa da parede norte depois do gongo derruba a parede para um escritório dos fundos com mais 2 mesas, e de novo para mais 2. A mesma placa fecha uma fileira de volta'],
       ['F', 'Pendurar uma imagem da web numa parede. Olhe para um quadro e aperte E para mover, editar ou tirar'],
@@ -1895,6 +1898,9 @@ Opções:
     couldNotMake: 'Não deu para criar sua conta',
   },
   srv: {
+    onBreak: (who: string, worker: string) => `☕ ${who} mandou ${worker} descansar`,
+    backToWork: (who: string, worker: string) => `💻 ${who} chamou ${worker} de volta para a mesa`,
+    sentHome: (who: string, worker: string) => `${who} mandou ${worker} para casa`,
     adminsLanguage: 'Só admins podem mudar o idioma do escritório',
     languageSet: (who: string) => `🌐 ${who} mudou o idioma do escritório para português`,
     dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} deixou ${dog} com a pelagem ${coat.toLowerCase()}`,
@@ -2021,6 +2027,7 @@ Opções:
     aTask: 'uma tarefa',
   },
   workers: {
+    cantRest: (who: string) => `${who} só pode descansar quando terminar, numa mesa própria`,
     restarted: 'o escritório reiniciou · a saída anterior está acima',
     hostStopped: 'O host de terminais dos workers parou — retomando',
     unknownDesk: 'Mesa desconhecida',

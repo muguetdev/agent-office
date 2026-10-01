@@ -7,6 +7,7 @@ import { issueNumber, num, str } from '../../office/input.js';
 import { here, workerOf } from './common.js';
 import type { FeatureHooks, HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
+import { takeBreak } from '../../workers/breaks.js';
 
 const CLEANUPS = new Set(['keep', 'worktree', 'all']);
 
@@ -52,6 +53,16 @@ export const workerHandlers = {
     const w = workerOf(ctx, msg.workerId);
     ctx.warn(c, w ? w.floor.workers.resume(w.wid) : L.srv.noSuchWorker);
   },
+  'worker.rest'(ctx, c, msg) {
+    const w = workerOf(ctx, msg.workerId);
+    if (!w) return ctx.warn(c, L.srv.noSuchWorker);
+    const on = msg.on === true;
+    const live = w.floor.workers.get(w.wid);
+    const err = live ? takeBreak(live, on) : L.srv.noSuchWorker;
+    if (err || !live) return ctx.warn(c, err);
+    ctx.toFloor(w.floor, { t: 'worker.update', worker: { ...live } });
+    ctx.toastFloor(w.floor, on ? L.srv.onBreak(c.peer.name, w.info.name) : L.srv.backToWork(c.peer.name, w.info.name));
+  },
   'worker.kill'(ctx, c, msg) {
     const who = c.peer.name;
     const w = workerOf(ctx, msg.workerId);
@@ -59,7 +70,7 @@ export const workerHandlers = {
     const { floor, info } = w;
     // The worker leaves right away; its worktree is dealt with after that, and the outcome follows.
     const done = floor.sendHome(info.id, CLEANUPS.has(String(msg.cleanup)) ? msg.cleanup : undefined);
-    ctx.toastFloor(floor, `${who} sent ${info.name} home`);
+    ctx.toastFloor(floor, L.srv.sentHome(who, info.name));
     void done.then(({ note, error }) => {
       if (note) ctx.toastFloor(floor, note);
       if (error) ctx.toastFloor(floor, error, 'warn');

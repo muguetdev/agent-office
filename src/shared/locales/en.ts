@@ -321,6 +321,8 @@ Options:
     footer: 'Drinks go to your head for a minute or so, and the view goes with them. Everything is on the house.',
   },
   hints: {
+    takeBreak: '☕ Take a break',
+    backToWork: '💻 Back to work',
     open: 'Open',
     takeIt: 'Take it',
     readIt: 'Read it',
@@ -591,6 +593,7 @@ Options:
       ['B', 'Open a shared shell (dev servers, git, tests) at an empty desk'],
       ['R', 'Resume a sleeping worker'],
       ['X', 'Send a worker home (frees the desk)'],
+      ['Z', 'Take a break: a finished worker gets up and wanders the office (coffee, the couch, the jukebox, golf on the balcony, a cigarette for the smokers). Z again, or a new task, brings it back to its desk'],
       ['L', 'Hang a big sign over the desk you face ("Operations", "Code cleanup"), or change or take down the one there'],
       ['🚧', 'Room to grow: E at the sign on the north wall past the gong knocks through into a back office with 2 more desks, and again for 2 more. The same sign walls a row back up'],
       ['F', 'Hang a picture from the web on a wall. Look at a picture and press E to move, edit or take it down'],
@@ -1903,6 +1906,9 @@ Options:
     couldNotMake: 'Could not make your account',
   },
   srv: {
+    onBreak: (who: string, worker: string) => `☕ ${who} sent ${worker} off on a break`,
+    backToWork: (who: string, worker: string) => `💻 ${who} called ${worker} back to its desk`,
+    sentHome: (who: string, worker: string) => `${who} sent ${worker} home`,
     adminsLanguage: 'Only admins can change the language the office speaks',
     languageSet: (who: string) => `🌐 ${who} changed the office’s language to English`,
     dogCoat: (who: string, dog: string, coat: string) => `🐶 ${who} gave ${dog} a ${coat.toLowerCase()} coat`,
@@ -2029,6 +2035,7 @@ Options:
     aTask: 'a task',
   },
   workers: {
+    cantRest: (who: string) => `${who} can only take a break when it's done, at a desk of its own`,
     restarted: 'the office restarted · earlier output above',
     hostStopped: "The workers' terminal host stopped — resuming them",
     unknownDesk: 'Unknown desk',
