@@ -1,0 +1,119 @@
+/* The code editor beside a worker's terminal (see code-editor.ts): the files down the side, the editor beside them. */
+.modal.term .term-codehost {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  background: #1e1f2e;
+  color: #e7e8ef;
+}
+.code-side {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  flex: none;
+  border-right: 2px solid #2d2f45;
+  background: #191a27;
+}
+.term-codehost .code-filter {
+  margin: 8px;
+  padding: 6px 8px;
+  border: 2px solid #3a3d5c;
+  border-radius: 8px;
+  background: #1e1f2e;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.code-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 8px;
+}
+.code-row {
+  display: block;
+  width: 100%;
+  padding: 3px 8px;
+  border: none;
+  background: none;
+  color: #c9cbe0;
+  font:
+    13px ui-monospace,
+    'SF Mono',
+    Menlo,
+    Consolas,
+    monospace;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.code-row:hover {
+  background: #262840;
+}
+.code-row.on {
+  background: #33365a;
+  color: #fff;
+}
+.code-row.dir {
+  color: #8ecae6;
+  font-weight: 700;
+}
+.code-empty {
+  padding: 12px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+.code-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.code-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 2px solid #2d2f45;
+  font-size: 13px;
+}
+.code-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+.code-state {
+  opacity: 0.7;
+}
+.code-state.dirty {
+  color: #ffd166;
+  opacity: 1;
+}
+.code-save {
+  padding: 4px 12px;
+}
+.code-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #5c3d0f;
+  color: #ffe8b0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.code-banner.hidden {
+  display: none;
+}
+.code-banner span {
+  flex: 1;
+}
+.code-surface {
+  flex: 1;
+  min-height: 0;
+}

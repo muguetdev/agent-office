@@ -29,6 +29,7 @@ import type { Capacity } from './machine.js';
 import { officePrompt, type PromptSource } from './prompts.js';
 import { L } from './i18n.js';
 import { breakOver } from './workers/breaks.js';
+import { CodeFiles } from './code.js';
 
 type ToastLevel = 'info' | 'warn' | 'error';
 
@@ -118,6 +119,8 @@ export class Floor {
   readonly github: GitHub;
   readonly queue: TaskQueue;
   readonly changes: Changes;
+  /** The code editor's files: each worker's own folder (see code.ts). */
+  readonly code: CodeFiles;
   readonly decor: Decor;
   /** The signs over its desks, and how far its back office is built out. */
   readonly plan: FloorPlanStore;
@@ -278,6 +281,10 @@ export class Floor {
     );
 
     // What each worker changed, for the Changes window at its desk (see changes.ts).
+    this.code = new CodeFiles((workerId) => {
+      const w = this.workers.get(workerId);
+      return w ? (w.worktree ? path.join(def.dir, w.worktree.path) : def.dir) : undefined;
+    });
     this.changes = new Changes(
       def.dir,
       this.project.branch,

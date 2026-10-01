@@ -87,7 +87,8 @@ export function openModal(content: HTMLElement, opts: { escCloses?: boolean; onC
   let byEsc = false;
   const onKey = (e: KeyboardEvent) => {
     if (stack[stack.length - 1] !== modal) return;
-    if (e.key === 'Escape' && opts.escCloses !== false) {
+    // Something inside that has an Esc of its own (an editor's suggestions, its find box) keeps it.
+    if (e.key === 'Escape' && opts.escCloses !== false && !(e.target instanceof Element && e.target.closest('[data-own-esc]'))) {
       // Stop it here so the Esc that closes a terminal isn't also typed into it.
       e.preventDefault();
       e.stopPropagation();

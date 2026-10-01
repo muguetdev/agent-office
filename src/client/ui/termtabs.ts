@@ -1,8 +1,10 @@
-// Tabs on a worker's terminal: the terminal itself, plus any web pages pinned open beside it (a
-// linked chat, docs for the task). They're this browser's own: nothing goes to the office or to
+// Tabs on a worker's terminal: the terminal itself, the code in the folder it works in (an editor,
+// see code-editor.ts, loaded the first time it's opened), plus any web pages pinned open beside it
+// (a linked chat, docs for the task). They're this browser's own: nothing goes to the office or to
 // anyone else, and they're kept per worker until the page reloads.
 import './termtabs.css';
 import { clip, h, toast } from './dom';
+import { store } from '../state';
 import { L } from '../i18n';
 
 /** A web page pinned open beside a worker's terminal. */
@@ -46,11 +48,17 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   tabsByWorker.set(workerId, tabs);
   const frames = new Map<string, HTMLIFrameElement>();
   let active = 'main';
+  /** Where the code editor goes, put there the first time its tab's opened. */
+  const codeHost = h('div.term-codehost.hidden');
+  pages.append(codeHost);
+  let codeLoaded = false;
 
   const render = () => {
     const mainTab = h('div.term-tab', { class: active === 'main' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'main'), onclick: () => show('main') }, L.termTabs.terminal));
+    const codeTab = h('div.term-tab', { class: active === 'code' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'code'), title: L.termTabs.codeTip, onclick: () => show('code') }, L.termTabs.code));
     tabsBar.replaceChildren(
       mainTab,
+      codeTab,
       ...tabs.map((t) =>
         h(
           'div.term-tab',
@@ -82,6 +90,12 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     pages.classList.toggle('hidden', onMain);
     opts.keypad?.classList.toggle('hidden', !onMain);
     for (const [tid, frame] of frames) frame.classList.toggle('hidden', tid !== id);
+    codeHost.classList.toggle('hidden', id !== 'code');
+    if (id === 'code' && !codeLoaded) {
+      codeLoaded = true;
+      codeHost.textContent = L.code.loading;
+      void import('./code-editor').then((m) => m.mountCode(codeHost, workerId, store.floor ?? ''));
+    }
     render();
     if (onMain) opts.focusTerm();
   };
