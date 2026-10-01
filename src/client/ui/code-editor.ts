@@ -11,11 +11,86 @@ import { h, toast } from './dom';
 import { L } from '../i18n';
 
 (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment = { getWorker: () => new EditorWorker() };
-monaco.editor.defineTheme('office', {
+// Dark: Dracula's colours (draculatheme.com, MIT). Light: GitHub's light colours.
+monaco.editor.defineTheme('dracula', {
   base: 'vs-dark',
   inherit: true,
-  rules: [],
-  colors: { 'editor.background': '#1e1f2e', 'editorGutter.background': '#1e1f2e', 'minimap.background': '#1e1f2e' },
+  rules: [
+    { token: '', foreground: 'f8f8f2' },
+    { token: 'comment', foreground: '6272a4', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'ff79c6' },
+    { token: 'string', foreground: 'f1fa8c' },
+    { token: 'string.escape', foreground: 'ff79c6' },
+    { token: 'number', foreground: 'bd93f9' },
+    { token: 'regexp', foreground: 'ff5555' },
+    { token: 'type', foreground: '8be9fd', fontStyle: 'italic' },
+    { token: 'type.identifier', foreground: '8be9fd' },
+    { token: 'identifier', foreground: 'f8f8f2' },
+    { token: 'function', foreground: '50fa7b' },
+    { token: 'variable', foreground: 'f8f8f2' },
+    { token: 'variable.predefined', foreground: 'bd93f9' },
+    { token: 'constant', foreground: 'bd93f9' },
+    { token: 'delimiter', foreground: 'f8f8f2' },
+    { token: 'operator', foreground: 'ff79c6' },
+    { token: 'tag', foreground: 'ff79c6' },
+    { token: 'attribute.name', foreground: '50fa7b' },
+    { token: 'attribute.value', foreground: 'f1fa8c' },
+    { token: 'key', foreground: '8be9fd' },
+    { token: 'metatag', foreground: 'ff79c6' },
+    { token: 'annotation', foreground: '50fa7b' },
+  ],
+  colors: {
+    'editor.background': '#282a36',
+    'editor.foreground': '#f8f8f2',
+    'editor.lineHighlightBackground': '#44475a75',
+    'editor.selectionBackground': '#44475a',
+    'editor.findMatchHighlightBackground': '#ffb86c55',
+    'editorCursor.foreground': '#f8f8f2',
+    'editorLineNumber.foreground': '#6272a4',
+    'editorLineNumber.activeForeground': '#f8f8f2',
+    'editorWhitespace.foreground': '#44475a',
+    'editorIndentGuide.background1': '#44475a',
+    'editorGutter.background': '#282a36',
+    'minimap.background': '#282a36',
+    'editorWidget.background': '#21222c',
+    'editorSuggestWidget.background': '#21222c',
+    'editorSuggestWidget.selectedBackground': '#44475a',
+  },
+});
+monaco.editor.defineTheme('github-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: '', foreground: '24292f' },
+    { token: 'comment', foreground: '6e7781', fontStyle: 'italic' },
+    { token: 'keyword', foreground: 'cf222e' },
+    { token: 'string', foreground: '0a3069' },
+    { token: 'string.escape', foreground: '0550ae' },
+    { token: 'number', foreground: '0550ae' },
+    { token: 'regexp', foreground: '116329' },
+    { token: 'type', foreground: '953800' },
+    { token: 'type.identifier', foreground: '953800' },
+    { token: 'function', foreground: '8250df' },
+    { token: 'variable.predefined', foreground: '0550ae' },
+    { token: 'constant', foreground: '0550ae' },
+    { token: 'operator', foreground: 'cf222e' },
+    { token: 'tag', foreground: '116329' },
+    { token: 'attribute.name', foreground: '0550ae' },
+    { token: 'attribute.value', foreground: '0a3069' },
+    { token: 'key', foreground: '0550ae' },
+    { token: 'metatag', foreground: 'cf222e' },
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#24292f',
+    'editor.lineHighlightBackground': '#eaeef280',
+    'editor.selectionBackground': '#0969da33',
+    'editorLineNumber.foreground': '#8c959f',
+    'editorLineNumber.activeForeground': '#24292f',
+    'editorIndentGuide.background1': '#d0d7de',
+    'editorGutter.background': '#ffffff',
+    'minimap.background': '#ffffff',
+  },
 });
 
 /** How often an open file is checked for changes made elsewhere. */
@@ -23,6 +98,8 @@ const WATCH_MS = 2000;
 /** What you've set the editor to, kept in this browser: the window full screen, how wide the files are, the text size, wrapping. */
 interface Prefs {
   full: boolean;
+  /** Dracula (dark) or GitHub's light colours. */
+  light: boolean;
   side: number;
   font: number;
   wrap: boolean;
@@ -31,7 +108,7 @@ const PREFS_KEY = 'agent-office.code';
 const FONT = { min: 10, max: 24 };
 const SIDE = { min: 160, max: 600 };
 function loadPrefs(): Prefs {
-  const p: Prefs = { full: false, side: 250, font: 14, wrap: false };
+  const p: Prefs = { full: false, light: false, side: 250, font: 14, wrap: false };
   try {
     Object.assign(p, JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}'));
   } catch {
@@ -98,15 +175,16 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const bigger = h('button.code-tool', { type: 'button', title: L.code.bigger }, 'A+');
   const wrapBtn = h('button.code-tool', { type: 'button', title: L.code.wrap }, '↵');
   const fullBtn = h('button.code-tool', { type: 'button', title: L.code.full }, '⛶');
+  const themeBtn = h('button.code-tool', { type: 'button', title: L.code.theme });
   const split = h('div.code-split', { title: L.code.resize });
   const banner = h('div.code-banner.hidden');
   // Esc is the editor's while you're in it (its suggestions, its find box): see openModal.
   const surface = h('div.code-surface', { 'data-own-esc': '' });
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, smaller, bigger, wrapBtn, fullBtn, saveBtn), banner, surface);
+  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), banner, surface);
   host.replaceChildren(side, split, main);
 
   const editor = monaco.editor.create(surface, {
-    theme: 'office',
+    theme: prefs.light ? 'github-light' : 'dracula',
     automaticLayout: true,
     fontSize: prefs.font,
     wordWrap: prefs.wrap ? 'on' : 'off',
@@ -298,6 +376,9 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const modal = host.closest<HTMLElement>('.modal.term');
   const apply = () => {
     modal?.classList.toggle('full', prefs.full);
+    host.classList.toggle('light', prefs.light);
+    themeBtn.textContent = prefs.light ? '☀️' : '🌙';
+    monaco.editor.setTheme(prefs.light ? 'github-light' : 'dracula');
     fullBtn.classList.toggle('on', prefs.full);
     wrapBtn.classList.toggle('on', prefs.wrap);
     side.style.width = `${prefs.side}px`;
@@ -316,6 +397,10 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   });
   fullBtn.addEventListener('click', () => {
     prefs.full = !prefs.full;
+    apply();
+  });
+  themeBtn.addEventListener('click', () => {
+    prefs.light = !prefs.light;
     apply();
   });
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Equal, () => zoom(1));

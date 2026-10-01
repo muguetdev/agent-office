@@ -3024,6 +3024,7 @@ Options:
     stopped: (who: string) => `${who} called the party off`,
   },
   code: {
+    theme: 'Dark (Dracula) or light',
     smaller: 'Smaller text (Ctrl −)',
     bigger: 'Bigger text (Ctrl +)',
     wrap: 'Wrap long lines (Alt+Z)',

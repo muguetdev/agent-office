@@ -1,10 +1,22 @@
 /* The code editor beside a worker's terminal (see code-editor.ts): the files down the side, the editor beside them. */
 .modal.term .term-codehost {
+  /* Dracula's colours (dark), or GitHub's light ones (.light). */
+  --code-bg: #282a36;
+  --code-side: #21222c;
+  --code-line: #44475a;
+  --code-text: #f8f8f2;
+  --code-dim: #6272a4;
+  --code-dir: #bd93f9;
+  --code-pick: #44475a;
+  --code-hover: #343746;
+  --code-dirty: #f1fa8c;
+  --code-banner: #ffb86c;
+  --code-banner-text: #282a36;
   position: absolute;
   inset: 0;
   display: flex;
-  background: #1e1f2e;
-  color: #e7e8ef;
+  background: var(--code-bg);
+  color: var(--code-text);
 }
 .code-side {
   display: flex;
@@ -12,7 +24,7 @@
   width: 250px;
   flex: none;
   min-width: 0;
-  background: #191a27;
+  background: var(--code-side);
 }
 /* Over the windows' own text boxes (white, as wide as the window): this one sits inside the files. */
 .modal .term-codehost input.code-filter {
@@ -21,9 +33,9 @@
   min-width: 0;
   margin: 8px;
   padding: 6px 8px;
-  border: 2px solid #3a3d5c;
+  border: 2px solid var(--code-line);
   border-radius: 8px;
-  background: #1e1f2e;
+  background: var(--code-bg);
   color: inherit;
   font: inherit;
   font-size: 13px;
@@ -40,7 +52,7 @@
   padding: 3px 8px;
   border: none;
   background: none;
-  color: #c9cbe0;
+  color: var(--code-text);
   font:
     13px ui-monospace,
     'SF Mono',
@@ -54,14 +66,14 @@
   cursor: pointer;
 }
 .code-row:hover {
-  background: #262840;
+  background: var(--code-hover);
 }
 .code-row.on {
-  background: #33365a;
-  color: #fff;
+  background: var(--code-pick);
+  color: var(--code-text);
 }
 .code-row.dir {
-  color: #8ecae6;
+  color: var(--code-dir);
   font-weight: 700;
 }
 .code-empty {
@@ -80,7 +92,7 @@
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
-  border-bottom: 2px solid #2d2f45;
+  border-bottom: 2px solid var(--code-line);
   font-size: 13px;
 }
 .code-path {
@@ -95,7 +107,7 @@
   opacity: 0.7;
 }
 .code-state.dirty {
-  color: #ffd166;
+  color: var(--code-dirty);
   opacity: 1;
 }
 .code-save {
@@ -106,8 +118,8 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  background: #5c3d0f;
-  color: #ffe8b0;
+  background: var(--code-banner);
+  color: var(--code-banner-text);
   font-size: 13px;
   font-weight: 700;
 }
@@ -121,22 +133,35 @@
   flex: 1;
   min-height: 0;
 }
+.modal.term .term-codehost.light {
+  --code-bg: #ffffff;
+  --code-side: #f6f8fa;
+  --code-line: #d0d7de;
+  --code-text: #24292f;
+  --code-dim: #57606a;
+  --code-dir: #0969da;
+  --code-pick: #ddf4ff;
+  --code-hover: #eaeef2;
+  --code-dirty: #9a6700;
+  --code-banner: #fff8c5;
+  --code-banner-text: #24292f;
+}
 /* The line between the files and the editor: drag it to make the files wider or narrower. */
 .code-split {
   width: 6px;
   flex: none;
   cursor: col-resize;
-  background: #2d2f45;
+  background: var(--code-line);
 }
 .code-split:hover {
-  background: #4a4e7a;
+  background: var(--code-dim);
 }
 .code-tool {
   padding: 3px 8px;
-  border: 2px solid #3a3d5c;
+  border: 2px solid var(--code-line);
   border-radius: 8px;
   background: none;
-  color: #c9cbe0;
+  color: var(--code-text);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
@@ -144,8 +169,8 @@
 }
 .code-tool:hover,
 .code-tool.on {
-  background: #33365a;
-  color: #fff;
+  background: var(--code-pick);
+  color: var(--code-text);
 }
 /* Full screen (⛶): the whole window, for the editor (and the terminal with it). */
 .modal.term.full {

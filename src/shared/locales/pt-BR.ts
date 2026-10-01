@@ -3015,6 +3015,7 @@ Opções:
     stopped: (who: string) => `${who} encerrou a festa`,
   },
   code: {
+    theme: 'Escuro (Dracula) ou claro',
     smaller: 'Letra menor (Ctrl −)',
     bigger: 'Letra maior (Ctrl +)',
     wrap: 'Quebrar linhas compridas (Alt+Z)',
