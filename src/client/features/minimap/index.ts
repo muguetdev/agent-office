@@ -11,7 +11,7 @@
  */
 import './minimap.css';
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BOOKSHELF, CABINET, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, GOLF_TEE, GONG, JUKEBOX, STATIONS, TV, WHITEBOARD } from '../../../shared/layout';
+import { ASHTRAY, BALCONY, BOOKSHELF, CABINET, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, GOLF_TEE, GONG, JUKEBOX, STATIONS, TV, WALL_T, WHITEBOARD } from '../../../shared/layout';
 import { BOOZE_LIMIT } from '../../../shared/rooftop';
 import type { Bounds } from '../../../shared/nav';
 import type { Ctx } from '../../core/context';
@@ -139,6 +139,13 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     return b;
   }
 
+  /** Whether there's a ceiling over you: indoors, or anywhere under the office's footprint (the garage). */
+  function underRoof(): boolean {
+    if (parts.place.indoors()) return true;
+    const p = ctx.player.pos;
+    return parts.worlds.inOffice() && p.x > FLOOR.minX - WALL_T && p.x < FLOOR.maxX + WALL_T && p.z > FLOOR.minZ - WALL_T && p.z < FLOOR.maxZ + WALL_T;
+  }
+
   /** The way you're looking, as an angle round from +z. */
   function heading(): number {
     const p = ctx.player;
@@ -165,8 +172,9 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     scene.background = BACKDROP;
     // The sun's shadows are worked out already this frame.
     renderer.shadowMap.autoUpdate = false;
-    // Indoors the ceiling's cut off; outside there's no ceiling, just what's under your feet.
-    renderer.clippingPlanes = parts.place.indoors() ? clip : [clip[1]];
+    // Under a roof (indoors, or down in the garage under the office) the ceiling's cut off, and the floor
+    // over it with it; outside there's no ceiling, just what's under your feet.
+    renderer.clippingPlanes = underRoof() ? clip : [clip[1]];
     renderer.render(scene, cam);
     renderer.clippingPlanes = [];
     renderer.shadowMap.autoUpdate = shadows;
