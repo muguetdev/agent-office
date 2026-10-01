@@ -3,7 +3,6 @@ import { aside, hintTitle, key, onE } from '../../core/hint';
 import { noOutline } from '../../core/outline';
 import { store } from '../../state';
 import { Dog } from './world';
-import { partyOn } from '../party';
 import { L } from '../../i18n';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
@@ -33,7 +32,7 @@ export function installDog(ctx: Ctx): Dog {
   ctx.interactions.define('dog', {
     reach: 3.2,
     hint: () => {
-      const doing = partyOn()
+      const doing = dog.dance.beat !== null
         ? L.party.dogDancing
         : dog.doing(
             (id) => store.workers.get(id)?.name,
