@@ -3040,7 +3040,7 @@ Opções:
   minimap: {
     title: 'Mapa do andar',
     open: 'O andar visto de cima (J abre grande)',
-    tip: 'Clique em alguém para ir até lá, ou no chão para andar até ali · J ou Esc fecha',
+    tip: 'Clique em alguém para ir até lá, ou no chão para andar até ali · Esc fecha',
     there: 'ali',
   },
   termTabs: {

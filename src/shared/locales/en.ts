@@ -3049,7 +3049,7 @@ Options:
   minimap: {
     title: 'Floor map',
     open: 'The floor from above (J opens it big)',
-    tip: 'Click someone to walk over to them, or the floor to walk there · J or Esc closes it',
+    tip: 'Click someone to walk over to them, or the floor to walk there · Esc closes it',
     there: 'there',
   },
   termTabs: {
