@@ -1894,6 +1894,13 @@ Options:
     farewells: ['😢 bye, everyone', '🥲 it was fun', '📦 welp', '😞 cleaning out my desk', '🥺 but my PR…', '😶 security is walking me out'],
     jumps: ['🪂 geronimo!', '🪂 see ya!', '🪂 wheee!', '🪂 bye bye!', '🪂 I quit!'],
   },
+  building: {
+    title: 'Other floors',
+    idle: 'nobody busy',
+    needsYou: (who: string, floor: string) => `${who} on the ${floor} floor needs you`,
+    go: 'Go',
+    goTip: (who: string, floor: string) => `Take the elevator to ${floor}, to ${who}'s desk, its terminal open`,
+  },
   needsYou: {
     title: (who: string) => `${who} needs you`,
     more: (n: number) => `+${n} more`,

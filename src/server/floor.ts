@@ -30,6 +30,7 @@ import { officePrompt, type PromptSource } from './prompts.js';
 import { L } from './i18n.js';
 import { breakOver } from './workers/breaks.js';
 import { CodeFiles } from './code.js';
+import { crewOf } from '../shared/crew.js';
 
 type ToastLevel = 'info' | 'warn' | 'error';
 
@@ -414,6 +415,7 @@ export class Floor {
       waiting: ws.filter((w) => w.kind === 'agent' && (w.status === 'needs_input' || (w.status === 'done' && !w.acked))).length,
       people: this.ctx.people(this),
       wing: this.plan.wing,
+      crew: crewOf(ws),
     };
   }
 

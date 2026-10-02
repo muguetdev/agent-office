@@ -1884,6 +1884,13 @@ Opções:
     farewells: ['😢 tchau, pessoal', '🥲 foi divertido', '📦 enfim', '😞 esvaziando a mesa', '🥺 mas e o meu PR…', '😶 a segurança está me acompanhando até a saída'],
     jumps: ['🪂 lá vou eu!', '🪂 até mais!', '🪂 uhuuu!', '🪂 tchau tchau!', '🪂 eu me demito!'],
   },
+  building: {
+    title: 'Outros andares',
+    idle: 'ninguém ocupado',
+    needsYou: (who: string, floor: string) => `${who}, no andar ${floor}, precisa de você`,
+    go: 'Ir',
+    goTip: (who: string, floor: string) => `Pegar o elevador até ${floor}, na mesa de ${who}, com o terminal aberto`,
+  },
   needsYou: {
     title: (who: string) => `${who} precisa de você`,
     more: (n: number) => `+${n} ${n === 1 ? 'outro' : 'outros'}`,

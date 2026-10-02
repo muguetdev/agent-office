@@ -1,6 +1,7 @@
 // The building: its floors, going between them, and what each floor holds.
 
 import type { CabinetView } from '../cabinet.js';
+import type { CrewMember } from '../crew.js';
 import type { Decoration } from '../decor.js';
 import type { DogState } from '../dog.js';
 import type { FloorPlan } from '../floorplan.js';
@@ -62,6 +63,8 @@ export interface FloorInfo {
   people: number;
   /** How many rows its back office is built out (see WING), for the building's outside. */
   wing: number;
+  /** Its workers in brief, for the building panel on every other floor (see shared/crew.ts). */
+  crew?: CrewMember[];
 }
 
 /** How far a new floor's clone has got, from git's progress. */

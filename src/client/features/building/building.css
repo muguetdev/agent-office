@@ -1,0 +1,23 @@
+/* The rest of the building (features/building): the other floors under the Workers panel, and the strip
+   under the top bar when someone on one of them needs you. */
+.building { margin-top: 8px; border-top: 2px dashed rgba(43, 45, 66, .25); padding-top: 6px; }
+.building-head, .building-floor { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 6px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; font-weight: 900; font-size: 13px; text-align: left; cursor: pointer; }
+.building-head:hover, .building-floor:hover { background: rgba(43, 45, 66, .08); }
+.building-floor { font-weight: 800; padding-left: 14px; }
+.building-floor.asking { color: var(--bad); }
+.building-tally { flex: none; font-size: 12px; font-weight: 800; opacity: .85; white-space: nowrap; }
+.building-crew { list-style: none; margin: 0 0 4px; padding: 0 0 0 10px; }
+
+.needs-you-elsewhere { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; align-items: stretch; max-width: min(560px, calc(100vw - 24px)); border: 3px solid var(--ink); border-radius: var(--radius); background: #ffe3ea; color: var(--ink); box-shadow: var(--shadow); }
+.needs-you-elsewhere button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.needs-you-elsewhere-go { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 6px 6px 12px; text-align: left; border-radius: 12px 0 0 12px; font-size: 20px; }
+.needs-you-elsewhere-go:hover, .needs-you-elsewhere-x:hover { background: rgba(43, 45, 66, .1); }
+.needs-you-elsewhere-text { display: grid; min-width: 0; font-size: 13px; }
+.needs-you-elsewhere-text strong { font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.needs-you-elsewhere-text span { font-weight: 700; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.needs-you-elsewhere-cta { flex: none; padding: 3px 10px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 13px; font-weight: 900; }
+.needs-you-elsewhere-x { flex: none; width: 32px; font-size: 13px; font-weight: 900; border-left: 2px solid rgba(43, 45, 66, .2); border-radius: 0 12px 12px 0; }
+/* Under this floor's own banner when both are up. */
+#hud:has(.needs-you:not(.hidden)) .needs-you-elsewhere { top: 136px; }
+#hud:has(.needs-you-elsewhere:not(.hidden)) #toasts { translate: 0 60px; }
+#hud:has(.needs-you:not(.hidden)):has(.needs-you-elsewhere:not(.hidden)) #toasts { translate: 0 124px; }

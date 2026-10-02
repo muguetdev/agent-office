@@ -54,6 +54,7 @@ import { installPalette } from './features/palette';
 import { installParty } from './features/party';
 import { installBreaks } from './features/breaks';
 import { installMinimap } from './features/minimap';
+import { installBuilding } from './features/building';
 import { installPeers } from './features/peers';
 import { installRooftop } from './features/rooftop';
 import { installSeating } from './features/seating';
@@ -179,6 +180,7 @@ const gong = installGong(ctx, { burstOver: parts.views.burstOver, workerViews: p
 installParty(ctx, { danceParty: gong.danceParty, dog: parts.dog, djAt: parts.rooftop.djAt, lights: parts.stage });
 installBreaks(ctx, parts);
 installMinimap(ctx, parts);
+installBuilding(ctx, parts);
 
 parts.hintbar = installHintBar(ctx, core, parts);
 parts.emotes = installEmotes(ctx, { personOf });
