@@ -1,17 +1,22 @@
-// ⚙️ Settings' Outside, under Building: which clock the sky keeps, for everyone (see server/sky.ts).
+// ⚙️ Settings' Outside, under Building: what the sky's doing, and which clock it keeps, for everyone
+// (see server/sky.ts).
 import type { Net } from '../net';
 import { store } from '../state';
 import { h } from './dom';
 import { L } from '../i18n';
 import { describeSky } from '../world/sky';
 
-/** What the sky's doing now, and the real time of day or a whole day and night every hour as buttons, kept up to date until `off`. */
-export function skyClockSetting(net: Net, fallback: string): { now: HTMLElement; row: HTMLElement; off: () => void } {
-  const now = h('p.outside-now');
+/**
+ * The setting, made by `frame` from what goes in it: the sky now (`outside`, see describeSky), the
+ * real time of day or a whole day and night every hour as buttons, and a note. Kept up to date until `off`.
+ */
+export function outsideSetting(net: Net, outside: { now: string; live: boolean }, frame: (body: Node[]) => HTMLElement): { section: HTMLElement; off: () => void } {
   const row = h('div.seg', { role: 'radiogroup', 'aria-label': L.settings.skyClock });
+  const now = h('p.outside-now');
+  const note = h('p.setting-note');
   const paint = () => {
     const real = !!store.sky?.realTime;
-    now.textContent = store.sky ? describeSky(store.sky) : fallback;
+    now.textContent = store.sky ? describeSky(store.sky) : outside.now;
     row.replaceChildren(
       ...[true, false].map((r) =>
         h(
@@ -27,7 +32,8 @@ export function skyClockSetting(net: Net, fallback: string): { now: HTMLElement;
         ),
       ),
     );
+    note.textContent = L.settings.skyNote(real, outside.live);
   };
   paint();
-  return { now, row, off: store.on('sky', paint) };
+  return { section: frame([now, row, note]), off: store.on('sky', paint) };
 }

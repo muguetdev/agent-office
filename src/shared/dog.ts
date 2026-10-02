@@ -36,6 +36,8 @@ export const DOG_NAMES = ['Biscuit', 'Pancake', 'Peanut', 'Pepper', 'Cookie', 'B
 /** A floor's dog is one of these, each its own model (dog-<breed>.glb) with the same rig and clips. */
 export const DOG_BREEDS = ['pup', 'corgi', 'dachshund', 'pug', 'shiba', 'pomeranian'] as const;
 export type DogBreed = (typeof DOG_BREEDS)[number];
+/** What ⚙️ Settings calls each breed. */
+export const DOG_BREED_NAMES: Record<DogBreed, string> = { pup: '🐶 Pup', corgi: '🦊 Corgi', dachshund: '🌭 Dachshund', pug: '🐾 Pug', shiba: '🍂 Shiba', pomeranian: '🧸 Pomeranian' };
 
 /**
  * The breeds a floor's dog is dealt from its id (see dogDefaults): the ones there were when floors first
@@ -59,6 +61,8 @@ export const DOG_COATS: [string, string, string][] = [
   ['#cf6a45', '#fbe1d2', '#9c4527'], // red
   ['#ffffff', '#ffffff', '#f3e9e2'], // white
 ];
+/** What ⚙️ Settings calls each coat, in DOG_COATS's order. */
+export const DOG_COAT_NAMES = ['Golden', 'Black and white', 'Chocolate', 'Cream', 'Grey', 'Red', 'White'];
 
 /**
  * How much of its own colour each coat gives off, so a pale one stays pale in the office's warm light

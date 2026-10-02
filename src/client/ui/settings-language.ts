@@ -13,9 +13,7 @@ function seg(label: string, options: [string, string, boolean][], pick: (value: 
   return h(
     'div.seg',
     { role: 'radiogroup', 'aria-label': label },
-    ...options.map(([value, text, on]) =>
-      h('button.btn', { type: 'button', role: 'radio', 'aria-checked': String(on), class: on ? 'on' : '', disabled, onclick: () => !on && pick(value) }, text),
-    ),
+    ...options.map(([value, text, on]) => h('button.btn', { type: 'button', role: 'radio', 'aria-checked': String(on), class: on ? 'on' : '', disabled, onclick: () => !on && pick(value) }, text)),
   );
 }
 
@@ -23,7 +21,9 @@ function seg(label: string, options: [string, string, boolean][], pick: (value: 
 export function languageSettings(net: Net, frame: (title: string, scope: 'you' | 'office', body: Node[]) => HTMLElement) {
   const mine = chosenLocale();
   const yours = frame(L.settings2.myLanguage, 'you', [
-    seg(L.settings2.myLanguage, [['auto', L.settings2.languageAuto, !mine], ...LOCALES.map((l): [string, string, boolean] => [l, NAMES[l], mine === l])], (v) => chooseLocale(v === 'auto' ? null : (v as Locale))),
+    seg(L.settings2.myLanguage, [['auto', L.settings2.languageAuto, !mine], ...LOCALES.map((l): [string, string, boolean] => [l, NAMES[l], mine === l])], (v) =>
+      chooseLocale(v === 'auto' ? null : (v as Locale)),
+    ),
     h('p.setting-note', {}, L.settings2.myLanguageNote),
   ]);
   const officeRow = h('div');
@@ -32,7 +32,14 @@ export function languageSettings(net: Net, frame: (title: string, scope: 'you' |
   const paint = () => {
     const { lang, by, at } = store.language;
     const admin = store.me.admin;
-    officeRow.replaceChildren(seg(L.settings2.officeLanguage, LOCALES.map((l) => [l, NAMES[l], l === lang]), (v) => net.send({ t: 'language.set', lang: v }), !admin));
+    officeRow.replaceChildren(
+      seg(
+        L.settings2.officeLanguage,
+        LOCALES.map((l) => [l, NAMES[l], l === lang]),
+        (v) => net.send({ t: 'language.set', lang: v }),
+        !admin,
+      ),
+    );
     officeNote.textContent = `${L.settings2.officeLanguageNote}${by ? ` ${L.settings2.setBy(by, at ? timeAgo(at) : '')}` : ''}${admin ? '' : ` ${L.settings.adminsChange}`}`;
   };
   paint();

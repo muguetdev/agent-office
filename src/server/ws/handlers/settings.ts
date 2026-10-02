@@ -86,7 +86,7 @@ export const settingsHandlers = {
     const real = msg.real === true;
     if (real === !!ctx.sky.state.realTime) return;
     ctx.sky.setClock(real);
-    ctx.toastAll(real ? L.srv.skyReal(c.peer.name) : L.srv.skyHourly(c.peer.name));
+    ctx.toastAll(real ? L.srv.skyRealTime(c.peer.name) : L.srv.skyHourly(c.peer.name));
   },
   'map.set'(ctx, c, msg) {
     const who = c.peer.name;

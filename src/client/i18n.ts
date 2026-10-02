@@ -16,7 +16,7 @@ function pickLocale(): Locale {
   } catch {
     // no storage (a private window): go by the browser
   }
-  for (const tag of (typeof window === 'undefined' ? [] : navigator.languages ?? [navigator.language])) {
+  for (const tag of typeof window === 'undefined' ? [] : (navigator.languages ?? [navigator.language])) {
     const l = matchLocale(tag);
     if (l) return l;
   }
@@ -47,7 +47,7 @@ export function chooseLocale(l: Locale | null) {
   if (l) url.searchParams.set('lang', l);
   location.replace(url.toString());
 }
-if (typeof document !== 'undefined') document.documentElement.lang = locale;
+if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = locale;
 
 /** The page's words, in its language (see ../shared/locales). */
 export const L = messages(locale);
