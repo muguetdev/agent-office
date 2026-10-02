@@ -3064,6 +3064,7 @@ Opções:
     'Giallo Ferrari': 'Ferrari giallo',
     'Scarlet Ferrari': 'Ferrari escarlate',
     'Blue Lambo': 'Lambo azul',
+    'BMW 328i M Sport': 'BMW 328i M Sport cinza',
   } as Record<string, string>,
   term2: {
     thatFile: 'Esse arquivo',

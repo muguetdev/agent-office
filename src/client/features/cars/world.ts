@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAR, CARS, SEATS, carPoint, type Box, type CarDef, type CarKind, type CarPose, type CarSeat, type CarState } from '../../../shared/garage';
+import { CAR, CARS, CAR_ROOF, SEATS, carPoint, type Box, type CarDef, type CarKind, type CarPose, type CarSeat, type CarState } from '../../../shared/garage';
 import { FLOOR, SLAB, STREET_Y, WALL_T, streetBelow } from '../../../shared/layout';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture, StreetSite } from '../../world/office/fixture';
@@ -99,7 +99,10 @@ const CAR_COLORS: Record<string, string> = {
   Tire: '#1f1f26',
   RimGold: '#e9b949',
   RimSilver: '#d9dbe3',
+  RimGrey: '#7d838b',
   Caliper: '#e63946',
+  CaliperBlue: '#1c69d4',
+  Roundel: '#1c69d4',
   Chrome: '#c9ccd6',
   Badge: '#ffd400',
   Seat: '#3a3340',
@@ -423,7 +426,7 @@ export class Fleet {
     const roof = carPoint(p, 0, -0.6);
     const rx = c * 0.6 + s * 0.7;
     const rz = s * 0.6 + c * 0.7;
-    Object.assign(v.colliders[SLICES], { minX: roof.x - rx, maxX: roof.x + rx, minZ: roof.z - rz, maxZ: roof.z + rz, bottom: this.street, top: this.street + (v.occupied ? CAR.body : CAR.roof) });
+    Object.assign(v.colliders[SLICES], { minX: roof.x - rx, maxX: roof.x + rx, minZ: roof.z - rz, maxZ: roof.z + rz, bottom: this.street, top: this.street + (v.occupied ? CAR.body : CAR_ROOF[v.def.kind]) });
     Object.assign(v.interactable, { x: p.x, z: p.z, y: this.street });
   }
 }

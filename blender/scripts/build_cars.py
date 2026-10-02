@@ -1,5 +1,6 @@
-"""The garage's supercars: a Lambo (a low, sharp wedge with a wing) and a Ferrari (curvy, a long
-hood and big rear haunches). Modelled by this script and exported to src/client/models/cars.glb for
+"""The garage's cars: a Lambo (a low, sharp wedge with a wing), a Ferrari (curvy, a long hood and big
+rear haunches) and the BMW parked out front (an F30 328i sedan in M Sport trim: kidney grille, angel
+eyes, a back seat). Modelled by this script and exported to src/client/models/cars.glb for
 src/client/features/cars/world.ts, which paints each car its own colour. The shared helpers are in
 aokit.py and the conventions in blender/README.md.
 
@@ -40,6 +41,9 @@ COLORS = {
     "Tire": "#1f1f26",
     "RimGold": "#e9b949",
     "RimSilver": "#d9dbe3",
+    "RimGrey": "#7d838b",
+    "CaliperBlue": "#1c69d4",
+    "Roundel": "#1c69d4",
     "Caliper": "#e63946",
     "Lamp": "#fff6c9",
     "Tail": "#ff2d3f",
@@ -61,7 +65,10 @@ WHEEL_Y = 0.37
 WHEEL_X = 0.79
 SEATS_X = 0.42
 SEATS_Z = -0.5
-AXLE = {"lambo": 1.42, "ferrari": 1.36}
+AXLE = {"lambo": 1.42, "ferrari": 1.36, "bmw": 1.4}
+# Each kind's rims and brake calipers.
+RIM = {"lambo": "RimGold", "ferrari": "RimSilver", "bmw": "RimGrey"}
+CALIPER = {"lambo": "Caliper", "ferrari": "Caliper", "bmw": "CaliperBlue"}
 
 
 def at(x, y, z):
@@ -115,6 +122,22 @@ STATIONS = {
         (2.12, 0.82, 0.24, 0.44, 0.08, 3.0, 0.08),
         (2.28, 0.62, 0.29, 0.37, 0.02, 2.6, 0.06),
     ],
+    # A sedan, the F30 3 Series in M Sport trim: a flat hood ending in an upright nose, a high
+    # beltline all the way back, and a trunk.
+    "bmw": [
+        (-2.27, 0.84, 0.30, 0.86, 0.02, 6.0, 0.06),
+        (-2.21, 0.89, 0.25, 0.92, 0.03, 7.0, 0.08),
+        (-1.95, 0.90, 0.22, 0.93, 0.04, 7.0, 0.10),
+        (-1.40, 0.91, 0.21, 0.92, 0.05, 7.0, 0.12),
+        (-0.80, 0.90, 0.21, 0.90, 0.04, 7.0, 0.14),
+        (-0.20, 0.89, 0.21, 0.88, 0.04, 7.0, 0.14),
+        (0.40, 0.90, 0.21, 0.85, 0.04, 7.0, 0.12),
+        (1.00, 0.90, 0.21, 0.80, 0.05, 7.0, 0.10),
+        (1.40, 0.90, 0.21, 0.78, 0.06, 7.0, 0.10),
+        (1.85, 0.89, 0.22, 0.76, 0.05, 7.0, 0.08),
+        (2.14, 0.86, 0.24, 0.73, 0.03, 6.5, 0.06),
+        (2.25, 0.80, 0.27, 0.68, 0.02, 6.0, 0.04),
+    ],
 }
 
 # The glass cabin over the body, nose to tail: where it is along the car, its foot (the beltline)
@@ -139,11 +162,21 @@ GREENHOUSE = {
         (-1.65, 0.84, 0.64, 0.90, 0.46),
         (-1.85, 0.85, 0.60, 0.85, 0.44),
     ],
+    # Four doors under a long roof, the back window running down onto the trunk.
+    "bmw": [
+        (0.95, 0.84, 0.74, 0.84, 0.62),
+        (0.55, 0.88, 0.76, 1.18, 0.62),
+        (0.10, 0.90, 0.78, 1.33, 0.60),
+        (-0.55, 0.91, 0.78, 1.34, 0.60),
+        (-1.10, 0.92, 0.76, 1.26, 0.58),
+        (-1.55, 0.93, 0.72, 1.02, 0.56),
+        (-1.75, 0.93, 0.70, 0.93, 0.54),
+    ],
 }
 # Where the painted roof is (between these, along the car), and the windshield's foot and top with
 # the roof off.
-ROOF = {"lambo": (0.20, -0.95), "ferrari": (-0.05, -1.10)}
-SCREEN = {"lambo": (1.12, 0.64, 0.28, 0.98), "ferrari": (0.78, 0.64, 0.12, 0.98)}
+ROOF = {"lambo": (0.20, -0.95), "ferrari": (-0.05, -1.10), "bmw": (0.25, -1.15)}
+SCREEN = {"lambo": (1.12, 0.64, 0.28, 0.98), "ferrari": (0.78, 0.64, 0.12, 0.98), "bmw": (0.95, 0.84, 0.45, 1.2)}
 
 
 class Parts:
@@ -277,7 +310,7 @@ def wheel(name, kind, x, z):
     """A front or rear wheel at (x, z): tire, a five-spoke rim, the hub, and the brake caliper behind
     the spokes. Its origin is the hub, the outside facing out (+x on the left)."""
     side = 1 if x > 0 else -1
-    tire, rim, cal = material("Tire"), material("RimGold" if kind == "lambo" else "RimSilver"), material("Caliper")
+    tire, rim, cal = material("Tire"), material(RIM[kind]), material(CALIPER[kind])
     parts = Parts()
     w = 0.28
     # The tire: a lathe about the axle, rounded at the shoulders.
@@ -290,10 +323,12 @@ def wheel(name, kind, x, z):
     ao.cylinder(r, (side * -w / 2 * 0.6, 0, 0), (o - side * 0.01, 0, 0), 0.25, segs=28)
     ao.torus(r, (o, 0, 0), 0.245, 0.016, rot=(0, math.pi / 2, 0), n=28, m=5)
     ao.cylinder(r, (o - side * 0.04, 0, 0), (o + side * 0.012, 0, 0), 0.055, segs=16)
+    # Five spokes, or five pairs of thin ones (the BMW's M double-spokes).
     for i in range(5):
-        a = TAU * i / 5
-        c, s = math.cos(a), math.sin(a)
-        ao.box(r, (o - side * 0.005, -s * 0.14, c * 0.14), (0.03, 0.05, 0.2), bevel=0.01, rot=(a, 0, 0), segments=2)
+        for d in ((-0.13, 0.13) if kind == "bmw" else (0.0,)):
+            a = TAU * i / 5 + d
+            c, s = math.cos(a), math.sin(a)
+            ao.box(r, (o - side * 0.005, -s * 0.14, c * 0.14), (0.03, 0.03 if d else 0.05, 0.2), bevel=0.01, rot=(a, 0, 0), segments=2)
     # The caliper, up at the front of the disc, behind the spokes.
     ao.box(parts.of(cal), (o - side * 0.07, -0.13, 0.12), (0.05, 0.12, 0.08), bevel=0.015, rot=(-0.8, 0, 0), segments=2)
     ob = parts.build(name)
@@ -357,6 +392,10 @@ def cabin(kind, sts):
         for bx in (-1, 1):
             obox(c, (x + bx * 0.22, 0.8, SEATS_Z - 0.27), (0.07, 0.46, 0.16), bevel=0.03, pitch=-0.2, segments=2)
         obox(c, (x, 1.22, SEATS_Z - 0.4), (0.28, 0.16, 0.1), bevel=0.04, pitch=-0.2, segments=2)
+    if kind == "bmw":
+        # The back seat: a bench for three, and its back against the parcel shelf.
+        obox(c, (0, 0.52, -1.25), (1.3, 0.12, 0.44), bevel=0.04, segments=2)
+        obox(c, (0, 0.86, -1.5), (1.3, 0.6, 0.1), bevel=0.04, pitch=-0.25, segments=2)
     opened = parts.build(f"{kind}_open")
     return top, opened
 
@@ -385,7 +424,7 @@ def details(kind, sts, axle):
             # Taillights: a thin bar each side across the back, with a Y down its inner end.
             add(tail, obox, (sx * 0.5, 0.7, tailz + 0.05), (0.5, 0.06, 0.12), bevel=0.012, segments=2)
             add(tail, obox, (sx * 0.27, 0.63, tailz + 0.05), (0.06, 0.16, 0.12), bevel=0.012, roll=sx * 0.6, segments=2)
-        else:
+        elif kind == "ferrari":
             z = nose - 0.34
             add(lamp, oball, (sx * 0.66, height_at(sts, z, 0.66) - 0.01, z), (0.18, 0.04, 0.2), pitch=slope(z, 0.66), yaw=-sx * 0.3)
             add(dark, obox, (sx * 0.62, 0.32, nose - 0.06), (0.3, 0.12, 0.08), bevel=0.03, segments=2)
@@ -396,15 +435,33 @@ def details(kind, sts, axle):
             # The badge, yellow, on each flank behind the front wheel, and a scoop ahead of the rear one.
             add(badge, obox, (sx * (width_at(sts, 0.8, 0.58) + 0.005), 0.58, 0.8), (0.02, 0.12, 0.09), bevel=0.01, segments=2)
             add(dark, oball, (sx * (width_at(sts, -0.75, 0.5) - 0.03), 0.5, -0.75), (0.04, 0.09, 0.26))
+        else:
+            # Headlights wrapped round the nose's corners, each with its two rings (the angel eyes).
+            add(dark, obox, (sx * 0.55, 0.59, nose - 0.04), (0.42, 0.13, 0.1), bevel=0.03, yaw=-sx * 0.2, segments=2)
+            add(lamp, obox, (sx * 0.55, 0.59, nose - 0.025), (0.38, 0.1, 0.1), bevel=0.03, yaw=-sx * 0.2, segments=2)
+            for rx, rz in ((0.44, nose + 0.025), (0.66, nose - 0.02)):
+                add(chrome, ao.torus, at(sx * rx, 0.59, rz), 0.05, 0.012, rot=(math.pi / 2, 0, -sx * 0.2), n=18, m=5)
+            # The kidney grille: a chrome surround with the dark slats inside it.
+            add(chrome, obox, (sx * 0.15, 0.56, nose + 0.0), (0.24, 0.17, 0.06), bevel=0.05, segments=3)
+            add(dark, obox, (sx * 0.15, 0.56, nose + 0.015), (0.19, 0.12, 0.04), bevel=0.04, segments=3)
+            # The M Sport bumper's big intakes at its corners.
+            add(dark, obox, (sx * 0.6, 0.36, nose - 0.04), (0.28, 0.14, 0.08), bevel=0.03, roll=sx * 0.12, segments=2)
+            # L-shaped taillights: out on the corner, and in across the trunk lid.
+            add(tail, obox, (sx * 0.6, 0.78, tailz + 0.02), (0.38, 0.11, 0.1), bevel=0.02, segments=2)
+            add(tail, obox, (sx * 0.34, 0.8, tailz + 0.015), (0.18, 0.07, 0.1), bevel=0.02, segments=2)
+            # Door handles, front and back.
+            for hz in (0.12, -0.78):
+                add(chrome, obox, (sx * (width_at(sts, hz, 0.82) + 0.005), 0.82, hz), (0.02, 0.03, 0.15), bevel=0.01, segments=1)
         # Mirrors on stalks, out by the windshield's foot.
-        mz = 0.62 if kind == "lambo" else 0.32
-        add(paint, oball, (sx * 0.95, 0.88, mz), (0.06, 0.06, 0.11), segs=16, rings=8)
-        add(dark, ao.cylinder, at(sx * 0.8, 0.82, mz + 0.03), at(sx * 0.91, 0.87, mz), 0.015, segs=8)
+        mz, my = {"lambo": (0.62, 0.88), "ferrari": (0.32, 0.88), "bmw": (0.76, 1.0)}[kind]
+        add(paint, oball, (sx * 0.95, my, mz), (0.06, 0.06, 0.11), segs=16, rings=8)
+        add(dark, ao.cylinder, at(sx * 0.8, my - 0.06, mz + 0.03), at(sx * 0.91, my - 0.01, mz), 0.015, segs=8)
         # The sills along the bottom between the wheels, black.
         add(dark, obox, (sx * (width_at(sts, 0.0, 0.25) - 0.02), 0.24, 0.0), (0.05, 0.08, 2 * axle - 1.0), bevel=0.02, segments=2)
-        # Exhausts out of the diffuser.
-        ex = 0.2 if kind == "lambo" else 0.42
-        add(chrome, ao.cylinder, at(sx * ex, 0.33, tailz + 0.12), at(sx * ex, 0.33, tailz - 0.01), 0.055, segs=16)
+        # Exhausts out of the diffuser (the BMW's are both on the left, below).
+        if kind != "bmw":
+            ex = 0.2 if kind == "lambo" else 0.42
+            add(chrome, ao.cylinder, at(sx * ex, 0.33, tailz + 0.12), at(sx * ex, 0.33, tailz - 0.01), 0.055, segs=16)
     # The diffuser under the tail, with its fins.
     add(dark, obox, (0, 0.28, tailz + 0.14), (1.5, 0.1, 0.3), bevel=0.02, segments=2)
     for fx in (-0.5, -0.17, 0.17, 0.5):
@@ -416,6 +473,17 @@ def details(kind, sts, axle):
         for sx in (-1, 1):
             add(dark, obox, (sx * 0.55, 1.02, -2.04), (0.04, 0.2, 0.12), bevel=0.01, segments=1)
             add(dark, obox, (sx * 0.93, 1.1, -2.06), (0.02, 0.12, 0.36), bevel=0.005, segments=1)
+    elif kind == "bmw":
+        # Twin tailpipes on the left, a lip on the trunk lid, a mouth under the grille, and the roundel on the hood.
+        for ex in (0.46, 0.6):
+            add(chrome, ao.cylinder, at(ex, 0.33, tailz + 0.12), at(ex, 0.33, tailz - 0.01), 0.045, segs=16)
+        z = tailz + 0.14
+        add(paint, obox, (0, height_at(sts, z, 0.0) + 0.012, z), (1.3, 0.03, 0.1), bevel=0.01, segments=1)
+        add(dark, obox, (0, 0.33, nose - 0.03), (0.56, 0.09, 0.08), bevel=0.03, segments=2)
+        z = nose - 0.16
+        h = height_at(sts, z, 0.0)
+        add(chrome, ao.cylinder, at(0, h - 0.01, z), at(0, h + 0.012, z), 0.06, segs=20)
+        add(material("Roundel"), ao.cylinder, at(0, h, z), at(0, h + 0.016, z), 0.045, segs=20)
     else:
         # The badge on the nose, and a wide mouth under it.
         z = nose - 0.2
@@ -426,7 +494,7 @@ def details(kind, sts, axle):
 
 # The cockpit, sunk into the body under the cabin: from just behind the windshield's foot, back behind
 # the seats, between the doors, down to its floor.
-COCKPIT = {"lambo": (0.95, -1.0), "ferrari": (0.62, -1.12)}
+COCKPIT = {"lambo": (0.95, -1.0), "ferrari": (0.62, -1.12), "bmw": (0.78, -1.6)}
 
 
 def cut_cockpit(ob, kind):
@@ -468,7 +536,7 @@ def build(kind):
 
 def main(write=True):
     ao.clear()
-    roots = build("lambo") + build("ferrari")
+    roots = build("lambo") + build("ferrari") + build("bmw")
     if write:
         ao.export("cars")
     return roots
@@ -496,5 +564,5 @@ if __name__ == "__main__":
         if ob.type == 'MESH':
             print(f"  {ob.name}: {ao.tris(ob)} tris, {[m.name for m in ob.data.materials if m]}")
     if "--shots" in ao.args():
-        for kind in ("lambo", "ferrari"):
+        for kind in ("lambo", "ferrari", "bmw"):
             print(ao.sheet(f"cars-{kind}", [(only(kind), "tq"), (None, "side"), (None, "front"), (None, "back"), (None, "low"), (None, "top"), (opened(kind), "tq")], cell=(560, 400), target=(0, 0, 0.55), dist=7.5))

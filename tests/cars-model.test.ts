@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Box3, Quaternion, Vector3 } from 'three';
-import { CAR, SEATS } from '../src/shared/garage';
+import { CAR, CAR_ROOF, SEATS } from '../src/shared/garage';
 import { openModel } from './glb';
 
 // cars.glb (exported by blender/scripts/build_cars.py) against what features/cars/world.ts counts on: each
@@ -13,11 +13,12 @@ const FILE = new URL('../src/client/models/cars.glb', import.meta.url);
 const cars = openModel('cars');
 const { gltf, nodes, byName } = cars;
 
-const KINDS = ['lambo', 'ferrari'] as const;
+const KINDS = ['lambo', 'ferrari', 'bmw'] as const;
 const PARTS = ['', '_top', '_open', '_wheel_l', '_wheel_r'];
 /** What features/cars/world.ts paints: CAR_COLORS there, and Paint, Glass, Screen, Lamp and Tail, which it makes itself. */
-const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'Caliper', 'Chrome', 'Badge', 'Seat'];
-const AXLE = { lambo: 1.42, ferrari: 1.36 };
+const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'RimGrey', 'Caliper', 'CaliperBlue', 'Roundel', 'Chrome', 'Badge', 'Seat'];
+const AXLE = { lambo: 1.42, ferrari: 1.36, bmw: 1.4 };
+const RIM = { lambo: 'RimGold', ferrari: 'RimSilver', bmw: 'RimGrey' };
 const WHEEL = { r: 0.36, y: 0.37, x: 0.79 };
 
 type Primitive = { attributes: Record<string, number>; material?: number; indices?: number };
@@ -85,9 +86,9 @@ test("the body, cabin and seats sit at the origin unturned, in the old cars' foo
     assert.ok(near(box.min.y, 0), `the ${kind} stands on its wheels at 0 (${box.min.y.toFixed(3)})`);
     // The headlights at the front, the taillights at the back.
     assert.ok(boundsOf(kind, ['Lamp']).min.z > 1.5 && boundsOf(kind, ['Tail']).max.z < -1.9, `the ${kind} faces +z`);
-    // The cabin's roof comes up to the old roof, which the colliders' top is.
+    // The cabin's roof comes up to its kind's roof, which the colliders' top is.
     const top = boundsOf(`${kind}_top`);
-    assert.ok(near(top.max.y, CAR.roof, 0.03), `the ${kind}'s roof is ${top.max.y.toFixed(3)} up`);
+    assert.ok(near(top.max.y, CAR_ROOF[kind], 0.03), `the ${kind}'s roof is ${top.max.y.toFixed(3)} up`);
   }
 });
 
@@ -118,7 +119,7 @@ test('the front wheels turn about their hubs, where the old ones were, the right
       const tire = boundsOf(name, ['Tire']);
       assert.ok(near((tire.max.y - tire.min.y) / 2, WHEEL.r), `${name} is ${((tire.max.y - tire.min.y) / 2).toFixed(3)} round`);
       // Its rim on the outside.
-      const rim = boundsOf(name, kind === 'lambo' ? ['RimGold'] : ['RimSilver']).getCenter(new Vector3());
+      const rim = boundsOf(name, [RIM[kind]]).getCenter(new Vector3());
       assert.ok(Math.sign(rim.x - at.x) === sx, `${name}'s rim faces out`);
     }
   }

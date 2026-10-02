@@ -6,10 +6,12 @@ import { STREET_END, onLoop } from './scenic.js';
 // the arcade physics a driver's own page runs. Everyone else on the floor sees the car where its
 // driver says it is.
 
-export type CarKind = 'lambo' | 'ferrari';
+export type CarKind = 'lambo' | 'ferrari' | 'bmw';
 
 /** A car's footprint (nose to tail along its length), and how high its body and its roof come up. */
 export const CAR = { length: 4.6, width: 2, body: 0.82, roof: 1.12 } as const;
+/** How high each kind's roof comes up: a sedan stands taller than the supercars. */
+export const CAR_ROOF: Record<CarKind, number> = { lambo: CAR.roof, ferrari: CAR.roof, bmw: 1.34 };
 
 /** The building's footprint, walls included: the garage is under it. */
 const B = { minX: FLOOR.minX - WALL_T, maxX: FLOOR.maxX + WALL_T, minZ: FLOOR.minZ - WALL_T, maxZ: FLOOR.maxZ + WALL_T } as const;
@@ -63,7 +65,7 @@ export const CARS: readonly CarDef[] = [
   { kind: 'ferrari', color: '#ffc300', name: 'Giallo Ferrari', x: 4.8, z: FRONT, rotY: 0 },
   { kind: 'ferrari', color: '#e5383b', name: 'Scarlet Ferrari', x: 14.4, z: FRONT, rotY: 0 },
   // Left out front, for everyone upstairs to look at.
-  { kind: 'lambo', color: '#00b4d8', name: 'Blue Lambo', x: 9, z: 18.2, rotY: Math.PI / 2 },
+  { kind: 'bmw', color: '#6c7378', name: 'BMW 328i M Sport', x: 9, z: 18.2, rotY: Math.PI / 2 },
 ];
 
 export type CarSeat = 'driver' | 'passenger';
