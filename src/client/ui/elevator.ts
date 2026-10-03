@@ -7,6 +7,7 @@ import { store } from '../state';
 import { h, openModal, timeAgo, toast, type Modal } from './dom';
 import { confirmDialog } from './prompt';
 import { L } from '../i18n';
+import { openServerFloor } from './server-floor';
 
 // The elevator's panel: a button for every floor (every project), and "add a project", which clones
 // one of the repositories the office's gh login can see and makes it a new floor. The first time
@@ -141,7 +142,7 @@ export function openElevator(opts: ElevatorOptions): void {
         'span.floor-text',
         {},
         h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null),
-        h('span.floor-sub', {}, f.locked ? L.access.locked : [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
+        h('span.floor-sub', {}, f.locked ? L.access.locked : f.ssh ? `🖥️ ${f.ssh.user}@${f.ssh.host}` : [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
         f.cloning ? cloneBar(f.clone) : null,
       ),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
@@ -166,7 +167,13 @@ export function openElevator(opts: ElevatorOptions): void {
     if (!store.me.admin) return btn;
     const off = h('button.btn.floor-off', { type: 'button', title: L.elevator.takeOff(f.name), 'aria-label': L.elevator.remove(f.name) }, '🗑');
     off.addEventListener('click', () => confirmRemove(f));
-    return h('div.floor-row', {}, btn, off);
+    // A server's floor: its key and trying the way in.
+    const key = f.ssh ? h('button.btn.floor-off', { type: 'button', title: L.serverFloor.keyTip, 'aria-label': L.serverFloor.keyTip }, '🔑') : null;
+    key?.addEventListener('click', () => {
+      modal.close();
+      openServerFloor(net, f.id);
+    });
+    return h('div.floor-row', {}, btn, key, off);
   };
 
   const confirmRemove = (f: FloorInfo) => {
@@ -257,6 +264,16 @@ export function openElevator(opts: ElevatorOptions): void {
     return row;
   };
 
+  /** 🖥️ A floor that's a server instead of a repository (see server-floor.ts). */
+  const serverButton = () => {
+    const b = h('button.btn', { type: 'button', title: L.serverFloor.addTip }, `🖥️ ${L.serverFloor.addServer}`);
+    b.addEventListener('click', () => {
+      modal.close();
+      openServerFloor(net);
+    });
+    return b;
+  };
+
   const renderAdd = () => {
     // Adding floors is for admins (the office's own GitHub, and its machine's disk).
     if (!store.me.admin) {
@@ -272,7 +289,7 @@ export function openElevator(opts: ElevatorOptions): void {
         renderAdd();
         setTimeout(() => input.focus(), 0);
       });
-      addEl.replaceChildren(open);
+      addEl.replaceChildren(h('div.seg', {}, open, serverButton()));
       addBtn.classList.add('hidden');
       return;
     }
@@ -314,6 +331,7 @@ export function openElevator(opts: ElevatorOptions): void {
         listEl,
         statusEl,
         dirEl,
+        h('div.seg', {}, serverButton()),
       );
     }
   };

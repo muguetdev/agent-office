@@ -55,7 +55,7 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
       'button.floor-item',
       { type: 'button', role: 'menuitem', class: [isHere ? 'here' : '', f.locked ? 'locked' : ''].join(' ').trim(), disabled: isHere || f.cloning || f.locked, title: f.locked ? L.access.lockedTip : isHere ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : opts.indoors() ? L.elevator.goHere(f.name) : L.elevator.goElevator(f.name) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
-      h('span.floor-text', {}, h('span.floor-name', {}, f.name), h('span.floor-sub', {}, f.locked ? L.access.locked : where || (f.repo ?? f.dir))),
+      h('span.floor-text', {}, h('span.floor-name', {}, f.name), h('span.floor-sub', {}, f.locked ? L.access.locked : where || (f.ssh ? `🖥️ ${f.ssh.user}@${f.ssh.host}` : (f.repo ?? f.dir)))),
       h('span.floor-stats', {}, ...stats),
     );
     btn.addEventListener('click', () => {

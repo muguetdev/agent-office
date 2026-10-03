@@ -54,6 +54,8 @@ export class WorkerManager {
   private setups: Partial<Record<AgentProvider, unknown>> = {};
   /** Where the office-queue and office-workers commands are, for the workers' PATH (see writeOfficeCommands). */
   private officeBin: string | undefined;
+  /** What a 🐚 shell at a desk runs, when not a login shell here: on a server's floor, ssh to it (see servers.ts). */
+  shellArgs?: string[];
   private screenTimer: NodeJS.Timeout;
   /** The office is shutting down: workers exiting now are being stopped, not failing to resume. */
   private closing = false;
@@ -662,7 +664,7 @@ export class WorkerManager {
     const cwd = this.cwd(info);
     const command = this.command(info);
     const commandPath = isShell ? undefined : configured ? this.agentPath : resolveCommand(command);
-    const base = isShell ? (WIN && !process.env.SHELL ? [] : ['-l']) : configured ? [...this.agentArgs] : [];
+    const base = isShell ? (this.shellArgs ?? (WIN && !process.env.SHELL ? [] : ['-l'])) : configured ? [...this.agentArgs] : [];
     // Its provider's command line, and anything it sets for this run (see ProviderAdapter.launch).
     const plan: LaunchPlan = adapter ? adapter.launch({ h: this.handleOf(w), args: base, prompt, resumeSessionId, station: DESK_BY_ID.get(info.deskId)?.station, cwd, setup: this.setups[adapter.id] }) : { args: base };
     const { args } = plan;

@@ -294,3 +294,29 @@ test("the building's own settings are an admin's: a member is told so, and nothi
   assert.ok(!mia.inbox.some((m) => m.t === 'toast' && m.level === 'warn'));
   await mia.close();
 });
+
+test("an admin adds a server as a floor and gets its key; a member can't", async () => {
+  const mia = await Browser.open('member');
+  await mia.take('welcome');
+  mia.send({ t: 'server.add', name: 'Prod', host: '203.0.113.7', user: 'root' });
+  assert.match((await mia.take('toast', (m) => m.level === 'warn')).text, /Admins add servers/);
+
+  const boss = await Browser.open('admin');
+  await boss.take('welcome');
+  boss.send({ t: 'server.add', name: 'Prod', host: '-oProxyCommand=evil', user: 'root' });
+  assert.match((await boss.take('server.added')).error ?? '', /address/);
+  boss.send({ t: 'server.add', name: 'Prod', host: '203.0.113.7', user: 'root', port: 2222 });
+  const added = await boss.take('server.added');
+  assert.equal(added.error, undefined);
+  assert.match(added.publicKey ?? '', /^ssh-ed25519 /);
+  const floors = (await boss.take('floors', (m) => m.floors.some((f) => f.id === added.floor))).floors;
+  assert.deepEqual(floors.find((f) => f.id === added.floor)!.ssh, { host: '203.0.113.7', user: 'root', port: 2222 });
+  boss.send({ t: 'server.key', floor: added.floor });
+  assert.equal((await boss.take('server.key')).publicKey, added.publicKey);
+  // Not the member's floor: they don't even see where it points.
+  const theirs = (await mia.take('floors', (m) => m.floors.some((f) => f.id === added.floor))).floors.find((f) => f.id === added.floor)!;
+  assert.equal(theirs.ssh, undefined);
+  assert.equal(theirs.locked, true);
+  await mia.close();
+  await boss.close();
+});

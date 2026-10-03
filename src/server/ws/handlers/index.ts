@@ -18,6 +18,7 @@ import { presenceHandlers } from './presence.js';
 import { partyView } from './party.js';
 import { queueHandlers, queueView } from './queue.js';
 import { rooftopHandlers } from './rooftop.js';
+import { serversHandlers } from './servers.js';
 import { servicesView, settingsHandlers } from './settings.js';
 import { signinsHandlers } from './signins.js';
 import { teamHandlers } from './team.js';
@@ -44,6 +45,7 @@ export const handlers: HandlerMap<ClientMsg> = {
   ...presenceHandlers,
   ...queueHandlers,
   ...rooftopHandlers,
+  ...serversHandlers,
   ...settingsHandlers,
   ...signinsHandlers,
   ...teamHandlers,

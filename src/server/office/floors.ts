@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { WebSocket } from 'ws';
 import type { FloorDef } from '../building.js';
@@ -8,6 +9,7 @@ import type { Ctx, FloorHelpers, FloorsOpen } from './context.js';
 import { SLOW_CLIENT_BYTES, type Client } from './client.js';
 import { L } from '../i18n.js';
 import { floorsToEveryone } from './access.js';
+import { prepareServer } from '../servers.js';
 
 /** Finding floors, the elevator's list of them, and taking one off the building. */
 export function floorHelpers(ctx: Ctx): FloorHelpers {
@@ -130,7 +132,10 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
       return undefined;
     }
     try {
+      // A server's floor: its key, its way in, and its shells opening on the server (see servers.ts).
+      const shell = def.ssh && prepareServer(cfg.dataDir, def.id, def.ssh, def.dir, path.join(def.dir, '.agent-office', 'bin'));
       const floor = new Floor(def, floorContext);
+      if (shell) floor.workers.shellArgs = shell;
       floors.set(def.id, floor);
       return floor;
     } catch (err) {

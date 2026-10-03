@@ -1,0 +1,9 @@
+/* A server's floor (ui/server-floor.ts). */
+.server-floor .server-form { display: flex; flex-direction: column; gap: 10px; }
+.server-floor .server-field { display: flex; flex-direction: column; gap: 4px; font-weight: 800; font-size: 13px; flex: 1; }
+.server-floor .server-field input { font: inherit; font-weight: 600; border: 3px solid var(--ink); border-radius: 12px; padding: 7px 10px; background: #fff; color: var(--ink); }
+.server-floor .server-row { display: flex; gap: 10px; }
+.server-floor .server-row .server-field:last-child { flex: 0 0 110px; }
+.server-floor .server-result { margin-top: 10px; padding: 10px; border-radius: 10px; white-space: pre-wrap; font-size: 12px; background: var(--paper-2); }
+.server-floor .server-result.ok { border: 3px solid var(--good); }
+.server-floor .server-result.bad { border: 3px solid var(--bad); }

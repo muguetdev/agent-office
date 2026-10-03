@@ -5,6 +5,7 @@ import { ROOF } from '../../../shared/rooftop.js';
 import { arrivalSpot, str } from '../../office/input.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
+import { forgetServer } from '../../servers.js';
 
 export const projectView: ViewPieces['project'] = (_ctx, floor) => floor?.project ?? null;
 
@@ -68,6 +69,8 @@ export const floorHandlers = {
     const r = ctx.building.remove(id, who);
     if (typeof r === 'string') return ctx.warn(c, r);
     console.log(`  ${L.srv.tookFloorLog(who, r.name, r.dir)}`);
+    // A server's key goes with its floor: whatever server still has it in authorized_keys can't be reached with it.
+    if (r.ssh) forgetServer(ctx.cfg.dataDir, r.id);
     const floor = ctx.floors.get(id);
     if (floor) ctx.closeFloor(floor, who);
     else ctx.floorsChanged();

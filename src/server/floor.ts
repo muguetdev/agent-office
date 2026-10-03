@@ -417,6 +417,7 @@ export class Floor {
       people: this.ctx.people(this),
       wing: this.plan.wing,
       crew: crewOf(ws),
+      ...(this.def.ssh ? { ssh: this.def.ssh } : {}),
     };
   }
 

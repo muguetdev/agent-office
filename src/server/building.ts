@@ -3,7 +3,8 @@ import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync
 import os from 'node:os';
 import path from 'node:path';
 import { FLOOR_PALETTES, MAX_FLOORS, normalizeRepo, sameRepo } from '../shared/floors.js';
-import type { CloneProgress, ProjectsDirState, RepoChoice } from '../shared/protocol.js';
+import type { CloneProgress, ProjectsDirState, RepoChoice, SshTarget } from '../shared/protocol.js';
+import { isSshTarget } from './servers.js';
 import { CloneRun, dropLog, whyCloneFailed, type CloneEnd, type CloneRunOptions } from './clone.js';
 import { gh } from './github.js';
 import { L } from './i18n.js';
@@ -18,6 +19,8 @@ export interface FloorDef {
   palette: number;
   addedBy: string;
   addedAt: number;
+  /** A server's floor: no repository, its workers manage that server over SSH (see servers.ts). */
+  ssh?: SshTarget;
 }
 
 /** A projects folder picked in ⚙️ Settings (or with --projects), as projects-folder.json keeps it. */
@@ -258,10 +261,8 @@ export class Building {
   }
 
   /**
-   * Takes a floor off the building. Its checkout stays where it is, with its workers, queue and
-   * pictures in its .agent-office folder: adding the repository again moves back in, as long as the
-   * checkout is still where the projects folder clones it (or it's the one the office was started
-   * in). Returns the floor, or why it can't.
+   * Takes a floor off the building; its checkout stays, with its .agent-office: adding the repository again
+   * moves back in while it's where the projects folder clones it (or the office's own). The floor, or why not.
    */
   remove(id: string, by = '?'): FloorDef | string {
     const def = this.defs.find((d) => d.id === id);
@@ -271,6 +272,16 @@ export class Building {
       this.localId = undefined;
       this.setLocalOff({ dir: def.dir, by, at: Date.now() });
     }
+    this.save();
+    return def;
+  }
+
+  /** Adds a floor for a server (see servers.ts), in a folder of its own under the projects folder's servers/. */
+  addServer(name: string, ssh: SshTarget, by: string): FloorDef | string {
+    if (this.defs.length + this.cloning.size >= MAX_FLOORS) return L.srvBuilding.full(MAX_FLOORS);
+    const def = { ...this.newDef(name, undefined, '', by), ssh };
+    def.dir = path.join(this.projectsDir, 'servers', def.id);
+    this.defs.push(def);
     this.save();
     return def;
   }
@@ -384,7 +395,7 @@ export class Building {
 
   private newDef(name: string, repo: string | undefined, dir: string, by: string): FloorDef {
     const taken = new Set([...this.defs, ...this.pending()].map((d) => d.id));
-    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || 'floor';
+    const base = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 32) || 'floor';
     let id = base;
     for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
     // The first look nobody has, so floors side by side never match; then round again.
@@ -410,6 +421,7 @@ export class Building {
           palette: Number.isInteger(s.palette) && (s.palette as number) >= 0 ? (s.palette as number) : 0,
           addedBy: typeof s.addedBy === 'string' ? s.addedBy : '?',
           addedAt: typeof s.addedAt === 'number' ? s.addedAt : Date.now(),
+          ...(isSshTarget(s.ssh) ? { ssh: s.ssh } : {}),
         });
       }
     } catch (err) {

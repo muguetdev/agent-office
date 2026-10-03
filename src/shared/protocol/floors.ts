@@ -28,6 +28,13 @@ export interface ProjectInfo {
   agentProviders: AgentProvider[];
 }
 
+/** A server a floor manages over SSH, instead of a repository (see server/servers.ts). */
+export interface SshTarget {
+  host: string;
+  user: string;
+  port: number;
+}
+
 /**
  * One floor of the building: a project in its own checkout, with its own desks, workers, boards
  * and queue. You go between them in the elevator.
@@ -65,6 +72,8 @@ export interface FloorInfo {
   wing: number;
   /** Its workers in brief, for the building panel on every other floor (see shared/crew.ts). */
   crew?: CrewMember[];
+  /** A server's floor: its workers manage that server over SSH (`ssh <id>`), and it has no repository. */
+  ssh?: SshTarget;
   /** Not yours to go to: only its name shows, and the elevator doesn't stop there (see server/access.ts). */
   locked?: boolean;
 }
