@@ -7,6 +7,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { forgetServer, isSshTarget, prepareServer, publicKey, sshTarget } from '../src/server/servers.js';
+import { UNIT_RE, read } from '../src/server/server-watch.js';
 
 test('a server is an address, a user and a port, nothing that could be an ssh option', () => {
   assert.deepEqual(sshTarget(' 203.0.113.7 ', 'root', undefined), { host: '203.0.113.7', user: 'root', port: 22 });
@@ -48,4 +49,35 @@ test("a server's floor gets its own key, a config and an ssh that know the way i
   forgetServer(data, 'prod');
   assert.equal(existsSync(path.join(data, 'ssh', 'prod')), false);
   assert.equal(publicKey(data, 'prod'), undefined);
+});
+
+test("the server's reading: its load, memory, disk and uptime, its containers, and its own services and failed ones", () => {
+  const out = [
+    'LOAD 1.50 0.75 0.40',
+    'CPUS 4',
+    'MemTotal: 8000000',
+    'MemAvailable: 2000000',
+    'DISK 100000000000 43000000000',
+    'UP 270000',
+    'HOST 17566',
+    'D|web|nginx:1.27|running|Up 3 hours',
+    'D|db|postgres:16|exited|Exited (1) 2 minutes ago',
+    "D|bad name; rm -rf /|x|running|Up",
+    'S|nginx.service|active|running',
+    'S|systemd-journald.service|active|running',
+    'S|cron.service|active|running',
+    'S|myapp.service|failed|failed',
+    'S|old.service|inactive|dead',
+  ].join('\n');
+  const r = read(out, 1000);
+  assert.deepEqual(r.load, [1.5, 0.75, 0.4]);
+  assert.equal(r.cpus, 4);
+  assert.equal(r.memTotal, 8000000 * 1024);
+  assert.equal(r.memUsed, 6000000 * 1024);
+  assert.deepEqual([r.diskTotal, r.diskUsed, r.uptime, r.host], [100000000000, 43000000000, 270000, '17566']);
+  assert.deepEqual(r.containers.map((c) => [c.name, c.state]), [['web', 'running'], ['db', 'exited']]);
+  // The failed one first; the system's own (journald, cron) and the stopped ones left out.
+  assert.deepEqual(r.services.map((s) => [s.name, s.state]), [['myapp', 'failed'], ['nginx', 'running']]);
+  assert.ok(UNIT_RE.test('my-app@1.service'));
+  assert.equal(UNIT_RE.test("x'; reboot; '"), false);
 });

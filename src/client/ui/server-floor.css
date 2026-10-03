@@ -7,3 +7,8 @@
 .server-floor .server-result { margin-top: 10px; padding: 10px; border-radius: 10px; white-space: pre-wrap; font-size: 12px; background: var(--paper-2); }
 .server-floor .server-result.ok { border: 3px solid var(--good); }
 .server-floor .server-result.bad { border: 3px solid var(--bad); }
+.server-floor .dot { background: #dee2e6; }
+.server-floor .dot.on { background: var(--good); }
+.server-floor .dot.bad { background: var(--bad); }
+.server-floor .repo-row { display: flex; gap: 8px; align-items: center; }
+.server-floor .repo-row input { flex: 1; font: inherit; font-weight: 600; border: 3px solid var(--ink); border-radius: 12px; padding: 7px 10px; background: #fff; color: var(--ink); }

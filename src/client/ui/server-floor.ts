@@ -64,8 +64,14 @@ export function openServerFloor(net: Net, floorId?: string) {
       h('p.note', {}, L.serverFloor.then(floor)),
       h('div.seg', {}, test),
       result,
+      // The code it runs: its issues and pull requests on the floor's boards.
+      h('h4', {}, `🔗 ${L.serverFloor.repo}`),
+      h('form.repo-row', { onsubmit: (e: Event) => (e.preventDefault(), net.send({ t: 'server.repo', floor, repo: repoInput.value.trim() })) }, repoInput, h('button.btn.primary', { type: 'submit' }, L.serverFloor.saveRepo)),
+      h('p.note', {}, L.serverFloor.repoNote),
     );
+    repoInput.value = f?.repo ?? '';
   };
+  const repoInput = h('input', { type: 'text', maxlength: 200, placeholder: L.serverFloor.repoPh, autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
   let tested: ((ok: boolean, output: string) => void) | null = null;
 
   onMessage = (msg) => {

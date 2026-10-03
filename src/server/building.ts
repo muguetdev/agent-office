@@ -461,7 +461,7 @@ export class Building {
     }
   }
 
-  private save() {
+  save() {
     try {
       writeFileSync(this.file, JSON.stringify(this.defs, null, 2), { mode: 0o600 });
     } catch (err) {

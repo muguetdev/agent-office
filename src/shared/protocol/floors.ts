@@ -14,6 +14,7 @@ import type { GhIssue, GhPull, GhState } from './github.js';
 import type { PartyState } from './presence.js';
 import type { MeetingState } from './meetings.js';
 import type { ChatLine, PeerInfo } from './presence.js';
+import type { ServerState } from './servers.js';
 import type { QueueState } from './queue.js';
 import type { ServicesState } from './settings.js';
 import type { JailState, WorkerInfo } from './workers.js';
@@ -141,6 +142,8 @@ export interface FloorView {
   cars: CarState[];
   /** Workers sent home and locked up in the dungeon, on a map that has one. */
   jail: JailState;
+  /** On a server's floor, how its server's doing (see server/server-watch.ts); null elsewhere, or before the first look. */
+  server: ServerState | null;
 }
 
 export type FloorClientMsg =

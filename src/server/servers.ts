@@ -32,7 +32,7 @@ export const isSshTarget = (v: unknown): v is SshTarget => {
 /** Where the office keeps its servers' keys, their config and the host keys it has seen. */
 const keysDir = (dataDir: string) => path.join(dataDir, 'ssh');
 const keyFile = (dataDir: string, id: string) => path.join(keysDir(dataDir), id);
-const configFile = (dataDir: string, id: string) => path.join(keysDir(dataDir), `${id}.config`);
+export const configFile = (dataDir: string, id: string) => path.join(keysDir(dataDir), `${id}.config`);
 
 /** The floor's key: made the first time, kept after. Returns its public half (one line, for authorized_keys). */
 export function makeKey(dataDir: string, id: string): string {

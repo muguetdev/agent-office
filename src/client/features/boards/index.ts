@@ -14,6 +14,8 @@ import type { BoardActions } from '../../ui/github/prompts';
 import { clip } from '../../ui/dom';
 import { openIssue } from '../../ui/pull';
 import { openServices } from '../../ui/services';
+import { openServerServices } from '../../ui/server-services';
+import { ServerMonitorTexture, ServerServicesTexture } from './server';
 import { BoardTexture, QueueBoardTexture, ServicesBoardTexture } from './world';
 import { MachineTexture } from './machine';
 import { MeetingBoardTexture, MeetingSignTexture } from './meeting';
@@ -123,7 +125,7 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   ctx.interactions.define('services', {
     reach: 9,
     hint: () => boardHint(L.hints.servicesBoard),
-    use: onE(() => openServices()),
+    use: onE(() => (store.currentFloor()?.ssh ? openServerServices(ctx.net) : openServices())),
   });
   ctx.interactions.define('queue', {
     reach: 9,
@@ -141,11 +143,26 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   mountBoard(office.meetingBoard, meetingBoardTex.texture, () => meetingBoardTex.render(store.meeting), ['meeting']);
   const meetingSignTex = new MeetingSignTexture();
   mountBoard(office.meetingSign, meetingSignTex.texture, () => meetingSignTex.render(store.meeting), ['meeting']);
+  // A server's floor's own: the monitor shows its server, and the services board what runs on it (see server.ts).
+  const serverMonTex = new ServerMonitorTexture();
+  const serverSvcTex = new ServerServicesTexture();
+  const dressServer = () => {
+    const f = store.currentFloor();
+    const on = !!f?.ssh;
+    if (on) {
+      serverMonTex.render(store.server, f!.name);
+      serverSvcTex.render(store.server);
+    }
+    if (office.machineScreen) showOn(office.machineScreen, on ? serverMonTex.texture : machineTex.texture);
+    showOn(ctx.world().boardMeshes.services, on ? serverSvcTex.texture : servicesTex.texture);
+  };
+  for (const topic of ['server', 'floors', 'floor'] as const) store.on(topic, dressServer);
+  dressServer();
   /** Puts every board's texture up on `w`'s boards. */
   function dressBoards(w: World) {
     showOn(w.boardMeshes.issues, issuesTex.texture);
     showOn(w.boardMeshes.pulls, pullsTex.texture);
-    showOn(w.boardMeshes.services, servicesTex.texture);
+    showOn(w.boardMeshes.services, store.currentFloor()?.ssh ? serverSvcTex.texture : servicesTex.texture);
     showOn(w.boardMeshes.queue, queueTex.texture);
     if (w.meetingBoard) showOn(w.meetingBoard, meetingBoardTex.texture);
     if (w.meetingSign) showOn(w.meetingSign, meetingSignTex.texture);

@@ -26,6 +26,7 @@ import { meeting } from './meeting';
 import { notify } from './notify';
 import { party } from './party';
 import { prompts } from './prompts';
+import { server } from './server';
 import { services } from './services';
 import { signins } from './signins';
 import { sky } from './sky';
@@ -65,4 +66,5 @@ export const SLICES: readonly Slice[] = [
   team,
   accounts,
   signins,
+  server,
 ];

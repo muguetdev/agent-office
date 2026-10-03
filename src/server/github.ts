@@ -144,12 +144,32 @@ export class GitHub {
   private claims = new Claims();
   /** The look at the issues that's under way, if one is. */
   private listing?: Promise<void>;
+  /**
+   * Whose repository the boards show: the checkout's own (undefined), or, on a server's floor (see
+   * servers.ts), the repository linked to it (GH_REPO for gh), or none yet (null).
+   */
+  private ghRepo?: string | null;
 
   constructor(
     private dir: string,
     private onIssues: (s: GhState<GhIssue>) => void,
     private onPulls: (s: GhState<GhPull>) => void,
   ) {}
+
+  /** A server's floor's repository: the one the boards show from now on, or none. */
+  setRepo(repo: string | null) {
+    if (repo === this.ghRepo) return;
+    this.ghRepo = repo;
+    this.repo = undefined;
+    this.labelList = undefined;
+    void this.refresh();
+  }
+
+  /** gh on this floor's repository (see ghRepo), as the office or with `env` as someone signed in to their own GitHub. */
+  private run(args: string[], timeout?: number, env?: Record<string, string>): Promise<string> {
+    if (this.ghRepo === null) return Promise.reject(new Error(L.servers.noRepo));
+    return gh(args, this.dir, timeout, this.ghRepo ? { ...(env ?? (process.env as Record<string, string>)), GH_REPO: this.ghRepo } : env);
+  }
 
   start() {
     void this.refresh();
@@ -166,7 +186,7 @@ export class GitHub {
 
   /** The repository's full name and how it lets PRs merge. Asked once (again after a failure). */
   repoInfo(): Promise<GhRepoInfo> {
-    this.repo ??= gh(['repo', 'view', '--json', 'nameWithOwner,squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed'], this.dir).then((out) => {
+    this.repo ??= this.run(['repo', 'view', '--json', 'nameWithOwner,squashMergeAllowed,mergeCommitAllowed,rebaseMergeAllowed']).then((out) => {
       const r = JSON.parse(out);
       const methods = (['squash', 'merge', 'rebase'] as const).filter((m) => r[{ squash: 'squashMergeAllowed', merge: 'mergeCommitAllowed', rebase: 'rebaseMergeAllowed' }[m]]);
       return { nameWithOwner: String(r.nameWithOwner), methods: methods.length ? methods : ['squash', 'merge', 'rebase'] };
@@ -177,7 +197,7 @@ export class GitHub {
 
   /** Who the office's own gh is signed in as, which is who it comments as for everyone without their own. Asked once; '' when gh can't say. */
   viewer(): Promise<string> {
-    this.login ??= gh(['api', 'user', '--jq', '.login'], this.dir).then((out) => out.trim());
+    this.login ??= this.run(['api', 'user', '--jq', '.login']).then((out) => out.trim());
     this.login.catch(() => (this.login = undefined));
     return this.login.catch(() => '');
   }
@@ -190,8 +210,8 @@ export class GitHub {
     const fields = 'number,body,state,isDraft,reviewDecision,headRefName,baseRefName,mergeable,mergeStateStatus,commits,comments,reviews,statusCheckRollup';
     const jq = '.[] | {id, in_reply_to_id, path, line, side, body, user: .user.login, created_at, html_url}';
     const [view, lines, repo, viewer] = await Promise.all([
-      gh(['pr', 'view', String(n), '--json', fields], this.dir),
-      gh(['api', `repos/{owner}/{repo}/pulls/${n}/comments?per_page=100`, '--paginate', '--jq', jq], this.dir),
+      this.run(['pr', 'view', String(n), '--json', fields]),
+      this.run(['api', `repos/{owner}/{repo}/pulls/${n}/comments?per_page=100`, '--paginate', '--jq', jq]),
       this.repoInfo(),
       me ?? this.viewer(),
     ]);
@@ -234,11 +254,11 @@ export class GitHub {
 
   /** The PR's unified diff, as `git diff` prints it. */
   pullDiff(n: number): Promise<string> {
-    return gh(['pr', 'diff', String(n), '--color', 'never'], this.dir, 60_000);
+    return this.run(['pr', 'diff', String(n), '--color', 'never'], 60_000);
   }
 
   async issueDetail(n: number, me?: string): Promise<GhIssueDetail> {
-    const [view, viewer] = await Promise.all([gh(['issue', 'view', String(n), '--json', 'number,state,body,comments'], this.dir), me ?? this.viewer()]);
+    const [view, viewer] = await Promise.all([this.run(['issue', 'view', String(n), '--json', 'number,state,body,comments']), me ?? this.viewer()]);
     const i = JSON.parse(view);
     return { number: i.number, state: i.state, body: String(i.body ?? ''), comments: commentsOf(i.comments), viewer };
   }
@@ -252,7 +272,7 @@ export class GitHub {
     try {
       // -f sends the body as a plain string: no @file reading, no {owner} filling in.
       const jq = '{id: .node_id, author: {login: .user.login}, body, createdAt: .created_at, url: .html_url}';
-      const out = await gh(['api', '--method', 'POST', `repos/{owner}/{repo}/issues/${n}/comments`, '-f', `body=${body}`, '--jq', jq], this.dir, undefined, as?.env);
+      const out = await this.run(['api', '--method', 'POST', `repos/{owner}/{repo}/issues/${n}/comments`, '-f', `body=${body}`, '--jq', jq], undefined, as?.env);
       [comment] = commentsOf([JSON.parse(out)]);
     } catch (err) {
       return { error: (err as Error).message };
@@ -268,7 +288,7 @@ export class GitHub {
    */
   async review(n: number, file: string, as?: GhAs): Promise<string> {
     // -F reads @file's contents as the value; {owner}/{repo} are filled in from the checkout's remote.
-    const url = (await gh(['api', '--method', 'POST', `repos/{owner}/{repo}/pulls/${n}/reviews`, '-F', `body=@${file}`, '-f', 'event=COMMENT', '--jq', '.html_url'], this.dir, 60_000, as?.env)).trim();
+    const url = (await this.run(['api', '--method', 'POST', `repos/{owner}/{repo}/pulls/${n}/reviews`, '-F', `body=@${file}`, '-f', 'event=COMMENT', '--jq', '.html_url'], 60_000, as?.env)).trim();
     void this.refreshPulls();
     return url;
   }
@@ -282,7 +302,7 @@ export class GitHub {
       const args = ['pr', 'merge', String(n), `--${method}`, '--repo', repo.nameWithOwner];
       if (deleteBranch) args.push('--delete-branch');
       if (auto) args.push('--auto');
-      await gh(args, this.dir, 90_000, as?.env);
+      await this.run(args, 90_000, as?.env);
     } catch (err) {
       return (err as Error).message;
     }
@@ -300,7 +320,7 @@ export class GitHub {
       if (opts.comment) args.push(`--comment=${opts.comment}`);
       if (kind === 'issue' && opts.reason) args.push(`--reason=${opts.reason}`);
       if (kind === 'pull' && opts.deleteBranch) args.push('--delete-branch');
-      await gh(args, this.dir, undefined, as?.env);
+      await this.run(args, undefined, as?.env);
     } catch (err) {
       return (err as Error).message;
     }
@@ -315,7 +335,7 @@ export class GitHub {
   /** Every label the repository has, for the label picker. Asked again after a minute (or a failure). */
   repoLabels(): Promise<GhLabel[]> {
     if (!this.labelList || Date.now() - this.labelList.at > LABELS_MS) {
-      const list = gh(['api', 'repos/{owner}/{repo}/labels?per_page=100', '--paginate', '--jq', '.[] | {name, color, description}'], this.dir).then((out) =>
+      const list = this.run(['api', 'repos/{owner}/{repo}/labels?per_page=100', '--paginate', '--jq', '.[] | {name, color, description}']).then((out) =>
         out
           .split('\n')
           .filter((l) => l.trim())
@@ -338,16 +358,16 @@ export class GitHub {
     let now: GhLabel[] | undefined;
     try {
       // -f labels[]=… sends a JSON array of plain strings: no @file reading, no {owner} filling in.
-      if (add.length) now = labels(JSON.parse(await gh(['api', '--method', 'POST', path, ...add.flatMap((l) => ['-f', `labels[]=${l}`]), '--jq', jq], this.dir, undefined, as?.env)));
+      if (add.length) now = labels(JSON.parse(await this.run(['api', '--method', 'POST', path, ...add.flatMap((l) => ['-f', `labels[]=${l}`]), '--jq', jq], undefined, as?.env)));
       for (const l of remove) {
         try {
-          now = labels(JSON.parse(await gh(['api', '--method', 'DELETE', `${path}/${encodeURIComponent(l)}`, '--jq', jq], this.dir, undefined, as?.env)));
+          now = labels(JSON.parse(await this.run(['api', '--method', 'DELETE', `${path}/${encodeURIComponent(l)}`, '--jq', jq], undefined, as?.env)));
         } catch (err) {
           // Someone took it off already, which is what was asked for.
           if (!/label does not exist/i.test((err as Error).message)) throw err;
         }
       }
-      now ??= labels(JSON.parse(await gh(['api', `${path}?per_page=100`, '--jq', jq], this.dir)));
+      now ??= labels(JSON.parse(await this.run(['api', `${path}?per_page=100`, '--jq', jq])));
     } catch (err) {
       // Some may have changed before it failed.
       void (kind === 'issue' ? this.refreshIssues() : this.refreshPulls());
@@ -394,7 +414,7 @@ export class GitHub {
     const answered = this.claims.take(issue);
     this.showClaims();
     try {
-      await gh(['issue', 'edit', String(issue), '--add-assignee', '@me'], this.dir, undefined, as?.env);
+      await this.run(['issue', 'edit', String(issue), '--add-assignee', '@me'], undefined, as?.env);
     } catch (err) {
       answered(false);
       this.showClaims();
@@ -426,8 +446,8 @@ export class GitHub {
       // Open and closed separately, so old open issues are never crowded out by recent closed ones.
       const fields = 'number,title,state,url,author,labels,assignees,createdAt,updatedAt,body,comments';
       const [open, closed] = await Promise.all([
-        gh(['issue', 'list', '--state', 'open', '--limit', '300', '--json', fields], this.dir),
-        gh(['issue', 'list', '--state', 'closed', '--limit', '40', '--json', fields], this.dir),
+        this.run(['issue', 'list', '--state', 'open', '--limit', '300', '--json', fields]),
+        this.run(['issue', 'list', '--state', 'closed', '--limit', '40', '--json', fields]),
       ]);
       const fetched: GhIssue[] = [...JSON.parse(open), ...JSON.parse(closed)].map((i: any) => ({
         number: i.number,
@@ -458,9 +478,9 @@ export class GitHub {
     try {
       const fields = 'number,title,state,isDraft,url,author,labels,reviewDecision,headRefName,headRefOid,baseRefName,createdAt,updatedAt,additions,deletions,statusCheckRollup,body,closingIssuesReferences';
       const [open, merged, closed] = await Promise.all([
-        gh(['pr', 'list', '--state', 'open', '--limit', '150', '--json', fields], this.dir),
-        gh(['pr', 'list', '--state', 'merged', '--limit', '30', '--json', fields], this.dir),
-        gh(['pr', 'list', '--state', 'closed', '--limit', '40', '--json', fields], this.dir),
+        this.run(['pr', 'list', '--state', 'open', '--limit', '150', '--json', fields]),
+        this.run(['pr', 'list', '--state', 'merged', '--limit', '30', '--json', fields]),
+        this.run(['pr', 'list', '--state', 'closed', '--limit', '40', '--json', fields]),
       ]);
       // `--state closed` includes merged PRs; keep only the ones closed without merging.
       const seen = new Set<number>();
