@@ -178,8 +178,10 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // The sun's shadows are worked out already this frame.
     renderer.shadowMap.autoUpdate = false;
     // Under a roof (indoors, or down in the garage under the office) the ceiling's cut off, and the floor
-    // over it with it; outside there's no ceiling, just what's under your feet.
-    renderer.clippingPlanes = underRoof() ? clip : [clip[1]];
+    // over it with it; outside there's no ceiling, just what's under your feet. On the office's storey
+    // nothing's cut from under it: its floor hides the storeys below, and round the building you see down
+    // to the street and the lots rather than a dark gap.
+    renderer.clippingPlanes = office ? (underRoof() ? [clip[0]] : []) : underRoof() ? clip : [clip[1]];
     renderer.render(scene, cam);
     renderer.clippingPlanes = [];
     renderer.shadowMap.autoUpdate = shadows;
