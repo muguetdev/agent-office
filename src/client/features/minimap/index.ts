@@ -11,7 +11,7 @@
  */
 import './minimap.css';
 import * as THREE from 'three';
-import { ASHTRAY, BALCONY, BOOKSHELF, CABINET, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, GOLF_TEE, GONG, JUKEBOX, STATIONS, TV, WALL_T, WHITEBOARD } from '../../../shared/layout';
+import { ASHTRAY, BALCONY, BOOKSHELF, CABINET, ELEVATOR, ELEVATOR_FRONT, EXIT_DOOR, FLOOR, GOLF_TEE, GONG, JUKEBOX, LOFT, STATIONS, TV, WALL_T, WHITEBOARD } from '../../../shared/layout';
 import { BOOZE_LIMIT } from '../../../shared/rooftop';
 import type { Bounds } from '../../../shared/nav';
 import type { Ctx } from '../../core/context';
@@ -159,9 +159,13 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
    */
   function renderModel(cam: THREE.Camera) {
     const { renderer, scene, me } = ctx;
-    const y = floorY;
-    clip[0].constant = y + CUT;
-    clip[1].constant = -(y - BELOW);
+    // In the office (not down in the garage, nor up on the roof) the cut goes by the storey's floor, not
+    // your feet: half way up the stairs or up on the loft, the room under you still shows, and the loft
+    // with it, cut over the loft's own head height instead.
+    const office = parts.worlds.inOffice() && !ctx.upTop() && floorY > -1;
+    const base = office ? 0 : floorY;
+    clip[0].constant = (office && floorY > 1 ? LOFT.y : base) + CUT;
+    clip[1].constant = -(base - BELOW);
     const hidden: THREE.Object3D[] = [];
     scene.traverseVisible((o) => {
       if ((o as THREE.Sprite).isSprite || (o as THREE.Points).isPoints) hidden.push(o);
