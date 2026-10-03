@@ -826,6 +826,9 @@ Options:
     egSix: 'e.g. 6',
   },
   prompt: {
+    howMany: 'How many?',
+    upTo: (n: number) => `up to ${n}, at the next free desks`,
+    howManyTip: (n: number) => `Hire several at once: this desk and the next free ones (${n} free)`,
     placeholder: 'What should the worker work on?',
     worktreeTip: 'Isolate this worker on its own branch so parallel workers never collide',
     worktree: '🌿 Work in its own git worktree & branch',
@@ -1872,6 +1875,9 @@ Options:
     woof2: 'Woof! Woof!',
   },
   voice: {
+    shareQ: 'Share your screen?',
+    shareBody: 'It goes up on this floor’s TV for everyone here. Your browser asks which screen or window.',
+    shareBtn: 'Share',
     noTurn: (who: string) => `🎙️ Can't connect voice with ${who}: a network between you blocks direct calls. The office needs a TURN server (see self-hosting docs).`,
     needsHttps: 'Voice needs HTTPS (or localhost). Ask whoever runs the office to enable TLS.',
     noMic: (error: string) => `Microphone unavailable: ${error}`,
@@ -3293,10 +3299,12 @@ Options:
     adminsTeam: 'Admins say who may SSH into the office',
   },
   configure: {
+    renamed: (who: string, was: string, name: string) => `✏️ ${who} renamed ${was} to ${name}`,
+    name: 'Name',
     newSession: 'This provider can’t carry a conversation on to another model: it starts a new one, in the same folder.',
     tip: 'Its provider, model and effort: change them now that it’s working',
     title: (name: string) => `${name}’s settings`,
-    save: 'Save and restart',
+    save: 'Save',
     doing: (name: string) => `changing ${name}’s model`,
     note: 'It starts again on these, carrying on its conversation. A turn it was in the middle of carries on too.',
     newProvider: 'Another provider can’t carry on this conversation: it starts a new one there, in the same folder.',

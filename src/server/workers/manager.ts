@@ -351,13 +351,13 @@ export class WorkerManager {
     return (w?.pty || w?.dsh) && token && safeEq(token, w.hookToken) ? w.info : undefined;
   }
 
-  /** Runs a worker again on what its info says now (another model: see ws/handlers/configure.ts), carrying on its session; one not running picks it up next start. */
-  relaunch(id: string): string | undefined {
+  /** Runs a worker again on what its info says now (another model: see ws/handlers/configure.ts), carrying on its session; one not running, or `restart` false (a new name), just saves it. */
+  relaunch(id: string, restart = true): string | undefined {
     const w = this.workers.get(id);
     if (!w) return L.srv.noSuchWorker;
     const proc = w.pty;
     this.persist();
-    if (!proc) return void this.emitUpdate(w);
+    if (!proc || !restart) return void this.emitUpdate(w);
     w.interrupted = midTurn(w);
     w.pty = undefined;
     proc.kill();

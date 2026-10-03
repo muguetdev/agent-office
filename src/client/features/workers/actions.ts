@@ -65,7 +65,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
 
   /** The first seat nobody's at, in the map's order: the desks (as far as the floor's built out), then the overflow seats. */
   function firstFreeSeat(): string | undefined {
-    return [...plan().desks, ...plan().overflow].find((d) => seatBuilt(d.id) && !store.workerAtDesk(d.id))?.id;
+    return freeSeats()[0];
   }
 
   let askedToNotify = false;
@@ -141,8 +141,17 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
       providerOption: true,
       worktreeOption: !!store.project?.branch,
       repoOptions: repoChoices(),
-      onSubmit: (text, o) => hire(deskId, text || undefined, o.worktree, o.provider, o.model, o.effort, undefined, o.repos),
+      countOption: freeSeats().length,
+      // Several at once: this desk, then the next free ones, all hired the same way.
+      onSubmit: (text, o) => {
+        for (const id of [deskId, ...freeSeats().filter((id) => id !== deskId)].slice(0, o.count)) hire(id, text || undefined, o.worktree, o.provider, o.model, o.effort, undefined, o.repos);
+      },
     });
+  }
+
+  /** Every seat nobody's at, in the map's order (see firstFreeSeat). */
+  function freeSeats(): string[] {
+    return [...plan().desks, ...plan().overflow].filter((d) => seatBuilt(d.id) && !store.workerAtDesk(d.id)).map((d) => d.id);
   }
 
   ctx.messages.on('worker.worktree', routeWorktreeMessage);

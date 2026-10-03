@@ -5,6 +5,7 @@
 import type { Ctx } from '../../core/context';
 import { store } from '../../state';
 import { $, h, openModal, toast } from '../../ui/dom';
+import { confirmDialog } from '../../ui/prompt';
 import { L } from '../../i18n';
 
 export interface VoiceDeps {
@@ -46,12 +47,20 @@ export function installVoice(ctx: Ctx, deps: VoiceDeps) {
     },
   });
 
+  /** Asking the browser for the screen already: E held down, or pressed again meanwhile, doesn't ask again. */
+  let asking = false;
   async function toggleShare() {
-    if (voice.sharing) voice.stopShare();
-    else {
-      const err = await voice.startShare();
-      if (err) toast(err, 'warn');
+    if (voice.sharing) return voice.stopShare();
+    if (asking) return;
+    asking = true;
+    const err = await voice.startShare();
+    asking = false;
+    // Safari only shares from a click or a key's own handler, and E at the TV is handled a frame later:
+    // a button to click, which is one.
+    if (err && /gesture/i.test(err)) {
+      return confirmDialog(L.voice.shareQ, L.voice.shareBody, L.voice.shareBtn, () => void voice.startShare().then((e) => e && toast(e, 'warn')));
     }
+    if (err) toast(err, 'warn');
   }
 
   function currentShares(): [string, MediaStream][] {

@@ -179,8 +179,9 @@ export interface JailState {
 /**
  * Another provider, model or effort for a worker already hired: it starts again on it, carrying on
  * its conversation (a new provider can't, so it starts a new one). One that's asleep takes it when it wakes.
+ * With `name`, it's called that from now on (without starting again).
  */
-export type WorkerConfigureClientMsg = { t: 'worker.configure'; workerId: string; provider: AgentProvider; model?: string; effort?: AgentEffort };
+export type WorkerConfigureClientMsg = { t: 'worker.configure'; workerId: string; provider?: AgentProvider; model?: string; effort?: AgentEffort; name?: string };
 
 export type WorkerClientMsg =
   | WorkerConfigureClientMsg

@@ -818,6 +818,9 @@ Opções:
     egSix: 'ex.: 6',
   },
   prompt: {
+    howMany: 'Quantos?',
+    upTo: (n: number) => `até ${n}, nas próximas mesas livres`,
+    howManyTip: (n: number) => `Contrate vários de uma vez: esta mesa e as próximas livres (${n} livres)`,
     placeholder: 'No que o worker deve trabalhar?',
     worktreeTip: 'Isola este worker numa branch própria para que workers em paralelo nunca colidam',
     worktree: '🌿 Trabalhar numa worktree e branch próprias do git',
@@ -1862,6 +1865,9 @@ Opções:
     woof2: 'Au! Au!',
   },
   voice: {
+    shareQ: 'Compartilhar sua tela?',
+    shareBody: 'Ela aparece na TV deste andar para todo mundo aqui. O navegador pergunta qual tela ou janela.',
+    shareBtn: 'Compartilhar',
     noTurn: (who: string) => `🎙️ Não deu para conectar a voz com ${who}: uma rede entre vocês bloqueia chamadas diretas. O escritório precisa de um servidor TURN (veja a documentação de self-hosting).`,
     needsHttps: 'A voz precisa de HTTPS (ou localhost). Peça para quem roda o escritório ativar o TLS.',
     noMic: (error: string) => `Microfone indisponível: ${error}`,
@@ -3282,10 +3288,12 @@ Opções:
     adminsTeam: 'Só admins decidem quem entra por SSH no escritório',
   },
   configure: {
+    renamed: (who: string, was: string, name: string) => `✏️ ${who} renomeou ${was} para ${name}`,
+    name: 'Nome',
     newSession: 'Este provedor não troca o modelo no meio da conversa: começa uma nova, na mesma pasta.',
     tip: 'Provedor, modelo e esforço: troque com ele já trabalhando',
     title: (name: string) => `Configurações de ${name}`,
-    save: 'Salvar e reiniciar',
+    save: 'Salvar',
     doing: (name: string) => `trocando o modelo de ${name}`,
     note: 'Ele reinicia com isso e continua a mesma conversa. Se estava no meio de uma tarefa, continua de onde parou.',
     newProvider: 'Outro provedor não continua esta conversa: ele começa uma nova lá, na mesma pasta.',
