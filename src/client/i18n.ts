@@ -58,10 +58,12 @@ localizeMaps({
   seat: L.maps.seat,
   table: L.maps.table,
   map: (c: MapConfig): MapConfig => {
-    if (c.id !== 'castle') return c;
-    const t = L.maps.castle;
+    const t = c.id === 'castle' ? L.maps.castle : c.id === 'station' ? L.maps.station : undefined;
+    if (!t) return c;
+    const throne = (t as { throne?: string }).throne;
     return {
       ...c,
+      ...(throne && c.throne?.label ? { throne: { ...c.throne, label: throne } } : {}),
       name: t.name,
       description: t.description,
       herald: c.herald && { ...c.herald, ...t.herald },
