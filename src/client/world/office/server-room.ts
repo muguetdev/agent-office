@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { FLOOR } from '../../../shared/layout';
+import { DESK_SIZE, FLOOR } from '../../../shared/layout';
 import { mesh, recolor, roundedBox, toon } from '../toon';
 import type { Collider } from '../types';
 import type { Fixture } from './fixture';
 
 // A server's floor (see FloorPalette.night): an executive's office at night. Its furniture goes black
-// leather and dark walnut, its lamps brass, and two server racks stand in the north-west corner where the
-// potted plant is on any other floor, their lights blinking away.
+// leather and dark walnut, its lamps brass, a green banker's lamp glows on every desk, and two server
+// racks stand in the north-west corner where the potted plant is on any other floor, their lights
+// blinking away: faster, and more of them amber, the more of the floor's workers are working (see setRackLoad).
 
 /** The colours a server's floor paints the shared ones (see recolor), by hex. */
 const NIGHT: Readonly<Record<string, string>> = {
@@ -29,6 +30,9 @@ const NIGHT: Readonly<Record<string, string>> = {
   '5b8def': '25262d',
   '8a5a3b': '3a2619',
   ffd166: 'c9a227',
+  // The kitchen's fridge and cupboards (and the hoop's backboard) in black and deep blue.
+  f8f9fa: '2b2d36',
+  '8ecae6': '1f2a33',
 };
 
 /** The racks: against the north wall in the west corner, fronts to the room. */
@@ -37,6 +41,26 @@ const RACKS_X = [FLOOR.minX + 0.06 + RACK.width / 2, FLOOR.minX + 0.06 + RACK.wi
 const RACKS_Z = FLOOR.minZ + 0.04 + RACK.depth / 2;
 
 const LED_ON = { green: new THREE.MeshBasicMaterial({ color: '#39ff7a' }), amber: new THREE.MeshBasicMaterial({ color: '#ffb000' }), blue: new THREE.MeshBasicMaterial({ color: '#4cc9f0' }) };
+
+/** How busy the floor is, 0–1 (its workers working: see features/serverfloor), which the racks' lights blink with. */
+let load = 0;
+export function setRackLoad(busy: number) {
+  load = Math.max(0, Math.min(1, busy));
+}
+
+/** A banker's lamp: a brass base and stem, and a green glass shade glowing warm underneath. Its origin on the desk. */
+function bankersLamp(): THREE.Group {
+  const g = new THREE.Group();
+  const brass = toon('#c9a227');
+  g.add(mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.025, 16), brass, 0, 0.0125, 0, false));
+  g.add(mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), brass, 0, 0.16, 0, false));
+  const shade = mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.3, 16, 1, false, 0, Math.PI), toon('#1f6b45', { emissive: '#0b3d25' }), 0, 0.33, 0.03, false);
+  shade.rotation.z = Math.PI / 2;
+  shade.rotation.y = Math.PI / 2;
+  g.add(shade);
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.012, 0.09), new THREE.MeshBasicMaterial({ color: '#ffe3a1' })).translateY(0.315).translateZ(0.03));
+  return g;
+}
 
 function rack(leds: THREE.Mesh[]): THREE.Group {
   const g = new THREE.Group();
@@ -70,6 +94,16 @@ export const serverRoom: Fixture = (site) => {
     group.add(r);
   }
   const collider: Collider = { minX: FLOOR.minX, maxX: RACKS_X[1] + RACK.width / 2, minZ: FLOOR.minZ, maxZ: RACKS_Z + RACK.depth / 2, top: RACK.height };
+  // A banker's lamp on every desk (not the kiosks, the bean bags or the meeting room's table), at the back on the left.
+  const deskLamps: THREE.Object3D[] = [];
+  for (const d of site.desks.values()) {
+    if (d.def.station || d.def.beanbag || d.def.room) continue;
+    const lamp = bankersLamp();
+    lamp.position.set(-DESK_SIZE.width / 2 + 0.55, DESK_SIZE.height, -DESK_SIZE.depth / 2 + 0.16);
+    lamp.visible = false;
+    d.group.add(lamp);
+    deskLamps.push(lamp);
+  }
   // The potted plant the racks stand in for (the first of PLANTS, in that corner).
   const plant = site.get('plants')[0];
   let night = false;
@@ -77,6 +111,7 @@ export const serverRoom: Fixture = (site) => {
     if (on === night) return;
     night = on;
     group.visible = on;
+    for (const l of deskLamps) l.visible = on;
     if (plant) plant.visible = !on;
     const i = site.colliders.indexOf(collider);
     if (on && i < 0) site.colliders.push(collider);
@@ -89,10 +124,12 @@ export const serverRoom: Fixture = (site) => {
     group,
     update(t) {
       if (!night) return;
+      const pace = 1 + load * 1.8;
       leds.forEach((led, i) => {
         const b = beats[i];
-        led.visible = Math.sin(t * b.speed * 4 + b.phase) > -0.35;
-        led.material = b.color;
+        led.visible = Math.sin(t * b.speed * 4 * pace + b.phase) > -0.35;
+        // Busier, more of them amber.
+        led.material = b.color === LED_ON.green && (i * 7) % 10 < load * 5 ? LED_ON.amber : b.color;
       });
     },
   };

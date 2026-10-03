@@ -63,8 +63,9 @@ function floorPlan() {
     kitchen,
     plants,
     lamps,
-    serverRoom,
     wing,
+    // After the back office, so its desks get lamps too.
+    serverRoom,
     signs,
     loft,
     meetingRoom,

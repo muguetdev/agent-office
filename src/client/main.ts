@@ -52,6 +52,7 @@ import { installMeeting } from './features/meeting';
 import { installNeedsYou } from './features/needsyou';
 import { installPalette } from './features/palette';
 import { installParty } from './features/party';
+import { installServerFloor } from './features/serverfloor';
 import { installBreaks } from './features/breaks';
 import { installMinimap } from './features/minimap';
 import { installBuilding } from './features/building';
@@ -178,6 +179,7 @@ parts.cards = installCarrying(ctx, {
 parts.seating = installSeating(ctx, { shares: () => parts.talk.currentShares(), watchShare: () => parts.talk.watchShare(), arcade: parts.arcade, showBar: parts.bar.showBar, usable: () => parts.pointer.usable() });
 const gong = installGong(ctx, { burstOver: parts.views.burstOver, workerViews: parts.views.workerViews, court: () => parts.worlds.court(), idleAgents: () => parts.worlds.idleAgents() });
 installParty(ctx, { danceParty: gong.danceParty, dog: parts.dog, djAt: parts.rooftop.djAt, lights: parts.stage });
+installServerFloor(ctx, { lights: parts.stage });
 installBreaks(ctx, parts);
 installMinimap(ctx, parts);
 installBuilding(ctx, parts);
