@@ -92,7 +92,7 @@ export const serversHandlers = {
     const floor = serverFloor(ctx, msg.floor);
     const watch = floor && watches.get(floor.id);
     if (!floor || !watch) return ctx.warn(c, L.srv.noSuchFloor);
-    const kind = msg.kind === 'container' ? 'container' : 'service';
+    const kind = msg.kind === 'container' || msg.kind === 'process' ? msg.kind : 'service';
     const name = str(msg.name, 128);
     ctx.toastFloor(floor, L.servers.restarting(who, name));
     void watch.restart(kind, name).then((err) => {

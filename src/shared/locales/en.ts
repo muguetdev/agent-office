@@ -3322,6 +3322,7 @@ Options:
     added: (who: string, name: string) => `🖥️ New floor: the server ${name}, added by ${who}`,
   },
   serverFloor: {
+    restarts: (n: number) => `${n} restart${n === 1 ? '' : 's'}`,
     online: 'Online',
     offline: 'Not answering',
     load: 'Load',

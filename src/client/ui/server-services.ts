@@ -24,7 +24,7 @@ export function openServerServices(net: Net) {
       'li',
       {},
       h('span.dot', { class: ok ? 'on' : 'bad' }),
-      h('span.name', {}, `${unit.kind === 'container' ? '🐳' : '⚙️'} ${unit.name}`),
+      h('span.name', {}, `${{ container: '🐳', process: '📦', service: '⚙️' }[unit.kind]} ${unit.name}`),
       h('span.keys', {}, sub),
       store.me.admin ? h('button.btn', { type: 'button', title: L.serverFloor.restartTip, onclick: () => restart(unit) }, `🔁 ${L.serverFloor.restart}`) : null,
     );
@@ -35,11 +35,14 @@ export function openServerServices(net: Net) {
     const containers = h('ul.team-list');
     for (const c of s.containers) containers.append(row({ kind: 'container', name: c.name }, c.state === 'running', [c.image, c.status].filter(Boolean).join(' · ')));
     if (!s.containers.length) containers.append(h('li.empty', {}, L.serverFloor.noContainers));
+    const processes = h('ul.team-list');
+    for (const p of s.processes) processes.append(row({ kind: 'process', name: p.name }, p.state === 'online', [p.state, `CPU ${Math.round(p.cpu)}%`, `${Math.round(p.mem / 2 ** 20)} MB`, L.serverFloor.restarts(p.restarts)].join(' · ')));
     const services = h('ul.team-list');
     for (const x of s.services) services.append(row({ kind: 'service', name: x.name }, x.state === 'running', x.state === 'failed' ? L.serverFloor.failed2 : x.status));
     if (!s.services.length) services.append(h('li.empty', {}, L.serverFloor.noServices));
     body.replaceChildren(
       h('p.note', {}, [s.ok ? `✅ ${s.host ?? floor.ssh!.host}` : `❌ ${s.error ?? L.serverFloor.offline}`, `⏱ ${uptimeLabel(s.uptime)}`, L.serverFloor.seen(timeAgo(s.at))].join(' · ')),
+      ...(s.processes.length ? [h('h4', {}, `📦 PM2 `, h('span.count', {}, String(s.processes.length))), processes] : []),
       h('h4', {}, `🐳 ${L.serverFloor.containers} `, h('span.count', {}, String(s.containers.length))),
       containers,
       h('h4', {}, `⚙️ ${L.serverFloor.services} `, h('span.count', {}, String(s.services.length))),

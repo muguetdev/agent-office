@@ -18,9 +18,20 @@ export interface ServerService {
   status: string;
 }
 
-/** A container or a service, to restart. */
+/** An app PM2 runs on the server. */
+export interface ServerProcess {
+  name: string;
+  /** PM2's: online, stopped, errored… */
+  state: string;
+  restarts: number;
+  /** Its CPU (100 is one core) and memory (bytes), as PM2 last saw them. */
+  cpu: number;
+  mem: number;
+}
+
+/** A container, a service or a PM2 app, to restart. */
 export interface ServerUnit {
-  kind: 'container' | 'service';
+  kind: 'container' | 'service' | 'process';
   name: string;
 }
 
@@ -32,6 +43,8 @@ export interface ServerState {
   ok: boolean;
   error?: string;
   host?: string;
+  /** How busy its CPUs really are, 0–100, over a second. */
+  cpu: number;
   /** The load averages over 1, 5 and 15 minutes, and its CPUs. */
   load: [number, number, number];
   cpus: number;
@@ -44,7 +57,8 @@ export interface ServerState {
   uptime: number;
   containers: ServerContainer[];
   services: ServerService[];
-  /** The last few readings, oldest first: [load as % of its CPUs, memory %]. */
+  processes: ServerProcess[];
+  /** The last few readings, oldest first: [CPU %, memory %]. */
   history: [number, number][];
 }
 

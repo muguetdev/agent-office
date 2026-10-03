@@ -3311,6 +3311,7 @@ Opções:
     added: (who: string, name: string) => `🖥️ Novo andar: o servidor ${name}, adicionado por ${who}`,
   },
   serverFloor: {
+    restarts: (n: number) => `${n} ${n === 1 ? 'reinício' : 'reinícios'}`,
     online: 'No ar',
     offline: 'Sem resposta',
     load: 'Carga',

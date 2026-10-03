@@ -63,8 +63,7 @@ export class ServerMonitorTexture {
     g.textAlign = 'center';
     g.fillText(label, W - 30 - (tw + 32) / 2, 58);
     if (!s) return void (this.texture.needsUpdate = true);
-    const loadPct = Math.min(100, Math.round((s.load[0] / s.cpus) * 100));
-    this.panel(30, 96, 415, L.serverFloor.load, loadPct, `${s.load.map((n) => n.toFixed(2)).join(' ')} · ${L.machine.cores(s.cpus)}`, s.history.map(([l]) => l));
+    this.panel(30, 96, 415, 'CPU', s.cpu, `load ${s.load.map((n) => n.toFixed(1)).join(' ')} · ${L.machine.cores(s.cpus)}`, s.history.map(([c]) => c));
     this.panel(475, 96, 415, L.machine.memory, pct(s.memUsed, s.memTotal), s.memTotal ? L.machine.of(fmtGb(s.memUsed), fmtGb(s.memTotal)) : '', s.history.map(([, m]) => m));
     // Footer: the disk, how long it's been up, and what runs on it.
     const disk = pct(s.diskUsed, s.diskTotal);
@@ -75,7 +74,8 @@ export class ServerMonitorTexture {
     for (const [text, c] of [
       [`💾 ${disk}% ${L.serverFloor.ofDisk(fmtGb(s.diskTotal))}`, loadColor(disk)],
       [`⏱ ${uptimeLabel(s.uptime)}`, '#ffffff'],
-      [`🐳 ${s.containers.filter((x) => x.state === 'running').length}/${s.containers.length}`, '#ffffff'],
+      ...(s.processes.length ? [[`📦 ${s.processes.filter((x) => x.state === 'online').length}/${s.processes.length}`, s.processes.some((x) => x.state !== 'online') ? BAD : '#ffffff'] as const] : []),
+      ...(s.containers.length ? [[`🐳 ${s.containers.filter((x) => x.state === 'running').length}/${s.containers.length}`, '#ffffff'] as const] : []),
       [`⚙️ ${s.services.length - failed}${failed ? ` · ❌ ${failed}` : ''}`, failed ? BAD : '#ffffff'],
     ] as const) {
       g.fillStyle = c;
@@ -125,6 +125,7 @@ export class ServerServicesTexture {
   render(s: ServerState | null) {
     const rows = [
       ...(s?.services.filter((x) => x.state === 'failed').map((x) => ({ icon: '⚙️', name: x.name, note: L.serverFloor.failed2, ok: false })) ?? []),
+      ...(s?.processes.map((x) => ({ icon: '📦', name: x.name, note: `${x.state} · CPU ${Math.round(x.cpu)}% · ${Math.round(x.mem / 2 ** 20)} MB`, ok: x.state === 'online' })) ?? []),
       ...(s?.containers.map((x) => ({ icon: '🐳', name: x.name, note: x.status, ok: x.state === 'running' })) ?? []),
       ...(s?.services.filter((x) => x.state === 'running').map((x) => ({ icon: '⚙️', name: x.name, note: x.status, ok: true })) ?? []),
     ];

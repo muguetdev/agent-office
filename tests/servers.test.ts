@@ -60,6 +60,10 @@ test("the server's reading: its load, memory, disk and uptime, its containers, a
     'DISK 100000000000 43000000000',
     'UP 270000',
     'HOST 17566',
+    'CPU1 1000 0 500 8000 100 0 0 0 0 0',
+    'CPU2 1600 0 700 8600 100 0 100 0 0 0',
+    'P|api|online|7|306|674000000',
+    'P|bad name|online|0|0|0',
     'D|web|nginx:1.27|running|Up 3 hours',
     'D|db|postgres:16|exited|Exited (1) 2 minutes ago',
     "D|bad name; rm -rf /|x|running|Up",
@@ -71,6 +75,9 @@ test("the server's reading: its load, memory, disk and uptime, its containers, a
   ].join('\n');
   const r = read(out, 1000);
   assert.deepEqual(r.load, [1.5, 0.75, 0.4]);
+  // 900 of 1500 ticks busy between the two looks.
+  assert.equal(r.cpu, 60);
+  assert.deepEqual(r.processes, [{ name: 'api', state: 'online', restarts: 7, cpu: 306, mem: 674000000 }]);
   assert.equal(r.cpus, 4);
   assert.equal(r.memTotal, 8000000 * 1024);
   assert.equal(r.memUsed, 6000000 * 1024);
