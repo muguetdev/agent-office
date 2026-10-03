@@ -56,10 +56,11 @@ export function openServerFloor(net: Net, floorId?: string) {
     };
     const line = key ? `mkdir -p ~/.ssh && echo '${key}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys` : '';
     body.replaceChildren(
+      // The command first: the key on its own isn't something to type into a shell.
       h('p.note', {}, L.serverFloor.keyNote(f?.ssh ? `${f.ssh.user}@${f.ssh.host}` : '')),
-      h('div.cmd', {}, h('pre', {}, key ?? L.serverFloor.noKey), key ? copyButton(L.team.copy, () => key) : null),
+      h('div.cmd', {}, h('pre', {}, key ? line : L.serverFloor.noKey), key ? copyButton(L.team.copy, () => line) : null),
       h('p.note', {}, L.serverFloor.orRun),
-      h('div.cmd', {}, h('pre', {}, line), key ? copyButton(L.team.copy, () => line) : null),
+      h('div.cmd', {}, h('pre', {}, key ?? ''), key ? copyButton(L.team.copy, () => key) : null),
       h('p.note', {}, L.serverFloor.then(floor)),
       h('div.seg', {}, test),
       result,
