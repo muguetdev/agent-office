@@ -16,6 +16,7 @@ import { keyLabels, naturalKey } from './termkeys';
 import { L } from '../i18n';
 import { termTabs } from './termtabs';
 import { dictateField, dictation } from './dictate';
+import { openWorkerConfig } from './worker-config';
 
 /** A line to scroll to once the terminal has loaded: a search hit (see search.ts). */
 export interface TerminalFind {
@@ -118,6 +119,9 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     title: keyLabels(L.terminal.modelsTip),
     'aria-label': L.provider.openCodeModel,
   }, L.terminal.models);
+  // ⚙️ Its provider, model and effort, changed after it's hired (see worker-config.ts).
+  const configBtn = h('button.btn', { type: 'button', title: L.configure.tip, 'aria-label': L.configure.tip }, '⚙️');
+  configBtn.addEventListener('click', () => openWorkerConfig(net, workerId));
   const typed = h('span.typed', {});
   // The Esc key leaves the terminal, so this is how Esc reaches the program: to close a menu like
   // Claude's /skills, or to interrupt it. Ctrl+[ does the same from the keyboard.
@@ -149,7 +153,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, info.kind === 'agent' ? configBtn : null, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',

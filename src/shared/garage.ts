@@ -11,7 +11,7 @@ export type CarKind = 'lambo' | 'ferrari' | 'bmw';
 /** A car's footprint (nose to tail along its length), and how high its body and its roof come up. */
 export const CAR = { length: 4.6, width: 2, body: 0.82, roof: 1.12 } as const;
 /** How high each kind's roof comes up: a sedan stands taller than the supercars. */
-export const CAR_ROOF: Record<CarKind, number> = { lambo: CAR.roof, ferrari: 1.16, bmw: 1.42 };
+export const CAR_ROOF: Record<CarKind, number> = { lambo: 1.11, ferrari: 1.2, bmw: 1.39 };
 
 /** The building's footprint, walls included: the garage is under it. */
 const B = { minX: FLOOR.minX - WALL_T, maxX: FLOOR.maxX + WALL_T, minZ: FLOOR.minZ - WALL_T, maxZ: FLOOR.maxZ + WALL_T } as const;

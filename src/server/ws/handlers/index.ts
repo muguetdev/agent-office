@@ -6,6 +6,7 @@ import { ballHandlers, ballHooks, ballView } from './ball.js';
 import { cabinetHandlers, cabinetHooks, cabinetView } from './cabinet.js';
 import { carHandlers, carHooks, carsView } from './car.js';
 import { changesHandlers, changesHooks } from './changes.js';
+import { configureHandlers } from './configure.js';
 import { decorHandlers, decorView } from './decor.js';
 import { dogHandlers, dogView } from './dog.js';
 import { floorHandlers, projectView } from './floors.js';
@@ -32,6 +33,7 @@ export const handlers: HandlerMap<ClientMsg> = {
   ...cabinetHandlers,
   ...carHandlers,
   ...changesHandlers,
+  ...configureHandlers,
   ...decorHandlers,
   ...dogHandlers,
   ...floorHandlers,

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Box3, Quaternion, Vector3 } from 'three';
-import { CAR, CAR_ROOF, SEATS } from '../src/shared/garage';
+import { CAR, CAR_ROOF, SEATS_OF } from '../src/shared/garage';
 import { openModel } from './glb';
 
 // cars.glb (exported by blender/scripts/build_cars.py) against what features/cars/world.ts counts on: each
@@ -17,9 +17,9 @@ const KINDS = ['lambo', 'ferrari', 'bmw'] as const;
 const PARTS = ['', '_top', '_open', '_wheel_l', '_wheel_r'];
 /** What features/cars/world.ts paints: CAR_COLORS there, and Paint, Glass, Screen, Lamp and Tail, which it makes itself. */
 const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'RimGrey', 'Caliper', 'CaliperBlue', 'Roundel', 'Chrome', 'Badge', 'Seat', 'Plate', 'PlateBand'];
-/** Each kind's front axle, how far out its wheels' middles are, and how big they are: the real cars' proportions. */
-const FRONT = { lambo: 1.25, ferrari: 1.24, bmw: 1.5 };
-const WHEEL_OF = { lambo: { x: 0.8, r: 0.35 }, ferrari: { x: 0.81, r: 0.35 }, bmw: { x: 0.77, r: 0.335 } };
+/** Each kind's front axle, how far out its wheels' middles are, and how big they are, as blender/scripts/build_cars.py fits them. */
+const FRONT = { lambo: 1.433, ferrari: 1.433, bmw: 1.373 };
+const WHEEL_OF = { lambo: { x: 0.77, r: 0.258 }, ferrari: { x: 0.77, r: 0.28 }, bmw: { x: 0.778, r: 0.312 } };
 const RIM = { lambo: 'RimGold', ferrari: 'RimSilver', bmw: 'RimGrey' };
 
 type Primitive = { attributes: Record<string, number>; material?: number; indices?: number };
@@ -96,13 +96,13 @@ test("the body, cabin and seats sit at the origin unturned, in the old cars' foo
 test('the seats are where the driver and passenger sit, a wheel in front of the driver', () => {
   for (const kind of KINDS) {
     const seats = verticesOf(`${kind}_open`, ['Seat']);
-    for (const s of Object.values(SEATS)) {
+    for (const s of Object.values(SEATS_OF[kind])) {
       const own = seats.filter((v) => Math.abs(v.x - s.x) < 0.3);
       assert.ok(own.length, `a seat at x ${s.x}`);
       const box = new Box3().setFromPoints(own);
       assert.ok(box.min.z < s.z && box.max.z > s.z - 0.5, `the ${kind}'s seat at ${s.x} runs ${box.min.z.toFixed(2)} to ${box.max.z.toFixed(2)}`);
     }
-    const wheel = new Box3().setFromPoints(verticesOf(`${kind}_open`, ['Dark']).filter((v) => v.y > 0.75 && v.y < 1.2 && Math.abs(v.x - SEATS.driver.x) < 0.25 && v.z > SEATS.driver.z));
+    const wheel = new Box3().setFromPoints(verticesOf(`${kind}_open`, ['Dark']).filter((v) => v.y > 0.75 && v.y < 1.2 && Math.abs(v.x - SEATS_OF[kind].driver.x) < 0.25 && v.z > SEATS_OF[kind].driver.z));
     assert.ok(!wheel.isEmpty(), `the ${kind} has a steering wheel in front of the driver`);
   }
 });

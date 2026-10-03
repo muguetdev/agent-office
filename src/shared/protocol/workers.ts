@@ -176,7 +176,14 @@ export interface JailState {
   bones: number;
 }
 
+/**
+ * Another provider, model or effort for a worker already hired: it starts again on it, carrying on
+ * its conversation (a new provider can't, so it starts a new one). One that's asleep takes it when it wakes.
+ */
+export type WorkerConfigureClientMsg = { t: 'worker.configure'; workerId: string; provider: AgentProvider; model?: string; effort?: AgentEffort };
+
 export type WorkerClientMsg =
+  | WorkerConfigureClientMsg
   /** With `issue`, the worker is there for that GitHub issue: it moves to In progress at once, is assigned on GitHub (which keeps it there) and taken off the queue. */
   /** With `repos` (other floors' ids), the worker works in their repositories too, each in a worktree of its own (see WorkerInfo.repos). */
   | { t: 'worker.spawn'; deskId: string; prompt?: string; worktree?: boolean; kind?: WorkerKind; provider?: AgentProvider; model?: string; effort?: AgentEffort; issue?: number; repos?: string[]; via?: 'herald' }

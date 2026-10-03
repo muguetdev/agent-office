@@ -3292,4 +3292,15 @@ Options:
     adminsAdd: 'Admins add floors to the building',
     adminsTeam: 'Admins say who may SSH into the office',
   },
+  configure: {
+    newSession: 'This provider can’t carry a conversation on to another model: it starts a new one, in the same folder.',
+    tip: 'Its provider, model and effort: change them now that it’s working',
+    title: (name: string) => `${name}’s settings`,
+    save: 'Save and restart',
+    doing: (name: string) => `changing ${name}’s model`,
+    note: 'It starts again on these, carrying on its conversation. A turn it was in the middle of carries on too.',
+    newProvider: 'Another provider can’t carry on this conversation: it starts a new one there, in the same folder.',
+    agentsOnly: 'Only an agent has a provider and a model to change',
+    changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} put ${name} on ${now}${fresh ? ': a new conversation, on another provider' : ', carrying on where it was'}`,
+  },
 };

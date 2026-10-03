@@ -504,6 +504,43 @@ test('an explicit Claude model/effort overrides --agent-args and persists across
   assert.equal(restored.get(worker.id)?.effort, 'high');
 });
 
+test('a running worker put on another model starts again on it, carrying on its session', async (t) => {
+  const f = fixture();
+  const updates: WorkerInfo[] = [];
+  isolateProviderEnvironment(f, t);
+  const previousExit = process.env.FAKE_AGENT_EXIT_MS;
+  const previousLog = process.env.FAKE_AGENT_LOG;
+  // Keeps running long enough to be relaunched while it's up.
+  process.env.FAKE_AGENT_EXIT_MS = '5000';
+  process.env.FAKE_AGENT_LOG = f.log;
+  t.after(() => {
+    if (previousExit === undefined) delete process.env.FAKE_AGENT_EXIT_MS;
+    else process.env.FAKE_AGENT_EXIT_MS = previousExit;
+    if (previousLog === undefined) delete process.env.FAKE_AGENT_LOG;
+    else process.env.FAKE_AGENT_LOG = previousLog;
+    f.close();
+  });
+  const workers = manager(f, f.claude, updates);
+  t.after(() => workers.shutdown());
+  const worker = workers.spawn('desk-1', 'test', 'first task', false, 'agent', 'claude', 'haiku');
+  if (typeof worker === 'string') return assert.fail(worker);
+  const launches = () => f.read().filter((r) => r.kind === 'claude' && !r.args.includes('--output-format'));
+  const first = (await waitFor(launches, (l) => l.length >= 1))[0];
+  assert.equal(workers.handleHook(worker.id, first.env.hookToken!, 'SessionStart', { session_id: 'claude-switch-1' }), true);
+
+  const live = workers.get(worker.id)!;
+  live.model = 'opus';
+  live.effort = 'max';
+  assert.equal(workers.relaunch(worker.id), undefined);
+  const second = (await waitFor(launches, (l) => l.length >= 2))[1];
+  assert.deepEqual(second.args.slice(second.args.indexOf('--model'), second.args.indexOf('--model') + 4), ['--model', 'opus', '--effort', 'max']);
+  assert.equal(second.args[second.args.indexOf('--resume') + 1], 'claude-switch-1');
+  // The old process going doesn't put it to sleep: it's the new one that's running.
+  await new Promise((r) => setTimeout(r, 300));
+  assert.notEqual(workers.get(worker.id)?.status, 'exited');
+  assert.equal(workers.relaunch('nobody'), 'No such worker');
+});
+
 test('a worker hired on Fable launches with --model fable and keeps it across a restart', async (t) => {
   const f = fixture();
   isolateProviderEnvironment(f, t);

@@ -166,6 +166,8 @@ export interface ProviderMeta {
   takesEffort?: boolean;
   /** What it calls its reasoning effort, when that isn't "Effort". */
   effortLabel?: string;
+  /** Carries on a conversation on another model or effort (its resume takes them): the others start a new one for that. */
+  switchesModel?: boolean;
   /** Why it has no model or effort to pick, for the hire dialog to say. */
   unpicked?: string;
   /** How its spend shows on a worker's card, in the workers list and in the queue (see client ui/provider.ts). */
@@ -186,6 +188,7 @@ export interface ProviderMeta {
 export const PROVIDER_META: Record<AgentProvider, ProviderMeta> = {
   claude: {
     label: 'Claude Code',
+    switchesModel: true,
     name: 'Claude Code',
     bin: 'claude',
     validModel: isClaudeModel,
@@ -218,6 +221,7 @@ export const PROVIDER_META: Record<AgentProvider, ProviderMeta> = {
   },
   codex: {
     label: 'Codex',
+    switchesModel: true,
     name: 'Codex',
     bin: 'codex',
     validModel: isValidCodexModel,
@@ -289,6 +293,7 @@ export const PROVIDER_META: Record<AgentProvider, ProviderMeta> = {
   },
   pi: {
     label: 'Pi',
+    switchesModel: true,
     name: 'Pi',
     bin: 'pi',
     validModel: isValidPiModel,

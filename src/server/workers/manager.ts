@@ -203,17 +203,13 @@ export class WorkerManager {
     }));
   }
 
-  /**
-   * Fetches the branch the project is on, so a worktree made next starts from what's on GitHub now
-   * (see Worktrees.fetch). Undefined when there's nothing to wait for.
-   */
+  /** Fetches the project's branch, so a worktree made next starts from GitHub's (see Worktrees.fetch); undefined with nothing to wait for. */
   fetchBase(): Promise<void> | undefined {
     return this.trees.fetch();
   }
 
   deskOccupied(deskId: string): boolean {
-    for (const w of this.workers.values()) if (w.info.deskId === deskId) return true;
-    return false;
+    return [...this.workers.values()].some((w) => w.info.deskId === deskId);
   }
 
   /**
@@ -257,7 +253,7 @@ export class WorkerManager {
     let others: WorkerRepo[] | undefined;
     if (worktree) {
       const slug = `${name.toLowerCase()}-${id.slice(0, 4)}`;
-      const made = repos.length ? this.makeWorkspace(slug, repos) : this.trees.create(slug);
+      const made = repos.length ? this.worktrees.makeWorkspace(slug, repos) : this.trees.create(slug);
       if (typeof made === 'string') return made;
       if ('repos' in made) {
         ({ worktree: wt, repos: others } = made);
@@ -300,11 +296,6 @@ export class WorkerManager {
     this.launch(w, seat.station && info.prompt ? `${stationBrief(seat.station, this.prompts)}\n\n${info.prompt}` : info.prompt, undefined);
     this.persist();
     return info;
-  }
-
-  /** The workspace of a worker across repositories (see WorkerTrees.makeWorkspace). */
-  private makeWorkspace(slug: string, repos: RepoSource[]): { worktree: NonNullable<WorkerInfo['worktree']>; repos: WorkerRepo[]; notes: string[] } | string {
-    return this.worktrees.makeWorkspace(slug, repos);
   }
 
   /** Starts a worker that isn't running again, carrying on its session, with `prompt` as its next message. */
@@ -358,6 +349,19 @@ export class WorkerManager {
     return (w?.pty || w?.dsh) && token && safeEq(token, w.hookToken) ? w.info : undefined;
   }
 
+  /** Runs a worker again on what its info says now (another model: see ws/handlers/configure.ts), carrying on its session; one not running picks it up next start. */
+  relaunch(id: string): string | undefined {
+    const w = this.workers.get(id);
+    if (!w) return L.srv.noSuchWorker;
+    const proc = w.pty;
+    this.persist();
+    if (!proc) return void this.emitUpdate(w);
+    w.interrupted = midTurn(w);
+    w.pty = undefined;
+    proc.kill();
+    return this.resume(id);
+  }
+
   /** Starts every worker that isn't running: nobody should be found asleep at their desk. */
   wakeAll() {
     // A DeepSeek Harness worker has no PTY but is still running: only the ones that are gone wake up.
@@ -394,10 +398,7 @@ export class WorkerManager {
     return this.worktrees.sendHome(w.info, cleanup, landed, landedRepos);
   }
 
-  /**
-   * Whether any worktree of a worker across repositories holds work its merged pull requests didn't
-   * deliver (`landed` and `landedRepos`, as for kill): then it doesn't go home by itself yet.
-   */
+  /** Whether a worktree of a worker across repositories holds work its merged PRs didn't deliver (`landed`/`landedRepos`, as for kill): then it doesn't go home yet. */
   holdsWork(id: string, landed?: string, landedRepos?: Record<string, string | undefined>): Promise<boolean> {
     return this.worktrees.holdsWork(id, landed, landedRepos);
   }
@@ -592,10 +593,7 @@ export class WorkerManager {
     return hook.handle(this.handleOf(w), event, payload);
   }
 
-  /**
-   * The office is closing. On a restart (`keep`), terminals in the host keep running for the next
-   * office to pick back up; otherwise every worker stops.
-   */
+  /** The office is closing. On a restart (`keep`), terminals in the host keep running for the next office to pick up; otherwise every worker stops. */
   shutdown(keep = false) {
     this.closing = true;
     this.stopping = !keep;

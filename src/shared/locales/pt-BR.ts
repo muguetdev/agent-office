@@ -3281,4 +3281,15 @@ Opções:
     adminsAdd: 'Só admins adicionam andares ao prédio',
     adminsTeam: 'Só admins decidem quem entra por SSH no escritório',
   },
+  configure: {
+    newSession: 'Este provedor não troca o modelo no meio da conversa: começa uma nova, na mesma pasta.',
+    tip: 'Provedor, modelo e esforço: troque com ele já trabalhando',
+    title: (name: string) => `Configurações de ${name}`,
+    save: 'Salvar e reiniciar',
+    doing: (name: string) => `trocando o modelo de ${name}`,
+    note: 'Ele reinicia com isso e continua a mesma conversa. Se estava no meio de uma tarefa, continua de onde parou.',
+    newProvider: 'Outro provedor não continua esta conversa: ele começa uma nova lá, na mesma pasta.',
+    agentsOnly: 'Só um agente tem provedor e modelo para trocar',
+    changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} colocou ${name} em ${now}${fresh ? ': conversa nova, em outro provedor' : ', continuando de onde parou'}`,
+  },
 };
