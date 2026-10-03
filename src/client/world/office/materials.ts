@@ -133,4 +133,6 @@ export interface Looks {
   wall: THREE.MeshToonMaterial;
   trim: THREE.MeshToonMaterial;
   planks: THREE.CanvasTexture[];
+  /** Whatever changes on a server's floor (see FloorPalette.night), told whether this floor is one. */
+  night: ((on: boolean) => void)[];
 }

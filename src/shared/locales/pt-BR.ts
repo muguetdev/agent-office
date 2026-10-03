@@ -3303,6 +3303,7 @@ Opções:
     added: (who: string, name: string) => `🖥️ Novo andar: o servidor ${name}, adicionado por ${who}`,
   },
   serverFloor: {
+    tvConnected: 'Conectado a',
     title: 'Um servidor como andar',
     addServer: 'Adicionar servidor',
     addTip: 'Um andar para um servidor que você gerencia por SSH, em vez de um repositório',

@@ -31,6 +31,17 @@ export function toon(color: THREE.ColorRepresentation, opts: { emissive?: THREE.
   return m;
 }
 
+/**
+ * Paints the shared materials of some colors another color (by their hex, without the #), and the rest
+ * back their own: a server's floor's leather and walnut (see office/server-room.ts). Null puts all back.
+ */
+export function recolor(table: Readonly<Record<string, string>> | null) {
+  for (const [key, m] of cache) {
+    const own = key.split('|')[0];
+    m.color.set(`#${table?.[own] ?? own}`);
+  }
+}
+
 /** A fresh (uncached) toon material, for things whose color animates. */
 export function toonUnique(color: THREE.ColorRepresentation): THREE.MeshToonMaterial {
   return new THREE.MeshToonMaterial({ color, gradientMap: gradientMap() });

@@ -3314,6 +3314,7 @@ Options:
     added: (who: string, name: string) => `🖥️ New floor: the server ${name}, added by ${who}`,
   },
   serverFloor: {
+    tvConnected: 'Connected to',
     title: 'A server as a floor',
     addServer: 'Add a server',
     addTip: 'A floor for a server you manage over SSH, instead of a repository',

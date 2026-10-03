@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import type { Ctx } from '../../core/context';
 import { hintTitle, key, onE } from '../../core/hint';
+import { store } from '../../state';
 import { L } from '../../i18n';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
@@ -29,26 +30,45 @@ export function installTv(ctx: Ctx, deps: TvDeps) {
   tvVideo.autoplay = true;
   const tvTexture = new THREE.VideoTexture(tvVideo);
   tvTexture.colorSpace = THREE.SRGBColorSpace;
-  const tvIdle = (() => {
-    const c = document.createElement('canvas');
-    c.width = 1280;
-    c.height = 720;
-    const g = c.getContext('2d')!;
-    const grad = g.createLinearGradient(0, 0, 1280, 720);
-    grad.addColorStop(0, '#3a0ca3');
-    grad.addColorStop(1, '#4cc9f0');
-    g.fillStyle = grad;
-    g.fillRect(0, 0, 1280, 720);
-    g.fillStyle = '#fff';
-    g.textAlign = 'center';
-    g.font = '900 88px Nunito, ui-rounded, system-ui, sans-serif';
-    g.fillText(L.main.tvTitle, 640, 330);
-    g.font = '700 44px Nunito, ui-rounded, system-ui, sans-serif';
-    g.fillText(L.main.tvIdle, 640, 420);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  })();
+  const idleCanvas = document.createElement('canvas');
+  idleCanvas.width = 1280;
+  idleCanvas.height = 720;
+  const tvIdle = new THREE.CanvasTexture(idleCanvas);
+  tvIdle.colorSpace = THREE.SRGBColorSpace;
+  /** The idle card: the office's, or on a server's floor a terminal with the server's name and address. */
+  let drawn: string | undefined;
+  function drawIdle() {
+    const f = store.currentFloor();
+    const key = f?.ssh ? `${f.name}|${f.ssh.user}@${f.ssh.host}` : '';
+    if (key === drawn) return;
+    drawn = key;
+    const g = idleCanvas.getContext('2d')!;
+    if (f?.ssh) {
+      g.fillStyle = '#07090c';
+      g.fillRect(0, 0, 1280, 720);
+      g.fillStyle = '#39ff7a';
+      g.textAlign = 'left';
+      g.font = '700 46px ui-monospace, Menlo, monospace';
+      const at = `${f.ssh.user}@${f.ssh.host}${f.ssh.port === 22 ? '' : `:${f.ssh.port}`}`;
+      [`$ ssh ${f.id}`, `${L.serverFloor.tvConnected} ${at}`, '', `🖥️  ${f.name}`, '', `${f.ssh.user}@${f.id}:~$ █`].forEach((line, i) => g.fillText(line, 90, 150 + i * 80));
+    } else {
+      const grad = g.createLinearGradient(0, 0, 1280, 720);
+      grad.addColorStop(0, '#3a0ca3');
+      grad.addColorStop(1, '#4cc9f0');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 1280, 720);
+      g.fillStyle = '#fff';
+      g.textAlign = 'center';
+      g.font = '900 88px Nunito, ui-rounded, system-ui, sans-serif';
+      g.fillText(L.main.tvTitle, 640, 330);
+      g.font = '700 44px Nunito, ui-rounded, system-ui, sans-serif';
+      g.fillText(L.main.tvIdle, 640, 420);
+    }
+    tvIdle.needsUpdate = true;
+  }
+  drawIdle();
+  store.on('floors', drawIdle);
+  store.on('floor', drawIdle);
   const tvMat = ctx.office.tvScreen.material as THREE.MeshBasicMaterial;
   tvMat.color.set('#ffffff');
   tvMat.map = tvIdle;

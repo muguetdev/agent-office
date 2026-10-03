@@ -27,6 +27,7 @@ import { wing } from './wing';
 import { beanbags, desks, kiosks } from './seats';
 import { meetingRoom } from './meeting-room';
 import { loft } from './loft';
+import { serverRoom } from './server-room';
 import type { Fixture, Gives, Site } from './fixture';
 
 // The office floor, put together from its fixtures (see fixture.ts): the room and its walls, the desks
@@ -62,6 +63,7 @@ function floorPlan() {
     kitchen,
     plants,
     lamps,
+    serverRoom,
     wing,
     signs,
     loft,
@@ -85,7 +87,7 @@ export function buildOffice(): Office {
   const interactables: Interactable[] = [];
   const walls: WallRect[] = [];
   // What each floor paints its own way (see setLook): the walls, their trim, the planks.
-  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim), planks: [] };
+  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim), planks: [], night: [] };
   // The floor's planks, which the stack lays the floor with (and the back office its own).
   const floorTex = floorTexture();
   looks.planks.push(floorTex);
@@ -134,6 +136,7 @@ export function buildOffice(): Office {
       paintPlanks(t.image as HTMLCanvasElement, p);
       t.needsUpdate = true;
     }
+    for (const night of looks.night) night(!!p.night);
   };
 
   const setLevel = (index: number, count: number, wings: readonly number[] = []) => {

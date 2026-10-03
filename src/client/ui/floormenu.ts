@@ -1,5 +1,5 @@
 import './floormenu.css';
-import { cloneLabel, floorPalette } from '../../shared/floors';
+import { cloneLabel, paletteOf } from '../../shared/floors';
 import { ROOF } from '../../shared/rooftop';
 import { L } from '../i18n';
 import type { FloorInfo } from '../../shared/protocol';
@@ -38,7 +38,7 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
 
   const item = (f: FloorInfo, i: number, here: number) => {
     const isHere = f.id === store.floor;
-    const p = floorPalette(f.palette);
+    const p = paletteOf(f);
     const n = Math.abs(i - here);
     const where = isHere ? L.elevator.youAreHere : here < 0 ? '' : `${i > here ? '⬆' : '⬇'} ${i > here ? L.elevator.floorsUp(n) : L.elevator.floorsDown(n)}`;
     const stats: HTMLElement[] = [];

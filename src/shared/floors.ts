@@ -15,6 +15,8 @@ export interface FloorPalette {
   floorAlt: string;
   /** The gaps between planks. */
   seam: string;
+  /** A server's floor (see SERVER_PALETTE): the room's dark, its furniture leather and walnut, and its server racks are out. */
+  night?: boolean;
 }
 
 /** The first is the office as it always looked; every new floor takes the next one nobody has. */
@@ -30,6 +32,12 @@ export const FLOOR_PALETTES: FloorPalette[] = [
   { name: 'Rose', wall: '#ffeaf0', trim: '#e0567f', floor: '#eed3da', floorAlt: '#e4c1cb', seam: '#cea5b2' },
   { name: 'Teal', wall: '#e1f7f6', trim: '#1a9a9a', floor: '#c3e2de', floorAlt: '#b0d7d2', seam: '#92c3bd' },
 ];
+
+/** A server's floor, whatever its number: an executive's office at night, graphite walls, brass trim and dark walnut underfoot. */
+export const SERVER_PALETTE: FloorPalette = { name: 'Night', wall: '#2b2d36', trim: '#c9a227', floor: '#3b2a22', floorAlt: '#33241d', seam: '#1d1410', night: true };
+
+/** How a floor is painted: a server's in SERVER_PALETTE, any other in its own. */
+export const paletteOf = (f: { palette: number; ssh?: unknown } | undefined): FloorPalette => (f?.ssh ? SERVER_PALETTE : floorPalette(f?.palette ?? 0));
 
 export function floorPalette(i: number): FloorPalette {
   return FLOOR_PALETTES[((i % FLOOR_PALETTES.length) + FLOOR_PALETTES.length) % FLOOR_PALETTES.length];

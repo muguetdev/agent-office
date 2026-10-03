@@ -3,7 +3,7 @@
  * the new one's put up with everyone in their seats, and you come in where it has you arrive. Also
  * the floor's paint, down off a roof the map doesn't have, and who's waiting on another floor.
  */
-import { floorPalette } from '../../shared/floors';
+import { paletteOf, type FloorPalette } from '../../shared/floors';
 import { store } from '../state';
 import { $, toast } from '../ui/dom';
 import type { Ctx } from './context';
@@ -22,12 +22,12 @@ export function installMaps(ctx: Ctx, core: CoreState, parts: MapsParts) {
   const { inOffice, plan } = parts.worlds;
 
   /** Which of the floor palettes the walls are painted in now. */
-  let painted = -1;
+  let painted: FloorPalette | undefined;
   function paintFloor() {
-    const p = store.currentFloor()?.palette ?? 0;
+    const p = paletteOf(store.currentFloor());
     if (p === painted) return;
     painted = p;
-    ctx.world().setLook(floorPalette(p));
+    ctx.world().setLook(p);
   }
   // A brand-new floor can arrive before the elevator's list says what color it is.
   store.on('floors', paintFloor);
@@ -79,7 +79,7 @@ export function installMaps(ctx: Ctx, core: CoreState, parts: MapsParts) {
     parts.dog.root.visible = inOffice() && !!store.dog;
     parts.jukebox.playJukebox();
     boards.dressBoards(world);
-    painted = -1;
+    painted = undefined;
     paintFloor();
     parts.arrival.renderProject();
     views.dressUp();

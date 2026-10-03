@@ -1,6 +1,6 @@
 import './elevator.css';
 import type { CloneProgress, FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
-import { cloneLabel, cloneStep, floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
+import { cloneLabel, cloneStep, normalizeRepo, paletteOf, sameRepo } from '../../shared/floors';
 import { ROOF } from '../../shared/rooftop';
 import type { Net } from '../net';
 import { store } from '../state';
@@ -123,7 +123,7 @@ export function openElevator(opts: ElevatorOptions): void {
     // Down in the garage, your floor is somewhere to go back up to.
     const mine = f.id === store.floor;
     const here = mine && !opts.downstairs();
-    const p = floorPalette(f.palette);
+    const p = paletteOf(f);
     const stats: (HTMLElement | string)[] = [];
     // Not one of yours: just its name, and the elevator doesn't stop there.
     if (f.locked) stats.push(h('span', { title: L.access.lockedTip }, '🔒'));
