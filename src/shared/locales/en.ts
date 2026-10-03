@@ -3376,4 +3376,13 @@ Options:
     works: '✅ The office gets in:',
     fails: '❌ The office can’t get in yet:',
   },
+  serverRoles: {
+    db: 'Databases',
+    security: 'Security & network',
+    apps: 'Apps & APIs',
+    monitoring: 'Monitoring',
+    frontends: 'Frontends & deploys',
+    team: 'Whole team',
+    teamTip: 'Hires one worker for each area at the next free desks: databases, security, apps, monitoring, frontends',
+  },
 };

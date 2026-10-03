@@ -29,6 +29,7 @@ import { openRepoPulls, workerRepos } from '../../ui/repos';
 import { openTerminal } from '../../ui/terminal';
 import { hiringPaused, usageLabel, usageTitle } from '../../ui/usage';
 import { L, placeLabel } from '../../i18n';
+import { serverRoles } from './server-roles';
 
 // The kinds of thing you can use that this defines (see InteractKinds in world/types.ts).
 declare module '../../world/types' {
@@ -142,6 +143,21 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
       worktreeOption: !!store.project?.branch,
       repoOptions: repoChoices(),
       countOption: freeSeats().length,
+      // On a server's floor: a worker for each of its areas (see server-roles.ts), one at a time or all at once.
+      ...(store.currentFloor()?.ssh
+        ? {
+            presets: serverRoles().map((r) => ({ label: `${r.icon} ${r.label}`, text: r.prompt })),
+            extra: {
+              label: `👥 ${L.serverRoles.team}`,
+              title: L.serverRoles.teamTip,
+              run: (close: () => void) => {
+                close();
+                const seats = [deskId, ...freeSeats().filter((id) => id !== deskId)];
+                serverRoles().forEach((r, i) => seats[i] && hire(seats[i], r.prompt));
+              },
+            },
+          }
+        : {}),
       // Several at once: this desk, then the next free ones, all hired the same way.
       onSubmit: (text, o) => {
         for (const id of [deskId, ...freeSeats().filter((id) => id !== deskId)].slice(0, o.count)) hire(id, text || undefined, o.worktree, o.provider, o.model, o.effort, undefined, o.repos);

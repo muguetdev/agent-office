@@ -3365,4 +3365,13 @@ Opções:
     works: '✅ O escritório entra:',
     fails: '❌ O escritório ainda não entra:',
   },
+  serverRoles: {
+    db: 'Banco de dados',
+    security: 'Segurança e rede',
+    apps: 'Apps e APIs',
+    monitoring: 'Monitoramento',
+    frontends: 'Frontends e deploys',
+    team: 'Equipe completa',
+    teamTip: 'Contrata um worker para cada área nas próximas mesas livres: banco de dados, segurança, apps, monitoramento e frontends',
+  },
 };

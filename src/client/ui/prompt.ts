@@ -22,6 +22,10 @@ export interface PromptOptions {
   providerOption?: boolean;
   /** Other floors' projects a new worker in its own worktree can work in too (see WorkerInfo.repos). */
   repoOptions?: { id: string; name: string }[];
+  /** Ready-made first tasks, a button each, that fill the prompt in (a server's floor's areas, say). */
+  presets?: { label: string; text: string }[];
+  /** A button beside them that does something else instead of filling it in (hire the whole team). */
+  extra?: { label: string; title?: string; run(close: () => void): void };
   /** Hire up to this many at once (the free seats on the floor), the rest at the next free desks: a "How many?" field. */
   countOption?: number;
   onSubmit(text: string, opts: { worktree: boolean; provider?: AgentProvider; model?: string; effort?: AgentEffort; repos: string[]; count: number }): void;
@@ -76,12 +80,21 @@ export function openPrompt(opts: PromptOptions) {
   const count = h('input', { type: 'number', min: 1, max, value: 1, style: 'width:72px;font:inherit;font-weight:700;border:3px solid var(--ink);border-radius:10px;padding:4px 8px' }) as HTMLInputElement;
   const countRow = max > 1 ? h('label', { style: 'display:flex;gap:8px;align-items:center;margin:10px 0 0;font-weight:700', title: L.prompt.howManyTip(max) }, L.prompt.howMany, count, h('span', { style: 'color:var(--muted);font-weight:600' }, L.prompt.upTo(max))) : null;
   const submit = h('button.btn.primary', { type: 'submit' }, opts.submitLabel ?? L.main.send);
+  const presetRow =
+    opts.presets?.length || opts.extra
+      ? h(
+          'div.seg',
+          { style: 'flex-wrap:wrap;margin:0 0 10px' },
+          ...(opts.presets ?? []).map((p) => h('button.btn', { type: 'button', onclick: () => ((ta.value = p.text), ta.focus()) }, p.label)),
+          opts.extra ? h('button.btn.primary', { type: 'button', title: opts.extra.title, onclick: () => opts.extra!.run(() => modal.close()) }, opts.extra.label) : null,
+        )
+      : null;
   const cancel = h('button.btn', { type: 'button' }, L.hints.cancel);
   const form = h(
     'form.modal',
     { role: 'dialog', 'aria-label': opts.title },
     h('header', {}, h('h2', {}, opts.title)),
-    h('div.body', {}, opts.warning ? h('p.setting-note.bad', { style: 'margin:0 0 10px', role: 'alert' }, opts.warning) : null, opts.subtitle ? h('p', { style: 'margin:0 0 10px;font-weight:700;color:var(--muted)' }, opts.subtitle) : null, dictateField(ta), provider?.element ?? null, countRow, wtRow, repos.element),
+    h('div.body', {}, opts.warning ? h('p.setting-note.bad', { style: 'margin:0 0 10px', role: 'alert' }, opts.warning) : null, opts.subtitle ? h('p', { style: 'margin:0 0 10px;font-weight:700;color:var(--muted)' }, opts.subtitle) : null, presetRow, dictateField(ta), provider?.element ?? null, countRow, wtRow, repos.element),
     h('footer', {}, h('span.grow', {}, L.prompt.enterToSend), cancel, submit),
   ) as HTMLFormElement;
   form.noValidate = true;
