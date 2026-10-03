@@ -23,8 +23,6 @@ import { L } from '../../i18n';
 
 /** Where the model's cut off indoors, over your feet: under the ceiling and the lamps, over the furniture. */
 const CUT = 2.3;
-/** How far under your feet it still draws: your floor, not the street or the floor below. */
-const BELOW = 0.6;
 /** How far back the camera sits (meters), standing, running and driving, and how steeply it looks down. */
 const DIST = { stand: 15, run: 22, drive: 46 };
 const TILT = THREE.MathUtils.degToRad(56);
@@ -120,7 +118,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   view.append(blipCanvas);
   panel.append(view, bars);
   const camera = new THREE.PerspectiveCamera(38, 1.5, 0.5, 140);
-  const clip = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0), new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)];
+  const clip = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
   let dist: number = DIST.stand;
   let big: { canvas: HTMLCanvasElement; view: TopView; bounds: Bounds; close: () => void } | null = null;
   let bigAt = 0;
@@ -159,13 +157,14 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
    */
   function renderModel(cam: THREE.Camera) {
     const { renderer, scene, me } = ctx;
-    // In the office (not down in the garage, nor up on the roof) the cut goes by the storey's floor, not
-    // your feet: half way up the stairs or up on the loft, the room under you still shows, and the loft
-    // with it, cut over the loft's own head height instead.
-    const office = parts.worlds.inOffice() && !ctx.upTop() && floorY > -1;
-    const base = office ? 0 : floorY;
+    // The ceiling's cut by the level you're on, not your feet: in the office the storey's floor (over the
+    // loft's head height when you're up there), down in the garage or out on the street the street's, so
+    // up the stairs or on a car's roof nothing changes. Nothing's ever cut from under you: the floor you
+    // stand on hides what's below it, and round the building you see down to the street.
+    const inOffice = parts.worlds.inOffice() && !ctx.upTop();
+    const office = inOffice && floorY > -1;
+    const base = office ? 0 : inOffice ? ctx.player.street : floorY;
     clip[0].constant = (office && floorY > 1 ? LOFT.y : base) + CUT;
-    clip[1].constant = -(base - BELOW);
     const hidden: THREE.Object3D[] = [];
     scene.traverseVisible((o) => {
       if ((o as THREE.Sprite).isSprite || (o as THREE.Points).isPoints) hidden.push(o);
@@ -181,7 +180,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // over it with it; outside there's no ceiling, just what's under your feet. On the office's storey
     // nothing's cut from under it: its floor hides the storeys below, and round the building you see down
     // to the street and the lots rather than a dark gap.
-    renderer.clippingPlanes = office ? (underRoof() ? [clip[0]] : []) : underRoof() ? clip : [clip[1]];
+    renderer.clippingPlanes = underRoof() ? [clip[0]] : [];
     renderer.render(scene, cam);
     renderer.clippingPlanes = [];
     renderer.shadowMap.autoUpdate = shadows;
