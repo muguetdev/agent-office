@@ -13,7 +13,7 @@ export function openUpgrade(net: Net) {
   const body = h('div.body.upgrade');
   const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
   const recheck = h('button.btn', { type: 'button', onclick: () => net.send({ t: 'upgrade.check' }) }, L.upgrade.checkAgain);
-  const go = h('button.btn.primary', { type: 'button', onclick: () => net.send({ t: 'upgrade.start' }) }, L.upgrade.now);
+  const go = h('button.btn.primary', { type: 'button', disabled: !store.me.admin, title: store.me.admin ? undefined : L.access.adminsBuilding, onclick: () => net.send({ t: 'upgrade.start' }) }, L.upgrade.now);
   const el = h(
     'div.modal',
     { role: 'dialog', 'aria-label': L.menu.upgrade, style: 'width:min(620px,100%)' },

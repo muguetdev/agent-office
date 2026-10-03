@@ -26,6 +26,7 @@ export function outsideSetting(net: Net, outside: { now: string; live: boolean }
             role: 'radio',
             'aria-checked': String(real === r),
             class: real === r ? 'on' : '',
+            disabled: !store.me.admin,
             onclick: () => r !== !!store.sky?.realTime && net.send({ t: 'sky.clock', real: r }),
           },
           r ? L.settings.skyRealTime : L.settings.skyHourly,

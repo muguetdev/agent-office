@@ -3250,6 +3250,7 @@ Opções:
     aFloor: 'um andar',
   },
   access: {
+    adminsBuilding: 'Só admins mudam as configurações do prédio: valem para todos os andares',
     lockedTip: 'Não é um dos seus andares: um admin pode liberar em 🔑 Contas',
     locked: '🔒 Privado',
     notYoursHere: (name: string) => `🔒 ${name} não é um dos seus andares`,

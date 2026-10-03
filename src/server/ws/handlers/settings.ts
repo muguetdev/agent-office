@@ -8,6 +8,7 @@ import { isThemePick } from '../../../shared/theme.js';
 import { PROMPTS, PROMPT_MAX, isPromptId } from '../../../shared/prompts.js';
 import type { SettingsClientMsg } from '../../../shared/protocol.js';
 import type { Ctx } from '../../office/context.js';
+import type { Client } from '../../office/client.js';
 import { str } from '../../office/input.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
@@ -33,9 +34,20 @@ export const mapNews = (ctx: Ctx, was: string, who?: string) => {
   ctx.toastAll(who ? L.srv.mapChanged(who, `${plan.icon} ${plan.name}`) : L.srv.mapIsNow(`${plan.icon} ${plan.name}`, why));
 };
 
+/**
+ * The building's own settings are the whole building's, every floor's (and each can be another
+ * company's): admins change them. Whether `c` may; if not, they're told so.
+ */
+const admin = (ctx: Ctx, c: Client): boolean => {
+  if (ctx.meOf(c.accountId, c.guest).admin) return true;
+  ctx.warn(c, L.access.adminsBuilding);
+  return false;
+};
+
 export const settingsHandlers = {
   'notify.webhook'(ctx, c, msg) {
     const who = c.peer.name;
+    if (!admin(ctx, c)) return;
     const url = str(msg.url, 4096).trim();
     const err = ctx.webhook.set(url, who);
     ctx.warn(c, err);
@@ -43,6 +55,7 @@ export const settingsHandlers = {
   },
   'notify.test'(ctx, c) {
     const who = c.peer.name;
+    if (!admin(ctx, c)) return;
     void ctx.webhook.test(who).then((err) => ctx.sendTo(c, { t: 'toast', text: err ?? L.srv.testSent, level: err ? 'warn' : 'info' }));
   },
   'machine.limit'(ctx, c, msg) {
@@ -61,6 +74,7 @@ export const settingsHandlers = {
   },
   'upgrade.start'(ctx, c) {
     const who = c.peer.name;
+    if (!admin(ctx, c)) return;
     void ctx.upgrader.start(who).then((err) => {
       if (err) ctx.warn(c, err);
       else ctx.toastAll(L.srv.upgrading(who));
@@ -68,6 +82,7 @@ export const settingsHandlers = {
   },
   'theme.set'(ctx, c, msg) {
     const who = c.peer.name;
+    if (!admin(ctx, c)) return;
     if (!isThemePick(msg.pick)) return;
     if (msg.pick === ctx.themes.state().pick) return;
     ctx.themes.set(msg.pick, who);
@@ -83,6 +98,7 @@ export const settingsHandlers = {
     );
   },
   'sky.clock'(ctx, c, msg) {
+    if (!admin(ctx, c)) return;
     const real = msg.real === true;
     if (real === !!ctx.sky.state.realTime) return;
     ctx.sky.setClock(real);
@@ -90,6 +106,8 @@ export const settingsHandlers = {
   },
   'map.set'(ctx, c, msg) {
     const who = c.peer.name;
+    // Opening the list is anyone's; picking the building's map is an admin's.
+    if (msg.map !== undefined && !admin(ctx, c)) return;
     // Someone opened the list, or picked a map: either way the folder of maps of your own is read again first.
     const was = ctx.maps.pick();
     const reloaded = ctx.maps.reload();
@@ -110,6 +128,7 @@ export const settingsHandlers = {
   },
   'leaveOnMerge.set'(ctx, c, msg) {
     const who = c.peer.name;
+    if (!admin(ctx, c)) return;
     const on = msg.on === true;
     if (on === ctx.leaveOnMerge.on) return;
     ctx.leaveOnMerge.set(on, who);

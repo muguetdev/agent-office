@@ -278,3 +278,19 @@ test("an admin changing a member's floors sends them round again, onto what's th
   await again.close();
   await boss.close();
 });
+
+test("the building's own settings are an admin's: a member is told so, and nothing changes", async () => {
+  const mia = await Browser.open('member', `?floor=${mine}`);
+  const welcome = await mia.take('welcome');
+  for (const msg of [{ t: 'theme.set', pick: 'christmas' }, { t: 'map.set', map: 'castle' }, { t: 'sky.clock', real: !welcome.sky.realTime }, { t: 'leaveOnMerge.set', on: !welcome.leaveOnMerge.on }, { t: 'notify.webhook', url: 'https://hooks.slack.com/services/x' }]) {
+    mia.send(msg);
+    assert.match((await mia.take('toast', (m) => m.level === 'warn')).text, /Admins change the building/, msg.t);
+  }
+  await mia.settle();
+  assert.ok(!mia.inbox.some((m) => m.t === 'theme' || m.t === 'map' || m.t === 'leaveOnMerge' || m.t === 'sky'));
+  // Opening the list of maps is still anyone's.
+  mia.send({ t: 'map.set' });
+  await mia.settle();
+  assert.ok(!mia.inbox.some((m) => m.t === 'toast' && m.level === 'warn'));
+  await mia.close();
+});

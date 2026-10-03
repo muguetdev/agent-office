@@ -143,6 +143,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
             role: 'radio',
             'aria-checked': String(pick === p),
             class: pick === p ? 'on' : '',
+            // The building's settings are every floor's: admins change them.
+            disabled: !store.me.admin,
             onclick: () => {
               if (store.theme.pick !== p) net.send({ t: 'theme.set', pick: p });
             },
@@ -180,7 +182,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
             role: 'radio',
             'aria-checked': String(pick === m.id),
             class: pick === m.id ? 'on' : '',
-            disabled: !!m.error,
+            disabled: !!m.error || !store.me.admin,
             title: m.error ? L.settings2.wontLoad(m.id, m.error) : m.description,
             onclick: () => {
               if (!m.error && store.map.pick !== m.id) net.send({ t: 'map.set', map: m.id });
@@ -266,7 +268,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   const hookActions = h('div.seg', { style: 'margin-top:8px' }, hookTest, hookRemove);
   const paintHook = () => {
     const { webhook, error, lastSentAt } = store.notify;
-    hookActions.classList.toggle('hidden', !webhook);
+    hookActions.classList.toggle('hidden', !webhook || !store.me.admin);
+    for (const el of [hookInput, hookSave]) el.classList.toggle('hidden', !store.me.admin);
     hookSave.textContent = webhook ? L.settings.replace : L.common.save;
     hookStatus.classList.toggle('bad', !!error);
     hookStatus.textContent = !webhook
@@ -390,6 +393,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
             role: 'radio',
             'aria-checked': String(on === value),
             class: on === value ? 'on' : '',
+            disabled: !store.me.admin,
             onclick: () => {
               if (store.leaveOnMerge.on !== value) net.send({ t: 'leaveOnMerge.set', on: value });
             },

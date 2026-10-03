@@ -3261,6 +3261,7 @@ Options:
     aFloor: 'a floor',
   },
   access: {
+    adminsBuilding: 'Admins change the building’s settings: they’re every floor’s',
     lockedTip: "Not one of your floors: an admin can let you onto it in 🔑 Accounts",
     locked: '🔒 Private',
     notYoursHere: (name: string) => `🔒 ${name} isn't one of your floors`,
