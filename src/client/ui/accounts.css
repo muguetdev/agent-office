@@ -7,3 +7,11 @@
 .accounts .team-head .btn { padding: 3px 10px; font-size: 13px; }
 .role { font-size: 11px; font-weight: 900; padding: 1px 7px; border-radius: 999px; border: 2px solid var(--ink); background: #e0f2fe; }
 .role.admin { background: var(--warn); }
+/* Who may go where (ui/access.ts): a member's floors, an invite's, and the bar's open link. */
+.accounts .invite-floors { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.accounts .invite-floors .floors-label { font-size: 12px; font-weight: 800; color: var(--muted); }
+.accounts .floor-checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.accounts .floor-check { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; padding: 2px 8px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; cursor: pointer; }
+.accounts .floor-pick { display: block; padding: 4px 0 10px 18px; }
+.accounts li .btn { white-space: nowrap; }
+.accounts .bar-btns { display: inline-flex; gap: 6px; }

@@ -92,7 +92,7 @@ net.onMessage((msg) => {
 /** Nothing to see up on the roof from here: down to the first floor instead (the 3D office left you up there, say). */
 function offTheRoof() {
   if (store.floor !== ROOF) return;
-  const to = store.floors.find((f) => !f.cloning);
+  const to = store.floors.find((f) => !f.cloning && !f.locked);
   if (to) net.send({ t: 'floor.go', floor: to.id });
 }
 
@@ -101,7 +101,7 @@ const floorSelect = $('floor') as HTMLSelectElement;
 const floorLabel = (f: FloorInfo) => `${f.name}${f.cloning ? ` (${cloneLabel(f.clone)})` : f.waiting ? ` · 🙋 ${f.waiting}` : ''}`;
 
 function renderFloors() {
-  const options = store.floors.map((f) => h('option', { value: f.id, disabled: !!f.cloning }, floorLabel(f)));
+  const options = store.floors.map((f) => h('option', { value: f.id, disabled: !!f.cloning || !!f.locked }, floorLabel(f)));
   if (!store.floors.length) options.push(h('option', { value: '' }, L.lite.noFloors));
   floorSelect.replaceChildren(...options);
   floorSelect.value = store.floor ?? '';

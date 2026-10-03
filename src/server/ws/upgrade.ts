@@ -6,6 +6,7 @@ import { relayUpgrade, tunneledService } from '../relay.js';
 import { sameOrigin } from '../http/util.js';
 import type { Ctx } from '../office/context.js';
 import { onConnection } from './connection.js';
+import { mayUseService } from '../office/access.js';
 
 function refuseUpgrade(socket: Duplex) {
   socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
@@ -23,7 +24,7 @@ export function acceptWebSockets(ctx: Ctx, server: http.Server | https.Server) {
     socket.on('error', () => socket.destroy());
     const tunneled = tunneledService(req, cfg.port, cfg.tailnet, (port) => ctx.services.lookup(port));
     if (tunneled) {
-      if (tunneled.svc !== 'gone' && auth.fromAnyCookie(req)) return relayUpgrade(req, socket, head, tunneled.svc);
+      if (tunneled.svc !== 'gone' && mayUseService(ctx, auth.fromAnyCookie(req), tunneled.svc.workerId)) return relayUpgrade(req, socket, head, tunneled.svc);
       return refuseUpgrade(socket);
     }
     let url: URL;

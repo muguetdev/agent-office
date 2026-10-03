@@ -1,6 +1,8 @@
 // Files a floor's windows show or take: pictures on the walls and the whiteboard, files dropped into
 // a terminal, changed pictures in the Changes window, and the bookshelf's Markdown.
 import type { Floor } from '../../floor.js';
+import type { Session } from '../../auth.js';
+import { floorFor } from '../../office/access.js';
 import { WB_MAX_FILE_BYTES } from '../../../shared/whiteboard.js';
 import { DROP_MAX_BYTES } from '../../../shared/drops.js';
 import type { Ctx } from '../../office/context.js';
@@ -9,8 +11,8 @@ import { readBody, readBytes, sameOrigin, send } from '../util.js';
 import type { Route } from '../router.js';
 import { L } from '../../i18n.js';
 
-// Which floor a request is about: its boards and its workers.
-export const floorParam = (ctx: Ctx, url: URL): Floor | undefined => ctx.floors.get(url.searchParams.get('floor') ?? '');
+// Which floor a request is about (its boards and its workers): one the session may go to (see access.ts).
+export const floorParam = (ctx: Ctx, url: URL, session: Session): Floor | undefined => floorFor(ctx, session, url.searchParams.get('floor'));
 
 export const fileRoutes = {
   image: {
@@ -36,8 +38,8 @@ export const fileRoutes = {
   whiteboardFile: {
     path: '/api/whiteboard/file',
     auth: 'session',
-    async handle(ctx, { req, res, url }) {
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { req, res, url, session }) {
+      const floor = floorParam(ctx, url, session);
       // Pictures on the whiteboard. Their ids are hashes of what's in them, so they never change.
       if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
       if (req.method === 'GET') {
@@ -61,8 +63,8 @@ export const fileRoutes = {
   termDrop: {
     path: '/api/term/drop',
     auth: 'session',
-    async handle(ctx, { req, res, url }) {
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { req, res, url, session }) {
+      const floor = floorParam(ctx, url, session);
       // A file dropped or pasted into a worker's terminal, kept on this machine for the terminal to type its path.
       if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
       if (!sameOrigin(req, ctx.cfg)) return send(res, 403, { error: 'Forbidden' });
@@ -84,8 +86,8 @@ export const fileRoutes = {
   changedFile: {
     path: '/api/changes/file',
     auth: 'session',
-    async handle(ctx, { req, res, url }) {
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { req, res, url, session }) {
+      const floor = floorParam(ctx, url, session);
       // A changed picture in the Changes window at a desk: before (old) or after (new) the worker's edits.
       if (req.method !== 'GET') return send(res, 405, { error: 'Method not allowed' });
       const workerId = str(url.searchParams.get('worker'), 32);
@@ -112,8 +114,8 @@ export const fileRoutes = {
     method: 'GET',
     prefix: '/api/docs',
     auth: 'session',
-    async handle(ctx, { res, url, path: p }) {
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { res, url, path: p, session }) {
+      const floor = floorParam(ctx, url, session);
       // The bookshelf: the project's Markdown files, one to read, and the pictures in it (see docs.ts).
       if (!floor) return send(res, 404, { error: L.srv.noSuchFloor });
       if (p === '/api/docs') return send(res, 200, await floor.docs.list());

@@ -28,8 +28,23 @@ if (linkKey) {
     .catch(() => void (error.textContent = L.auth.unreachable));
 }
 
+// The rooftop bar's open link (/bar#<key>): no password, just up to the bar as a guest. Someone
+// already signed in goes up as themselves.
+const barKey = location.pathname === '/bar' ? location.hash.slice(1) : '';
+if (barKey) {
+  form.hidden = true;
+  sub.textContent = L.access.barWelcome;
+  void fetch('/api/bar', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ key: barKey }) })
+    .then(async (res) => {
+      // The office takes a guest straight up to the roof.
+      if (res.ok) return location.replace('/');
+      error.textContent = ((await res.json().catch(() => ({}))) as { error?: string }).error ?? L.auth.couldNotSignIn;
+    })
+    .catch(() => void (error.textContent = L.auth.unreachable));
+}
+
 // Ask for a name once people have accounts; it's optional while the shared password still works.
-void fetch('/api/login', { cache: 'no-store' })
+if (!barKey) void fetch('/api/login', { cache: 'no-store' })
   .then((r) => r.json())
   .then(({ accounts, shared }: { accounts: boolean; shared: boolean }) => {
     if (!accounts && shared) return;

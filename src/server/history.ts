@@ -39,12 +39,12 @@ export class ChatLog {
     }
   }
 
-  /** Lines whose text or sender holds `needle` (a searchKey), newest first. */
-  search(needle: string, limit: number): { hits: ChatLine[]; more: boolean } {
+  /** Lines whose text or sender holds `needle` (a searchKey), newest first: of the ones `reads` lets through. */
+  search(needle: string, limit: number, reads: (line: ChatLine) => boolean = () => true): { hits: ChatLine[]; more: boolean } {
     const hits: ChatLine[] = [];
     for (let i = this.lines.length - 1; i >= 0; i--) {
       const l = this.lines[i];
-      if (!searchKey(`${l.name}: ${l.text}`).includes(needle)) continue;
+      if (!reads(l) || !searchKey(`${l.name}: ${l.text}`).includes(needle)) continue;
       if (hits.length === limit) return { hits, more: true };
       hits.push(l);
     }
@@ -63,7 +63,7 @@ export class ChatLog {
       try {
         const l = JSON.parse(s) as Partial<ChatLine>;
         if (typeof l.text !== 'string' || typeof l.name !== 'string' || typeof l.at !== 'number') continue;
-        this.lines.push({ from: typeof l.from === 'string' ? l.from : '', name: l.name, color: typeof l.color === 'string' ? l.color : '#4f86f7', text: l.text, at: l.at, ...(l.account === true ? { account: true } : {}) });
+        this.lines.push({ from: typeof l.from === 'string' ? l.from : '', name: l.name, color: typeof l.color === 'string' ? l.color : '#4f86f7', text: l.text, at: l.at, ...(l.account === true ? { account: true } : {}), ...(typeof l.place === 'string' ? { place: l.place } : {}) });
       } catch {
         // a torn last line (the office died mid-write) is skipped
       }

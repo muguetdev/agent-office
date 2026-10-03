@@ -6,6 +6,7 @@ import { h, openModal, timeAgo } from './dom';
 import { confirmDialog } from './prompt';
 import { L } from '../i18n';
 import { copyButton } from './team';
+import { barSection, inviteFloors, memberFloors } from './access';
 
 export const inviteLink = (v: AccountInvite) => `${location.origin}/join#${v.token}`;
 
@@ -40,10 +41,11 @@ export function openAccounts(net: Net) {
   const roleSelect = h('select', { 'aria-label': L.accounts.roleLabel }, h('option', { value: 'member' }, L.accounts.roles.member), h('option', { value: 'admin' }, L.accounts.roles.admin)) as HTMLSelectElement;
   const inviteBtn = h('button.btn.primary', { type: 'submit' }, L.accounts.makeLink);
   const form = h('form.invite-row', {}, nameInput, roleSelect, inviteBtn) as HTMLFormElement;
+  const invitedFloors = inviteFloors(roleSelect);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     inviteBtn.disabled = true;
-    net.send({ t: 'accounts.invite', name: nameInput.value.trim() || undefined, role: roleSelect.value as AccountRole });
+    net.send({ t: 'accounts.invite', name: nameInput.value.trim() || undefined, role: roleSelect.value as AccountRole, floors: invitedFloors.floors() });
   });
 
   const render = () => {
@@ -57,6 +59,7 @@ export function openAccounts(net: Net) {
     body.append(
       h('label', {}, L.accounts.invite),
       form,
+      invitedFloors.el,
       h('p.note', {}, L.accounts.inviteNote),
     );
     if (status) body.append(status);
@@ -81,6 +84,7 @@ export function openAccounts(net: Net) {
           () => net.send({ t: 'accounts.revoke', accountId: a.id }),
         ),
       );
+      const floors = memberFloors(net, a, render);
       list.append(
         h(
           'li',
@@ -89,10 +93,12 @@ export function openAccounts(net: Net) {
           h('span.name', {}, a.name, you ? h('span.you', {}, ` ${L.hud.you}`) : null),
           h('span.role', { class: a.role }, L.accounts.roles[a.role] ?? a.role),
           h('span.keys', { title: L.accounts.invitedBy(a.createdBy) }, seen),
+          floors.button,
           you ? null : role,
           you ? null : revoke,
         ),
       );
+      if (floors.picker) list.append(floors.picker);
     }
     if (!s.accounts.length) list.append(h('li.empty', {}, L.accounts.nobody));
     body.append(h('h4', {}, `${L.accounts.people} `, h('span.count', {}, String(s.accounts.length))), list);
@@ -144,6 +150,7 @@ export function openAccounts(net: Net) {
         s.sharedPassword && !canSwitchOff ? h('b', {}, L.accounts.makeAdminFirst) : null,
       ),
     );
+    body.append(...barSection(net, s));
     if (typing) nameInput.focus();
   };
 
@@ -155,6 +162,7 @@ export function openAccounts(net: Net) {
     }
     fresh = msg.invite;
     nameInput.value = '';
+    invitedFloors.reset();
     status = h('p.team-status.ok', {}, L.accounts.sendLink(msg.invite.name));
     render();
   };

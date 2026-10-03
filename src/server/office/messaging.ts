@@ -3,6 +3,7 @@ import type { Ctx, Messaging, ToastLevel } from './context.js';
 import type { Client } from './client.js';
 import type { Floor } from '../floor.js';
 import type { ServerMsg } from '../../shared/protocol.js';
+import { hears } from './access.js';
 
 /** Sending to the browsers in `ctx.clients`: one, everyone, a floor, or someone's neighbors. */
 export function messaging(ctx: Ctx): Messaging {
@@ -12,7 +13,7 @@ export function messaging(ctx: Ctx): Messaging {
   const broadcast = (msg: ServerMsg, except?: string, droppable = false) => {
     const json = JSON.stringify(msg);
     for (const c of ctx.clients.values()) {
-      if (c.id === except || c.ws.readyState !== WebSocket.OPEN) continue;
+      if (c.id === except || c.ws.readyState !== WebSocket.OPEN || !hears(c, msg.t)) continue;
       if (droppable && c.ws.bufferedAmount > 4 * 1024 * 1024) continue;
       c.ws.send(json);
     }

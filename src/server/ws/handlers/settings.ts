@@ -47,7 +47,7 @@ export const settingsHandlers = {
   },
   'machine.limit'(ctx, c, msg) {
     const who = c.peer.name;
-    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsLimit);
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsLimit);
     const limit = msg.limit === null ? undefined : parseWorkerLimit(msg.limit);
     if (msg.limit !== null && limit === undefined) return ctx.warn(c, L.srv.limitRange(MAX_WORKER_LIMIT));
     const err = ctx.machine.setLimit(limit, who);
@@ -102,7 +102,7 @@ export const settingsHandlers = {
   },
   'language.set'(ctx, c, msg) {
     const who = c.peer.name;
-    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsLanguage);
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsLanguage);
     const lang = matchLocale(typeof msg.lang === 'string' ? msg.lang : undefined);
     if (!lang || lang === ctx.language.state().lang) return;
     ctx.language.set(lang, who);
@@ -119,7 +119,7 @@ export const settingsHandlers = {
   },
   'prompts.set'(ctx, c, msg) {
     const who = c.peer.name;
-    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsPrompts);
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsPrompts);
     if (!isPromptId(msg.id) || (msg.text !== null && typeof msg.text !== 'string')) return;
     const custom = !!ctx.prompts.state().custom[msg.id];
     const err = ctx.prompts.setPrompt(msg.id, msg.text === null ? null : str(msg.text, PROMPT_MAX + 1), who);
@@ -131,7 +131,7 @@ export const settingsHandlers = {
   },
   'prompts.agent'(ctx, c, msg) {
     const who = c.peer.name;
-    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsWorker);
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsWorker);
     const ch = msg.choice;
     if (ch !== null && (!ch || typeof ch !== 'object')) return;
     const choice = ch && {

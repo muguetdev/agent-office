@@ -20,6 +20,8 @@ export const floorHandlers = {
     else ctx.goToFloor(c, floor, arrivalSpot(msg.at));
   },
   'floor.repos'(ctx, c, msg) {
+    // The office's own GitHub's repositories, and cloning one into a floor: admins (see access.ts).
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.sendTo(c, { t: 'floor.repos', repos: [], error: L.access.adminsAdd });
     void ctx.building.repos(msg.refresh === true).then(
       (repos) => ctx.sendTo(c, { t: 'floor.repos', repos }),
       (err: Error) => ctx.sendTo(c, { t: 'floor.repos', repos: [], error: L.srv.listReposFailed(err.message) }),
@@ -27,6 +29,7 @@ export const floorHandlers = {
   },
   'floor.add'(ctx, c, msg) {
     const who = c.peer.name;
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.sendTo(c, { t: 'floor.added', repo: str(msg.repo, 200), error: L.access.adminsAdd });
     const repo = str(msg.repo, 200);
     void ctx.building
       .add(
@@ -50,7 +53,7 @@ export const floorHandlers = {
   },
   'floor.cancel'(ctx, c, msg) {
     const who = c.peer.name;
-    const admin = ctx.meOf(c.accountId).admin;
+    const admin = ctx.meOf(c.accountId, c.guest).admin;
     const id = str(msg.floor, 64);
     const def = ctx.building.pending().find((d) => d.id === id);
     const err = ctx.building.cancel(id, L.clone.stoppedBy(who), (owner) => admin || (!!owner && owner === c.accountId));
@@ -60,7 +63,7 @@ export const floorHandlers = {
   'floor.remove'(ctx, c, msg) {
     const who = c.peer.name;
     // Everyone's workers on it stop: admins do it.
-    if (!ctx.meOf(c.accountId).admin) return ctx.warn(c, L.srv.adminsFloor);
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsFloor);
     const id = str(msg.floor, 64);
     const r = ctx.building.remove(id, who);
     if (typeof r === 'string') return ctx.warn(c, r);
@@ -72,7 +75,7 @@ export const floorHandlers = {
   'floor.projectsDir'(ctx, c, msg) {
     const who = c.peer.name;
     // It's a folder on the office's machine that `gh` writes into: admins pick it.
-    const err = ctx.meOf(c.accountId).admin ? ctx.building.setProjectsDir(str(msg.dir, 1024), who) : L.srv.adminsDir;
+    const err = ctx.meOf(c.accountId, c.guest).admin ? ctx.building.setProjectsDir(str(msg.dir, 1024), who) : L.srv.adminsDir;
     ctx.warn(c, err);
     if (err) return;
     const state = ctx.building.projectsDirState();

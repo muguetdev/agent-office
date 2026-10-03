@@ -8,6 +8,7 @@ import { here, workerOf } from './common.js';
 import type { FeatureHooks, HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
 import { takeBreak } from '../../workers/breaks.js';
+import { mayEnter } from '../../office/access.js';
 
 const CLEANUPS = new Set(['keep', 'worktree', 'all']);
 
@@ -33,7 +34,8 @@ export const workerHandlers = {
     const repos: RepoSource[] = [];
     for (const id of Array.isArray(msg.repos) ? [...new Set(msg.repos.slice(0, MAX_REPOS + 1).map((x) => str(x, 64)))] : []) {
       const other = ctx.floors.get(id);
-      if (!other || other === floor) return ctx.warn(c, other ? L.srv.ownProject : L.srv.projectGone);
+      // Only projects on floors they may go to themselves (see access.ts).
+      if (!other || other === floor || !mayEnter(ctx.accounts, c, other.id)) return ctx.warn(c, other === floor ? L.srv.ownProject : L.srv.projectGone);
       repos.push({ floor: other.id, name: other.def.name, repo: other.def.repo, dir: other.dir });
     }
     // A shell is theirs too: `claude auth login` or `gh auth login` typed there signs them in.
@@ -50,11 +52,11 @@ export const workerHandlers = {
     ctx.withSignIn(c, kind === 'agent' ? ctx.claudeFor(msg.provider ?? floor.workers.officeDefault.provider) : undefined, () => (msg.worktree === true ? ctx.withFreshBase(c, fresh, hire) : hire()));
   },
   'worker.resume'(ctx, c, msg) {
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     ctx.warn(c, w ? w.floor.workers.resume(w.wid) : L.srv.noSuchWorker);
   },
   'worker.rest'(ctx, c, msg) {
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     if (!w) return ctx.warn(c, L.srv.noSuchWorker);
     const on = msg.on === true;
     const live = w.floor.workers.get(w.wid);
@@ -65,7 +67,7 @@ export const workerHandlers = {
   },
   'worker.kill'(ctx, c, msg) {
     const who = c.peer.name;
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     if (!w) return;
     const { floor, info } = w;
     // The worker leaves right away; its worktree is dealt with after that, and the outcome follows.
@@ -77,7 +79,7 @@ export const workerHandlers = {
     });
   },
   'worker.worktree'(ctx, c, msg) {
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     if (!w) return;
     void w.floor.workers.inspectWorktree(w.wid).then((state) => {
       if (state) ctx.sendTo(c, { t: 'worker.worktree', workerId: w.wid, state });
@@ -85,7 +87,7 @@ export const workerHandlers = {
   },
   'worker.rebuild'(ctx, c, msg) {
     const who = c.peer.name;
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     if (!w) return;
     const { floor } = w;
     // With `all`, every worker on the floor whose worktree was deleted, this one first.
@@ -112,7 +114,7 @@ export const workerHandlers = {
   },
   'worker.attach'(ctx, c, msg) {
     const who = c.peer.name;
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     const snap = w?.floor.workers.attach(w.wid, c.id, who);
     if (w && snap) {
       c.attached.add(w.wid);
@@ -127,7 +129,7 @@ export const workerHandlers = {
   },
   'worker.prompt'(ctx, c, msg) {
     const who = c.peer.name;
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     const err = w ? w.floor.workers.prompt(w.wid, str(msg.prompt, 20000), who) : L.srv.noSuchWorker;
     ctx.warn(c, err);
     const issue = w?.info.kind === 'agent' ? issueNumber(msg.issue) : undefined;
@@ -151,7 +153,7 @@ export const workerHandlers = {
   },
   'worker.pr'(ctx, c, msg) {
     const who = c.peer.name;
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     if (!w) return;
     const { floor, wid } = w;
     ctx.withGitHub(c, (as) => void floor.workers.openPr(wid, who, as).then((r) => {
@@ -183,7 +185,7 @@ export const workerHandlers = {
   },
   'term.typing'(ctx, c, msg) {
     // Everyone else in that terminal sees who's typing. A typist says so about once a second.
-    const w = workerOf(ctx, msg.workerId);
+    const w = workerOf(ctx, c, msg.workerId);
     const now = Date.now();
     if (!w || !c.attached.has(w.wid) || now - (c.typingAt.get(w.wid) ?? 0) < TYPING_GAP_MS) return;
     c.typingAt.set(w.wid, now);

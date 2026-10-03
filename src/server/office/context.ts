@@ -130,7 +130,7 @@ export interface FloorHelpers {
 /** Who's signed in (office/people.ts). */
 export interface People {
   /** Who a connection is: its account's current name and role, or an admin guest on the shared password. */
-  meOf(accountId: string | undefined): Me;
+  meOf(accountId: string | undefined, guest?: boolean): Me;
   /** Still signed in: the account wasn't revoked, and the shared password wasn't switched off. */
   stillIn(c: Client): boolean;
   signOut(c: Client): void;

@@ -42,7 +42,9 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
     const n = Math.abs(i - here);
     const where = isHere ? L.elevator.youAreHere : here < 0 ? '' : `${i > here ? '⬆' : '⬇'} ${i > here ? L.elevator.floorsUp(n) : L.elevator.floorsDown(n)}`;
     const stats: HTMLElement[] = [];
-    if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
+    // Not one of yours (see FloorInfo.locked): only its name.
+    if (f.locked) stats.push(h('span', { title: L.access.lockedTip }, '🔒'));
+    else if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
     else {
       if (f.waiting) stats.push(h('span.waiting', { title: L.elevator.workersWaiting }, `🙋 ${f.waiting}`));
       if (f.busy) stats.push(h('span', { title: L.elevator.working }, `👷 ${f.busy}`));
@@ -51,13 +53,13 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
     }
     const btn = h(
       'button.floor-item',
-      { type: 'button', role: 'menuitem', class: isHere ? 'here' : '', disabled: isHere || f.cloning, title: isHere ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : opts.indoors() ? L.elevator.goHere(f.name) : L.elevator.goElevator(f.name) },
+      { type: 'button', role: 'menuitem', class: [isHere ? 'here' : '', f.locked ? 'locked' : ''].join(' ').trim(), disabled: isHere || f.cloning || f.locked, title: f.locked ? L.access.lockedTip : isHere ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : opts.indoors() ? L.elevator.goHere(f.name) : L.elevator.goElevator(f.name) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
-      h('span.floor-text', {}, h('span.floor-name', {}, f.name), h('span.floor-sub', {}, where || (f.repo ?? f.dir))),
+      h('span.floor-text', {}, h('span.floor-name', {}, f.name), h('span.floor-sub', {}, f.locked ? L.access.locked : where || (f.repo ?? f.dir))),
       h('span.floor-stats', {}, ...stats),
     );
     btn.addEventListener('click', () => {
-      if (isHere || f.cloning) return;
+      if (isHere || f.cloning || f.locked) return;
       close();
       opts.go(f.id);
     });
@@ -67,7 +69,7 @@ export function toggleFloorMenu(anchor: HTMLElement, opts: FloorMenuOptions): vo
   const render = () => {
     const floors = store.floors;
     const here = floors.findIndex((f) => f.id === store.floor);
-    const add = h('button.floor-item.add', { type: 'button', role: 'menuitem', title: L.elevator.addTip }, h('span.floor-no', {}, '🛗'), h('span.floor-text', {}, h('span.floor-name', {}, L.menu.elevator), h('span.floor-sub', {}, L.elevator.addProjectDots)));
+    const add = h('button.floor-item.add', { type: 'button', role: 'menuitem', title: L.elevator.addTip }, h('span.floor-no', {}, '🛗'), h('span.floor-text', {}, h('span.floor-name', {}, L.menu.elevator), h('span.floor-sub', {}, store.me.admin ? L.elevator.addProjectDots : L.elevator.floors)));
     add.addEventListener('click', () => {
       close();
       opts.elevator();

@@ -13,7 +13,7 @@ import type { AgentProvider } from './agents.js';
 import type { GhIssue, GhPull, GhState } from './github.js';
 import type { PartyState } from './presence.js';
 import type { MeetingState } from './meetings.js';
-import type { PeerInfo } from './presence.js';
+import type { ChatLine, PeerInfo } from './presence.js';
 import type { QueueState } from './queue.js';
 import type { ServicesState } from './settings.js';
 import type { JailState, WorkerInfo } from './workers.js';
@@ -65,6 +65,8 @@ export interface FloorInfo {
   wing: number;
   /** Its workers in brief, for the building panel on every other floor (see shared/crew.ts). */
   crew?: CrewMember[];
+  /** Not yours to go to: only its name shows, and the elevator doesn't stop there (see server/access.ts). */
+  locked?: boolean;
 }
 
 /** How far a new floor's clone has got, from git's progress. */
@@ -159,7 +161,8 @@ export type PlanClientMsg =
 
 export type FloorServerMsg =
   /** You arrived on another floor: everything on it, replacing the last one's, and where everyone is now. */
-  | ({ t: 'floor.enter'; peers: PeerInfo[] } & FloorView)
+  /** `chat` is the new place's own (see ChatLine.place). */
+  | ({ t: 'floor.enter'; peers: PeerInfo[]; chat?: ChatLine[] } & FloorView)
   | { t: 'floors'; floors: FloorInfo[] }
   /** Sent to whoever asked. */
   | { t: 'floor.repos'; repos: RepoChoice[]; error?: string }

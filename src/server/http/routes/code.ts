@@ -10,8 +10,8 @@ export const codeRoutes = {
   code: {
     prefix: '/api/code/',
     auth: 'session',
-    async handle(ctx, { req, res, url, path: p }) {
-      const floor = floorParam(ctx, url);
+    async handle(ctx, { req, res, url, path: p, session }) {
+      const floor = floorParam(ctx, url, session);
       if (!floor) return send(res, 404, { error: 'No such floor' });
       const workerId = str(url.searchParams.get('worker'), 32);
       if (!workerId || !floor.workers.get(workerId)) return send(res, 404, { error: 'No such worker' });

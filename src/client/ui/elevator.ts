@@ -1,7 +1,7 @@
 import './elevator.css';
 import type { CloneProgress, FloorInfo, RepoChoice, ServerMsg } from '../../shared/protocol';
 import { cloneLabel, cloneStep, floorPalette, normalizeRepo, sameRepo } from '../../shared/floors';
-import { ROOF, ROOF_NAME } from '../../shared/rooftop';
+import { ROOF } from '../../shared/rooftop';
 import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal, timeAgo, toast, type Modal } from './dom';
@@ -124,7 +124,9 @@ export function openElevator(opts: ElevatorOptions): void {
     const here = mine && !opts.downstairs();
     const p = floorPalette(f.palette);
     const stats: (HTMLElement | string)[] = [];
-    if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
+    // Not one of yours: just its name, and the elevator doesn't stop there.
+    if (f.locked) stats.push(h('span', { title: L.access.lockedTip }, '🔒'));
+    else if (f.cloning) stats.push(h('span', { title: f.clone?.detail ?? L.elevator.beingCloned }, cloneLabel(f.clone)));
     else {
       if (f.busy) stats.push(h('span', { title: L.elevator.working }, `👷 ${f.busy}`));
       if (f.waiting) stats.push(h('span.waiting', { title: L.elevator.waiting }, `🙋 ${f.waiting}`));
@@ -133,19 +135,19 @@ export function openElevator(opts: ElevatorOptions): void {
     }
     const btn = h(
       'button.floor-btn',
-      { type: 'button', class: here ? 'here' : '', disabled: f.cloning || here, title: here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name, !!mine) },
+      { type: 'button', class: [here ? 'here' : '', f.locked ? 'locked' : ''].join(' ').trim(), disabled: f.cloning || here || f.locked, title: f.locked ? L.access.lockedTip : here ? L.elevator.onThisFloor : f.cloning ? L.elevator.stillCloning : L.elevator.rideTo(f.name, !!mine) },
       h('span.floor-no', { style: `background:${p.trim}` }, String(i + 1)),
       h(
         'span.floor-text',
         {},
         h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null),
-        h('span.floor-sub', {}, [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
+        h('span.floor-sub', {}, f.locked ? L.access.locked : [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
         f.cloning ? cloneBar(f.clone) : null,
       ),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
     );
     btn.addEventListener('click', () => {
-      if (here || f.cloning) return;
+      if (here || f.cloning || f.locked) return;
       modal.close();
       opts.ride(f.id);
     });
@@ -256,6 +258,12 @@ export function openElevator(opts: ElevatorOptions): void {
   };
 
   const renderAdd = () => {
+    // Adding floors is for admins (the office's own GitHub, and its machine's disk).
+    if (!store.me.admin) {
+      addEl.replaceChildren();
+      addBtn.classList.add('hidden');
+      return;
+    }
     if (!showAdd) {
       const open = h('button.btn', { type: 'button' }, L.elevator.addProject);
       open.addEventListener('click', () => {

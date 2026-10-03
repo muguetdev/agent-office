@@ -26,7 +26,10 @@ export const presence: Slice = {
     },
     'floor.enter'(s, m) {
       s.peers = peersOf(m.peers);
-      return ['peers'];
+      // Each place has its own chat: the new one's (see ChatLine.place).
+      if (!m.chat) return ['peers'];
+      s.chat = m.chat;
+      return ['peers', 'chat'];
     },
     'peer.join': peerUpdate,
     'peer.update': peerUpdate,

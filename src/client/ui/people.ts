@@ -1,4 +1,4 @@
-import { ROOF, ROOF_NAME } from '../../shared/rooftop';
+import { ROOF } from '../../shared/rooftop';
 import { store } from '../state';
 import type { Voice } from '../voice';
 import { $, h } from './dom';
@@ -32,7 +32,7 @@ export function renderPeople(voice: Voice, onEditProfile: () => void, onWalkTo: 
       // Somewhere else in the building: which floor.
       !you && !store.onMyFloor(p)
         ? p.floor === ROOF
-          ? h('span.where', { title: L.hud.onRoof }, `🍸 ${ROOF_NAME}`)
+          ? h('span.where', { title: L.hud.onRoof }, `🍸 ${L.menu.roof}`)
           : h('span.where', { title: L.hud.otherFloor }, `🛗 ${store.floors.find((f) => f.id === p.floor)?.name ?? L.hud.lobby}`)
         : null,
       p.sharing ? h('span', { title: L.hud.sharing }, '🖥️') : null,

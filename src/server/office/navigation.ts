@@ -6,6 +6,8 @@ import type { Ctx, Navigation } from './context.js';
 import type { Client } from './client.js';
 import type { Spot } from './input.js';
 import { floorView, roofView, screensOf } from './views.js';
+import { chatHere, mayEnter, moved, peersFor } from './access.js';
+import { L } from '../i18n.js';
 
 /** Taking people between the floors, the roof and the lobby. */
 export function navigation(ctx: Ctx): Navigation {
@@ -15,11 +17,19 @@ export function navigation(ctx: Ctx): Navigation {
    */
   const goToFloor = (c: Client, floor: Floor, at?: Spot) => {
     if (c.peer.floor === floor.id) return;
+    // Not one of their floors (see access.ts): up to the bar instead, which is everyone's.
+    if (!mayEnter(ctx.accounts, c, floor.id)) {
+      ctx.warn(c, L.access.notYours(floor.def.name));
+      if (c.peer.floor === ROOF) ctx.sendTo(c, { t: 'floor.enter', peers: peersFor(ctx, c), chat: chatHere(ctx, c), ...roofView(ctx) });
+      else goToRoof(c);
+      return;
+    }
+    const was = c.peer.floor;
     const left = leave(c, at);
     Object.assign(c.peer, { floor: floor.id });
-    ctx.sendTo(c, { t: 'floor.enter', peers: [...ctx.clients.values()].map((o) => o.peer), ...floorView(ctx, floor) });
+    ctx.sendTo(c, { t: 'floor.enter', peers: peersFor(ctx, c), chat: chatHere(ctx, c), ...floorView(ctx, floor) });
     screensOf(ctx, c, floor);
-    arrived(c, left);
+    arrived(c, left, was);
     floor.arrived();
     floor.workers.wakeAll();
     ctx.floorsChanged();
@@ -28,19 +38,21 @@ export function navigation(ctx: Ctx): Navigation {
   /** Up to the rooftop bar, by elevator. */
   const goToRoof = (c: Client) => {
     if (c.peer.floor === ROOF) return;
+    const was = c.peer.floor;
     const left = leave(c);
     c.peer.floor = ROOF;
-    ctx.sendTo(c, { t: 'floor.enter', peers: [...ctx.clients.values()].map((o) => o.peer), ...roofView(ctx) });
-    arrived(c, left);
+    ctx.sendTo(c, { t: 'floor.enter', peers: peersFor(ctx, c), chat: chatHere(ctx, c), ...roofView(ctx) });
+    arrived(c, left, was);
     ctx.floorsChanged();
   };
 
   /** Out to the lobby, where the elevator has nowhere to go: the building's last floor was taken off. */
   const toLobby = (c: Client) => {
+    const was = c.peer.floor;
     const left = leave(c);
     delete c.peer.floor;
-    ctx.sendTo(c, { t: 'floor.enter', peers: [...ctx.clients.values()].map((o) => o.peer), ...floorView(ctx, undefined) });
-    arrived(c, left);
+    ctx.sendTo(c, { t: 'floor.enter', peers: peersFor(ctx, c), chat: chatHere(ctx, c), ...floorView(ctx, undefined) });
+    arrived(c, left, was);
   };
 
   /** Off the floor (or the roof) `c` was on, to `at` on the next one, or into its elevator car. */
@@ -60,8 +72,8 @@ export function navigation(ctx: Ctx): Navigation {
     return after;
   };
 
-  const arrived = (c: Client, after: ReturnType<typeof leave>) => {
-    ctx.broadcast({ t: 'peer.update', peer: c.peer }, c.id);
+  const arrived = (c: Client, after: ReturnType<typeof leave>, was: string | undefined) => {
+    moved(ctx, c, was);
     for (const then of after) then();
   };
 

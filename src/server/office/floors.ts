@@ -7,6 +7,7 @@ import type { FloorInfo, ServerMsg } from '../../shared/protocol.js';
 import type { Ctx, FloorHelpers, FloorsOpen } from './context.js';
 import { SLOW_CLIENT_BYTES, type Client } from './client.js';
 import { L } from '../i18n.js';
+import { floorsToEveryone } from './access.js';
 
 /** Finding floors, the elevator's list of them, and taking one off the building. */
 export function floorHelpers(ctx: Ctx): FloorHelpers {
@@ -30,7 +31,7 @@ export function floorHelpers(ctx: Ctx): FloorHelpers {
       const json = JSON.stringify(list);
       if (json === floorsSent) return;
       floorsSent = json;
-      ctx.broadcast({ t: 'floors', floors: list });
+      floorsToEveryone(ctx, list);
     }, 250);
   };
   /** Where someone arriving goes: the floor they asked for, else the first one there is. */
@@ -46,7 +47,7 @@ export function floorHelpers(ctx: Ctx): FloorHelpers {
     // The list without it first, so nobody arrives somewhere (the lobby's panel) that still shows it.
     const list = floorInfos().filter((f) => f.id !== floor.id);
     floorsSent = JSON.stringify(list);
-    ctx.broadcast({ t: 'floors', floors: list });
+    floorsToEveryone(ctx, list);
     for (const c of ctx.clients.values()) {
       if (c.peer.floor === floor.id || (!next && c.peer.floor === ROOF)) {
         if (next) ctx.goToFloor(c, next);

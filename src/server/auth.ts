@@ -10,9 +10,13 @@ const WINDOW_MS = 5 * 60_000;
 /** Sign-in links not used yet; making one more forgets the oldest. */
 const MAX_LINKS = 8;
 
-/** A signed-in browser: with its own account, or (no account) with the shared office password. */
+/**
+ * A signed-in browser: with its own account, or (no account) with the shared office password, or a
+ * `guest` who came in by the rooftop bar's open link and may only go up there (see access.ts).
+ */
 export interface Session {
   account?: Account;
+  guest?: boolean;
 }
 
 export class Auth {
@@ -89,6 +93,13 @@ export class Auth {
     return `${payload}.${this.sign(payload, !!accountId)}`;
   }
 
+  /** A guest's session cookie, for whoever opened the bar's link `barId` (see Accounts.barId). */
+  issueGuest(barId: string): string {
+    const body = { exp: Date.now() + SESSION_TTL_MS, n: randomBytes(8).toString('hex'), g: barId };
+    const payload = Buffer.from(JSON.stringify(body)).toString('base64url');
+    return `${payload}.${this.sign(payload, true)}`;
+  }
+
   /**
    * Who a cookie signs in, if anyone. A revoked account, or the shared password once it's switched
    * off, stops working at once, whatever the cookie's expiry says.
@@ -98,17 +109,20 @@ export class Auth {
     const dot = token.indexOf('.');
     if (dot < 1) return undefined;
     const payload = token.slice(0, dot);
-    let body: { exp?: unknown; u?: unknown };
+    let body: { exp?: unknown; u?: unknown; g?: unknown };
     try {
       body = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     } catch {
       return undefined;
     }
     const accountId = typeof body?.u === 'string' ? body.u : undefined;
+    const barId = typeof body?.g === 'string' ? body.g : undefined;
     const sig = Buffer.from(token.slice(dot + 1));
-    const expected = Buffer.from(this.sign(payload, !!accountId));
+    const expected = Buffer.from(this.sign(payload, !!accountId || !!barId));
     if (sig.length !== expected.length || !timingSafeEqual(sig, expected)) return undefined;
     if (typeof body.exp !== 'number' || body.exp <= Date.now()) return undefined;
+    // A guest only while the bar is open by the same link they came in by.
+    if (barId) return !accountId && barId === this.accounts.barId() ? { guest: true } : undefined;
     if (!accountId) return this.accounts.sharedPassword ? {} : undefined;
     const account = this.accounts.get(accountId);
     return account ? { account } : undefined;
@@ -122,11 +136,12 @@ export class Auth {
    * Signed in to this office on any port of this host. A service tunnel (localhost:5173) carries
    * the cookie you got on the office's own tunnel (localhost:4600), since cookies ignore ports.
    */
-  fromAnyCookie(req: IncomingMessage): boolean {
+  fromAnyCookie(req: IncomingMessage): Session | undefined {
     for (const [name, value] of Object.entries(parseCookies(req.headers.cookie))) {
-      if (OFFICE_COOKIE.test(name) && this.verify(value)) return true;
+      const session = OFFICE_COOKIE.test(name) ? this.verify(value) : undefined;
+      if (session) return session;
     }
-    return false;
+    return undefined;
   }
 
   cookie(req: IncomingMessage, token: string, secure: boolean): string {

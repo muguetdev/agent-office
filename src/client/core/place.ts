@@ -3,13 +3,14 @@
  * has you come in, up on its throne; and where you're standing, to come back to.
  */
 import { ELEVATOR, ELEVATOR_CAR, FLOOR, POLE, SLAB, STOREY, WALL_HEIGHT, inElevator, inWing } from '../../shared/layout';
-import { ROOF, ROOF_NAME } from '../../shared/rooftop';
+import { ROOF } from '../../shared/rooftop';
 import type { Arrival } from '../features/climbing/controller';
 import { rememberSpot, store, type Spot } from '../state';
 import type { Ctx } from './context';
 import type { CoreState } from './ctx';
 import { builtFloors } from './floors';
 import type { Parts } from './parts';
+import { L } from '../i18n';
 
 export function installPlace(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'worlds' | 'seating' | 'climbing' | 'cars'>) {
   const { player, me, net } = ctx;
@@ -55,7 +56,7 @@ export function installPlace(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'worl
     // Sitting, it's where you'd get up to; in a car, where you'd get out.
     const { driver } = parts.cars;
     const at = (driver.active ? driver.wayOut() : player.standingSpot()) ?? player.pos;
-    const name = store.floor === ROOF ? ROOF_NAME : (store.currentFloor()?.name ?? '');
+    const name = store.floor === ROOF ? L.menu.roof : (store.currentFloor()?.name ?? '');
     return { floor: store.floor, name, map: plan().id, x: at.x, y: at.y, z: at.z, facing: player.facing, ...(onThrone() ? { throne: true } : {}) };
   }
 

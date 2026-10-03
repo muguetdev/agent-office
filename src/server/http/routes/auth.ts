@@ -109,5 +109,21 @@ export const authRoutes = {
     },
   },
   logout: { method: 'POST', path: '/api/logout', auth: 'public', handle: (ctx, { req, res }) => send(res, 200, { ok: true }, { 'set-cookie': ctx.auth.clearCookie(req) }) },
-  whoami: { path: '/api/whoami', auth: 'session', handle: (ctx, { res, session }) => send(res, 200, { ok: true, me: ctx.meOf(session.account?.id) }) },
+  whoami: { path: '/api/whoami', auth: 'session', guests: true, handle: (ctx, { res, session }) => send(res, 200, { ok: true, me: ctx.meOf(session.account?.id, session.guest) }) },
+  // The rooftop bar's open link, traded for a guest's session. Someone already in keeps theirs.
+  bar: {
+    method: 'POST',
+    path: '/api/bar',
+    auth: 'public',
+    async handle(ctx, { req, res }) {
+      const guess = await readGuess(ctx, req, res);
+      if (!guess) return;
+      const barId = ctx.accounts.barId();
+      if (!barId || !ctx.accounts.barOpens(str(guess.body.key, 128))) return send(res, 410, { error: L.access.barClosed });
+      ctx.auth.recordSuccess(guess.ip);
+      const now = ctx.auth.fromRequest(req);
+      if (now && !now.guest) return send(res, 200, { ok: true });
+      return send(res, 200, { ok: true }, { 'set-cookie': ctx.auth.cookie(req, ctx.auth.issueGuest(barId), isSecure(req, ctx.cfg)) });
+    },
+  },
 } satisfies Record<string, Route>;

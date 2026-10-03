@@ -8,6 +8,8 @@ export interface Me {
   account?: { name: string; role: AccountRole };
   /** May invite, list and revoke accounts. */
   admin: boolean;
+  /** In by the rooftop bar's open link: up there, and nowhere else in the building. */
+  guest?: boolean;
 }
 
 /** What someone signs in to for their own workers: Claude Code, and the GitHub CLI. */
@@ -44,6 +46,8 @@ export interface AccountInfo {
   createdAt: number;
   createdBy: string;
   lastSeenAt?: number;
+  /** The floors a member may go to (admins go everywhere): none until an admin lets them onto one. */
+  floors?: string[];
   /** In the office right now. */
   online: boolean;
 }
@@ -55,9 +59,18 @@ export interface AccountInvite {
   /** The name the account gets; when missing, whoever opens the link picks one. */
   name?: string;
   role: AccountRole;
+  /** The floors the member it makes may go to. */
+  floors?: string[];
   createdBy: string;
   createdAt: number;
   expiresAt: number;
+}
+
+/** The rooftop bar's open link (/bar#<key>): anyone who has it comes up to the bar as a guest. */
+export interface BarLink {
+  key: string;
+  by: string;
+  at: number;
 }
 
 /** Per-person accounts, for admins (see server/accounts.ts). */
@@ -66,6 +79,8 @@ export interface AccountsState {
   invites: AccountInvite[];
   /** Whether the shared office password still lets people in. */
   sharedPassword: boolean;
+  /** The bar's open link; none while the bar is for the office's own people only. */
+  bar?: BarLink;
 }
 
 export interface TeamMember {
@@ -100,10 +115,14 @@ export type TeamClientMsg =
 export type AccountsClientMsg =
   /** The rest of the accounts messages are for admins only. */
   | { t: 'accounts.get' }
-  | { t: 'accounts.invite'; name?: string; role: AccountRole }
+  | { t: 'accounts.invite'; name?: string; role: AccountRole; floors?: string[] }
   | { t: 'accounts.cancel'; inviteId: string }
   | { t: 'accounts.revoke'; accountId: string }
   | { t: 'accounts.role'; accountId: string; role: AccountRole }
+  /** The floors a member may go to, all of them at once. */
+  | { t: 'accounts.floors'; accountId: string; floors: string[] }
+  /** Open the rooftop bar to anyone with a new link (the old one stops working), or close it. */
+  | { t: 'accounts.bar'; on: boolean }
   /** Let the shared office password sign people in, or stop it. */
   | { t: 'accounts.shared'; on: boolean };
 

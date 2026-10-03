@@ -20,16 +20,19 @@ export const pageRoutes = {
     },
   },
   login: { path: ['/login', '/login.html'], auth: 'public', handle: page('login.html') },
+  // The rooftop bar's open link (/bar#<key>): the sign-in page trades the key for a guest's session (see login.ts).
+  bar: { path: '/bar', auth: 'public', handle: page('login.html') },
   claim: { path: ['/claim', '/claim.html'], auth: 'public', handle: page('claim.html') },
   join: { path: ['/join', '/join.html'], auth: 'public', handle: page('join.html') },
   favicon: { path: '/favicon.svg', auth: 'public', handle: page('favicon.svg') },
-  office: { path: ['/', '/index.html'], auth: 'session', handle: page('index.html') },
+  office: { path: ['/', '/index.html'], auth: 'session', guests: true, handle: page('index.html') },
   // The 2D view: the workers, their terminals and the boards, without the 3D office (lite.ts).
   lite: { path: ['/lite', '/lite.html'], auth: 'session', handle: page('lite.html') },
   /** Anything else in the bundle; last, since it answers every path. */
   bundle: {
     prefix: '/',
     auth: 'session',
+    guests: true,
     handle(ctx, { res, path: p }) {
       const file = publicFile(ctx.publicDir, p);
       if (file) return serveFile(res, file, false);

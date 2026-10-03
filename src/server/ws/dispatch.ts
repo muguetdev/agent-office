@@ -2,6 +2,7 @@ import type { ClientMsg } from '../../shared/protocol.js';
 import type { Ctx } from '../office/context.js';
 import type { Client } from '../office/client.js';
 import { handlers } from './handlers/index.js';
+import { maySend } from '../office/access.js';
 
 type AnyHandler = (ctx: Ctx, c: Client, msg: ClientMsg) => void;
 
@@ -11,6 +12,6 @@ type AnyHandler = (ctx: Ctx, c: Client, msg: ClientMsg) => void;
  * type nobody handles, and so does one whose type only turns into a key (`['ping']`).
  */
 export function dispatch(ctx: Ctx, c: Client, msg: ClientMsg): void {
-  if (typeof msg.t !== 'string' || !Object.hasOwn(handlers, msg.t)) return;
+  if (typeof msg.t !== 'string' || !Object.hasOwn(handlers, msg.t) || !maySend(c, msg.t)) return;
   (handlers[msg.t] as AnyHandler)(ctx, c, msg);
 }

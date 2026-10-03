@@ -2,7 +2,7 @@ import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { existsSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { officeHome } from './config.js';
-import type { AccountInvite, AccountRole, AccountsState } from '../shared/protocol.js';
+import type { AccountInvite, AccountRole, AccountsState, BarLink } from '../shared/protocol.js';
 import { L } from './i18n.js';
 
 export const NAME_MAX = 24;
@@ -21,6 +21,8 @@ export interface Account {
   createdAt: number;
   createdBy: string;
   lastSeenAt?: number;
+  /** The floors a member may go to (see access.ts); admins go everywhere. */
+  floors?: string[];
 }
 
 interface Saved {
@@ -28,7 +30,12 @@ interface Saved {
   invites: AccountInvite[];
   /** Missing means on: offices from before accounts keep working with their password. */
   sharedPassword?: boolean;
+  /** The rooftop bar's open link, while there is one. */
+  bar?: BarLink;
 }
+
+/** Floor ids as they're kept: strings, each once, at most a few hundred. */
+export const cleanFloors = (v: unknown): string[] => (Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length <= 64))].slice(0, 256) : []);
 
 /** Collapses whitespace and drops control characters, so "Ada" and " Ada​" are one name. */
 export function cleanName(v: unknown): string {
@@ -100,7 +107,39 @@ export class Accounts {
       accounts: this.data.accounts.map(({ hash: _h, salt: _s, ...a }) => ({ ...a, online: online.has(a.id) })),
       invites: this.data.invites,
       sharedPassword: this.data.sharedPassword !== false,
+      ...(this.data.bar ? { bar: this.data.bar } : {}),
     };
+  }
+
+  /** Which bar link a guest's session came in by: a new link (or none) turns the old guests away. */
+  barId(): string | undefined {
+    this.sync();
+    return this.data.bar ? digest(`bar:${this.data.bar.key}`).toString('hex').slice(0, 24) : undefined;
+  }
+
+  /** Whether `key` is the bar's open link now. */
+  barOpens(key: string): boolean {
+    this.sync();
+    const bar = this.data.bar;
+    return !!bar && !!key && timingSafeEqual(digest(key), digest(bar.key));
+  }
+
+  /** Opens the bar with a new link (the old one stops working), or closes it. */
+  setBar(on: boolean, by: string): BarLink | undefined {
+    this.sync();
+    if (on) this.data.bar = { key: randomBytes(18).toString('base64url'), by, at: Date.now() };
+    else delete this.data.bar;
+    this.save();
+    return this.data.bar;
+  }
+
+  /** The floors a member may go to, all at once. */
+  setFloors(id: string, floors: string[]): Account | undefined {
+    const a = this.get(id);
+    if (!a) return undefined;
+    a.floors = cleanFloors(floors);
+    this.save();
+    return a;
   }
 
   /** The account for a name and password, or undefined. Takes as long either way. */
@@ -111,7 +150,7 @@ export class Accounts {
     return a && timingSafeEqual(derived, Buffer.from(a.hash, 'hex')) ? a : undefined;
   }
 
-  invite(by: string, role: AccountRole, name?: string): AccountInvite | string {
+  invite(by: string, role: AccountRole, name?: string, floors?: string[]): AccountInvite | string {
     this.sync();
     this.dropExpired();
     const n = cleanName(name);
@@ -127,6 +166,7 @@ export class Accounts {
       token: randomBytes(24).toString('base64url'),
       ...(n ? { name: n } : {}),
       role: role === 'admin' ? 'admin' : 'member',
+      ...(role !== 'admin' && floors?.length ? { floors: cleanFloors(floors) } : {}),
       createdBy: by,
       createdAt: now,
       expiresAt: now + INVITE_TTL_MS,
@@ -178,6 +218,7 @@ export class Accounts {
       salt: salt.toString('hex'),
       createdAt: Date.now(),
       createdBy: invite.createdBy,
+      ...(invite.role === 'member' ? { floors: cleanFloors(invite.floors) } : {}),
     };
     this.data.invites.splice(i, 1);
     this.data.accounts.push(account);
@@ -253,6 +294,7 @@ export class Accounts {
         accounts: Array.isArray(saved.accounts) ? saved.accounts.filter((a) => a && typeof a.id === 'string' && typeof a.hash === 'string') : [],
         invites: Array.isArray(saved.invites) ? saved.invites.filter((v) => v && typeof v.token === 'string') : [],
         ...(saved.sharedPassword === false ? { sharedPassword: false } : {}),
+        ...(saved.bar && typeof saved.bar.key === 'string' && saved.bar.key.length >= 16 ? { bar: saved.bar } : {}),
       };
       this.unreadable = false;
     } catch (err) {

@@ -61,6 +61,8 @@ export interface ChatLine {
   at: number;
   /** Said by someone signed in with their own account. */
   account?: boolean;
+  /** Where it was said: a floor's id, or the roof's. Each place has its own chat; none on lines from before. */
+  place?: string;
 }
 
 /** A line of a worker's terminal that matched a search. */

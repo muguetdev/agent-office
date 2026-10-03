@@ -24,7 +24,7 @@ export function startTimers(ctx: Ctx): () => void {
         c.ws.terminate();
         continue;
       }
-      if (!c.out && (!ctx.stillIn(c) || c.admin !== ctx.meOf(c.accountId).admin)) accountsMoved = true;
+      if (!c.out && (!ctx.stillIn(c) || c.admin !== ctx.meOf(c.accountId, c.guest).admin)) accountsMoved = true;
       c.isAlive = false;
       c.ws.ping();
     }

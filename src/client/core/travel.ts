@@ -116,7 +116,15 @@ export function installTravel(ctx: Ctx, core: CoreState, parts: TravelParts) {
    * stay on that floor, just further down the shaft (or back up it); from the roof, the garage is the
    * bottom floor's.
    */
+  /** A floor that isn't yours (see FloorInfo.locked): you're told so, and go nowhere. */
+  function shut(floorId: string): boolean {
+    const f = store.floors.find((o) => o.id === floorId);
+    if (f?.locked) toast(L.access.notYoursHere(f.name), 'warn');
+    return !!f?.locked;
+  }
+
   function ride(to: string, keepWalking = false): void {
+    if (shut(to)) return parts.walking.stopWalkingTo();
     // A map of its own has no elevator: straight there, and no roof or garage to go to.
     if (!inOffice()) {
       if (to === ROOF || to === GARAGE) {
@@ -130,7 +138,7 @@ export function installTravel(ctx: Ctx, core: CoreState, parts: TravelParts) {
       return switchFloor(to, keepWalking);
     }
     const garage = to === GARAGE;
-    const floorId = garage ? (core.upTop || !store.floor ? builtFloors()[0]?.id : store.floor) : to;
+    const floorId = garage ? (core.upTop || !store.floor ? builtFloors().find((f) => !f.locked)?.id : store.floor) : to;
     if (core.trip || !floorId || (floorId === store.floor && garage === downstairs())) return;
     closeAllModals();
     stopForTrip();
@@ -197,7 +205,7 @@ export function installTravel(ctx: Ctx, core: CoreState, parts: TravelParts) {
     // roof, straight down off it).
     if (core.upTop && !inOffice()) return leaveRoofFor(floorId);
     if (core.upTop || floorId === ROOF) return ride(floorId);
-    if (core.trip || floorId === store.floor) return;
+    if (core.trip || floorId === store.floor || shut(floorId)) return;
     // Outside, the same spot on another floor looks just like this one: the elevator brings you in
     // to that floor instead, into its car.
     if (inOffice() && !indoors()) {
@@ -220,6 +228,7 @@ export function installTravel(ctx: Ctx, core: CoreState, parts: TravelParts) {
   /** Through the ceiling up the ladder, or through the floor down one: the lights dip as you pass. */
   function travel(floorId: string, how: Grip, at: Arrival) {
     if (core.trip) return;
+    if (shut(floorId)) return parts.climbing.climber.abort();
     core.trip = { floor: floorId, how, timer: window.setTimeout(tripFailed, 10_000) };
     fade(true, true);
     setTimeout(() => net.send({ t: 'floor.go', floor: floorId, at }), 170);

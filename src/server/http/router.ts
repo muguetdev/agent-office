@@ -5,6 +5,7 @@ import type { Ctx } from '../office/context.js';
 import { login, loginOptions } from './routes/auth.js';
 import { send } from './util.js';
 import { L } from '../i18n.js';
+import { mayUseService } from '../office/access.js';
 
 /** A request a route answers: `path` is the URL's path, decoded. */
 export interface RouteRequest {
@@ -20,6 +21,8 @@ type Where = { path: string | readonly string[]; prefix?: never } | { prefix: st
 interface Answers {
   /** Only requests with this method; any method when missing, and the route answers the rest itself. */
   method?: 'GET' | 'POST';
+  /** A guest up at the bar (see access.ts) may have it too: the office's page and its bundle. Nothing else. */
+  guests?: true;
 }
 
 /**
@@ -50,8 +53,11 @@ export function requestHandler(ctx: Ctx, routes: readonly Route[]) {
       const tunneled = tunneledService(req, cfg.port, cfg.tailnet, (port) => ctx.services.lookup(port));
       if (tunneled) {
         if (req.method === 'POST' && req.url === RELAY_LOGIN) return await login(ctx, req, res);
-        if (!auth.fromAnyCookie(req)) return signInPage(res, tunneled.port, loginOptions(ctx));
+        const session = auth.fromAnyCookie(req);
+        if (!session) return signInPage(res, tunneled.port, loginOptions(ctx));
         if (tunneled.svc === 'gone') return stoppedPage(res, tunneled.port);
+        // A worker's server on a floor that isn't theirs isn't theirs to open either.
+        if (!mayUseService(ctx, session, tunneled.svc.workerId)) return send(res, 403, { error: L.access.notYourService });
         return relayRequest(req, res, tunneled.svc);
       }
       let url: URL;
@@ -72,7 +78,11 @@ export function requestHandler(ctx: Ctx, routes: readonly Route[]) {
         res.writeHead(302, { location: p === '/lite' ? '/login?next=/lite' : '/login' }).end();
         return;
       }
-      for (const route of signedIn) if (route.auth === 'session' && matches(route, req.method, p)) return await route.handle(ctx, { ...r, session });
+      for (const route of signedIn) {
+        if (route.auth !== 'session' || !matches(route, req.method, p)) continue;
+        if (session.guest && !route.guests) return send(res, 403, { error: L.access.guestsBar });
+        return await route.handle(ctx, { ...r, session });
+      }
     } catch (err) {
       console.error(err);
       if (!res.headersSent) send(res, 500, { error: 'Internal error' });

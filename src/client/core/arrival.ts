@@ -7,7 +7,7 @@
  */
 import { OFFICE_PLAN } from '../../shared/maps';
 import { SLAB, inElevator } from '../../shared/layout';
-import { ROOF, ROOF_NAME } from '../../shared/rooftop';
+import { ROOF } from '../../shared/rooftop';
 import { renderTitle } from '../shared/title';
 import { lastFloor, lastSpot, store, type Spot } from '../state';
 import { routeAccountsMessage } from '../ui/accounts';
@@ -182,7 +182,7 @@ export function installArrival(ctx: Ctx, core: CoreState, parts: ArrivalParts) {
     if (store.floor === ROOF) {
       const n = builtFloors().length;
       $('project-meta').classList.remove('lobby');
-      $('project-name').textContent = `🍸 ${ROOF_NAME}`;
+      $('project-name').textContent = `🍸 ${L.menu.roof}`;
       $('project-meta').textContent = `${L.main.onTopOf(n)} · 🎧 drum & bass`;
       return;
     }

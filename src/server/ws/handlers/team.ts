@@ -14,6 +14,8 @@ export const teamHandlers = {
   },
   'team.invite'(ctx, c, msg) {
     const who = c.peer.name;
+    // A way into the office's machine: admins only.
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.access.adminsTeam);
     const user = str(msg.github, 64);
     void ctx.team.invite(user).then(async (r) => {
       ctx.sendTo(c, { t: 'team.invited', github: user, ...r });
@@ -24,6 +26,7 @@ export const teamHandlers = {
   },
   'team.remove'(ctx, c, msg) {
     const who = c.peer.name;
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.access.adminsTeam);
     const name = str(msg.name, 64);
     void ctx.team.remove(name).then(async (err) => {
       if (err) return ctx.warn(c, err);

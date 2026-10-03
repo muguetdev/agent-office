@@ -12,22 +12,29 @@ import { floorView, roofView, screensOf } from '../office/views.js';
 import { dispatch } from './dispatch.js';
 import { features } from './handlers/index.js';
 import { mapNews } from './handlers/settings.js';
+import { chatHere, firstFloorFor, floorsFor, mayEnter, peersFor, toSeers } from '../office/access.js';
 
 /**
  * Someone came in: where they arrive and who they are, the welcome with everything they see, and
  * then whatever they send, until they leave.
  */
 export function onConnection(ctx: Ctx, ws: WebSocket, url: URL, session: Session) {
-  const { cfg, accounts, clients, chat, building, floors, maps, team, upgrader, ledger, webhook, machine, sky, themes, prompts, leaveOnMerge, signins } = ctx;
-  const { sendTo, broadcast, floorInfos, floorsChanged, arrivalFloor, meOf, accountsChanged, limitsOf } = ctx;
+  const { cfg, accounts, clients, building, floors, maps, team, upgrader, ledger, webhook, machine, sky, themes, prompts, leaveOnMerge, signins } = ctx;
+  const { sendTo, floorInfos, floorsChanged, arrivalFloor, meOf, accountsChanged, limitsOf } = ctx;
   const id = randomBytes(5).toString('hex');
+  const who = { accountId: session.account?.id, guest: session.guest };
   // Back on the floor they were on before a reload, a restart or closing the tab, else the first floor.
   const wanted = url.searchParams.get('floor');
   // Their floor's gone since (taken off the building, or its checkout deleted): up to the roof instead.
   const gone = !!wanted && wanted !== ROOF && !floors.has(wanted);
   // Up on the roof, as long as there's a building under it.
-  const onRoof = (wanted === ROOF || gone) && floors.size > 0;
-  const floor = onRoof ? undefined : arrivalFloor(wanted);
+  let onRoof = (wanted === ROOF || gone) && floors.size > 0;
+  let floor = onRoof ? undefined : arrivalFloor(wanted);
+  // Not one of theirs (any more): the first floor that is, else up to the bar (see access.ts).
+  if (floor && !mayEnter(accounts, who, floor.id)) {
+    floor = firstFloorFor(ctx, who);
+    onRoof = !floor;
+  }
   // Back where they were standing on it too; anywhere else, they arrive by elevator.
   const back = !gone && wanted !== null && (onRoof || floor?.id === wanted);
   const spot = (back && spotFrom(url.searchParams)) || { ...elevatorSpot(), y: 0, rotY: 0 };
@@ -36,8 +43,8 @@ export function onConnection(ctx: Ctx, ws: WebSocket, url: URL, session: Session
   const name = account?.name ?? (str(url.searchParams.get('name'), 24).trim() || `Guest ${id.slice(0, 3)}`);
   const colorParam = url.searchParams.get('color') ?? '';
   const intParam = (k: string) => (url.searchParams.get(k) ? Number(url.searchParams.get(k)) : undefined);
-  const me = meOf(account?.id);
-  const client = newClient(id, ws, { accountId: account?.id, admin: me.admin }, {
+  const me = meOf(account?.id, session.guest);
+  const client = newClient(id, ws, { accountId: account?.id, admin: me.admin, guest: session.guest }, {
     id,
     name,
     color: COLOR_RE.test(colorParam) ? colorParam : '#4f86f7',
@@ -65,29 +72,30 @@ export function onConnection(ctx: Ctx, ws: WebSocket, url: URL, session: Session
   sendTo(client, {
     t: 'welcome',
     you: id,
-    peers: [...clients.values()].map((c) => c.peer),
-    floors: floorInfos(),
-    projectsDir: building.projectsDirState(),
+    peers: peersFor(ctx, client),
+    floors: floorsFor(ctx, client, floorInfos()),
+    // A guest at the bar isn't told how the office is set up: where it keeps its projects, its prompts, its webhook.
+    projectsDir: client.guest ? { dir: '', custom: false } : building.projectsDirState(),
     ice: cfg.iceServers,
-    chat: chat.recent(50),
+    chat: chatHere(ctx, client),
     invites: team.available || !!cfg.tailnet,
     version: upgrader.version,
     upgrade: upgrader.state,
     usage: ledger.state(),
     limits: limitsOf(client).state,
     me,
-    notify: webhook.state(),
+    notify: client.guest ? {} : webhook.state(),
     machine: machine.state(),
     sky: sky.state,
     theme: themes.state(),
     map: maps.state(),
-    prompts: prompts.state(),
+    prompts: client.guest ? { custom: {} } : prompts.state(),
     leaveOnMerge: leaveOnMerge.state(),
     language: ctx.language.state(),
     ...(onRoof ? roofView(ctx) : floorView(ctx, floor)),
   });
   screensOf(ctx, client, floor);
-  broadcast({ t: 'peer.join', peer: client.peer }, id);
+  toSeers(ctx, client, { t: 'peer.join', peer: client.peer }, id);
   if (account) accountsChanged(); // now online
   floorsChanged();
   if (floor) {
@@ -116,7 +124,7 @@ export function onConnection(ctx: Ctx, ws: WebSocket, url: URL, session: Session
     // Each feature lets go of what they had (see FeatureHooks), then of what they had on each floor.
     for (const f of features) f.closed?.(ctx, client);
     for (const floor of floors.values()) for (const f of features) f.closedOn?.(ctx, client, floor);
-    broadcast({ t: 'peer.leave', id });
+    toSeers(ctx, client, { t: 'peer.leave', id });
     if (account) accountsChanged();
     floorsChanged();
   });
