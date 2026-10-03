@@ -3342,7 +3342,7 @@ Options:
     seen: (ago: string) => `looked at ${ago}`,
     adminsRestart: 'Admins can restart them from here.',
     repo: 'Repository it runs (optional)',
-    repoPh: 'owner/name',
+    noRepoPick: '— None —',
     repoNote: 'Its issues and pull requests show on the floor’s boards.',
     saveRepo: 'Link',
     tvConnected: 'Connected to',

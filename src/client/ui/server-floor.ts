@@ -66,12 +66,30 @@ export function openServerFloor(net: Net, floorId?: string) {
       result,
       // The code it runs: its issues and pull requests on the floor's boards.
       h('h4', {}, `🔗 ${L.serverFloor.repo}`),
-      h('form.repo-row', { onsubmit: (e: Event) => (e.preventDefault(), net.send({ t: 'server.repo', floor, repo: repoInput.value.trim() })) }, repoInput, h('button.btn.primary', { type: 'submit' }, L.serverFloor.saveRepo)),
+      h('form.repo-row', { onsubmit: (e: Event) => (e.preventDefault(), net.send({ t: 'server.repo', floor, repo: repoSelect.value })) }, repoSelect, h('button.btn.primary', { type: 'submit' }, L.serverFloor.saveRepo)),
       h('p.note', {}, L.serverFloor.repoNote),
     );
-    repoInput.value = f?.repo ?? '';
+    linked = f?.repo ?? '';
+    fillRepos();
+    // The office's own GitHub's repositories (see Building.repos), asked for again once they're a few minutes old.
+    const r = store.repos;
+    if (!r.loading && (!r.at || Date.now() - r.at > 5 * 60_000 || r.error)) {
+      store.repos = { ...r, loading: true };
+      net.send({ t: 'floor.repos' });
+    }
   };
-  const repoInput = h('input', { type: 'text', maxlength: 200, placeholder: L.serverFloor.repoPh, autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
+  /** The repositories the office's GitHub can see, to pick the one the server runs from: none at the top, the linked one picked. */
+  const repoSelect = h('select.repo-pick', { 'aria-label': L.serverFloor.repo }) as HTMLSelectElement;
+  let linked = '';
+  const fillRepos = () => {
+    const r = store.repos;
+    const names = [...new Set([...(linked ? [linked] : []), ...r.list.map((x) => x.name)])].sort((a, b) => a.localeCompare(b));
+    repoSelect.replaceChildren(
+      h('option', { value: '' }, r.loading && !r.list.length ? L.common.loading : L.serverFloor.noRepoPick),
+      ...names.map((n) => h('option', { value: n, selected: n === linked }, `${r.list.find((x) => x.name === n)?.private ? '🔒 ' : ''}${n}`)),
+    );
+    repoSelect.value = linked;
+  };
   let tested: ((ok: boolean, output: string) => void) | null = null;
 
   onMessage = (msg) => {
@@ -90,7 +108,8 @@ export function openServerFloor(net: Net, floorId?: string) {
     net.send({ t: 'server.key', floor: floorId });
   } else body.append(h('p.note', {}, L.serverFloor.intro), form);
 
-  const modal = openModal(el, { onClose: () => (onMessage = null) });
+  const offRepos = store.on('repos', fillRepos);
+  const modal = openModal(el, { onClose: () => ((onMessage = null), offRepos()) });
   close.addEventListener('click', () => modal.close());
   if (!floorId) setTimeout(() => name.focus(), 30);
 }

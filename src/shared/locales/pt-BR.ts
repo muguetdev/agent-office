@@ -3331,7 +3331,7 @@ Opções:
     seen: (ago: string) => `visto ${ago}`,
     adminsRestart: 'Admins podem reiniciar por aqui.',
     repo: 'Repositório que roda nele (opcional)',
-    repoPh: 'dono/nome',
+    noRepoPick: '— Nenhum —',
     repoNote: 'Os chamados e pull requests dele aparecem nos quadros do andar.',
     saveRepo: 'Ligar',
     tvConnected: 'Conectado a',
