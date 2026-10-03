@@ -11,7 +11,7 @@ export type CarKind = 'lambo' | 'ferrari' | 'bmw';
 /** A car's footprint (nose to tail along its length), and how high its body and its roof come up. */
 export const CAR = { length: 4.6, width: 2, body: 0.82, roof: 1.12 } as const;
 /** How high each kind's roof comes up: a sedan stands taller than the supercars. */
-export const CAR_ROOF: Record<CarKind, number> = { lambo: CAR.roof, ferrari: CAR.roof, bmw: 1.34 };
+export const CAR_ROOF: Record<CarKind, number> = { lambo: CAR.roof, ferrari: 1.16, bmw: 1.42 };
 
 /** The building's footprint, walls included: the garage is under it. */
 const B = { minX: FLOOR.minX - WALL_T, maxX: FLOOR.maxX + WALL_T, minZ: FLOOR.minZ - WALL_T, maxZ: FLOOR.maxZ + WALL_T } as const;
@@ -76,6 +76,8 @@ export type CarSeat = 'driver' | 'passenger';
  * in it, the roof comes off.
  */
 export const SEATS: Record<CarSeat, { x: number; z: number }> = { driver: { x: 0.42, z: -0.5 }, passenger: { x: -0.42, z: -0.5 } };
+/** Where each kind's front seats are: the sedan's sit further forward, ahead of its back seat. */
+export const SEATS_OF: Record<CarKind, Record<CarSeat, { x: number; z: number }>> = { lambo: SEATS, ferrari: SEATS, bmw: { driver: { x: 0.38, z: 0.05 }, passenger: { x: -0.38, z: 0.05 } } };
 export const SEAT_HIPS = 0.45;
 
 /** A car where it is and how it's going: `speed` in m/s along its nose (negative in reverse), `steer` the front wheels' angle (+ is left). */

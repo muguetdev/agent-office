@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAR, CARS, CAR_ROOF, SEATS, carPoint, type Box, type CarDef, type CarKind, type CarPose, type CarSeat, type CarState } from '../../../shared/garage';
+import { CAR, CARS, CAR_ROOF, SEATS, SEATS_OF, carPoint, type Box, type CarDef, type CarKind, type CarPose, type CarSeat, type CarState } from '../../../shared/garage';
 import { FLOOR, SLAB, STREET_Y, WALL_T, streetBelow } from '../../../shared/layout';
 import type { Collider, Interactable } from '../../world/types';
 import type { Fixture, StreetSite } from '../../world/office/fixture';
@@ -103,6 +103,8 @@ const CAR_COLORS: Record<string, string> = {
   Caliper: '#e63946',
   CaliperBlue: '#1c69d4',
   Roundel: '#1c69d4',
+  Plate: '#f4f6f8',
+  PlateBand: '#1d4fa8',
   Chrome: '#c9ccd6',
   Badge: '#ffd400',
   Seat: '#3a3340',
@@ -349,7 +351,7 @@ export class Fleet {
   seatAt(i: number, seat: CarSeat): { x: number; y: number; z: number; rotY: number } | undefined {
     const v = this.cars[i];
     if (!v) return undefined;
-    const s = SEATS[seat];
+    const s = SEATS_OF[v.def.kind][seat];
     const at = carPoint(v.pose, s.x, s.z);
     return { x: at.x, y: this.street, z: at.z, rotY: v.pose.rotY };
   }

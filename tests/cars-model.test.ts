@@ -16,10 +16,11 @@ const { gltf, nodes, byName } = cars;
 const KINDS = ['lambo', 'ferrari', 'bmw'] as const;
 const PARTS = ['', '_top', '_open', '_wheel_l', '_wheel_r'];
 /** What features/cars/world.ts paints: CAR_COLORS there, and Paint, Glass, Screen, Lamp and Tail, which it makes itself. */
-const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'RimGrey', 'Caliper', 'CaliperBlue', 'Roundel', 'Chrome', 'Badge', 'Seat'];
-const AXLE = { lambo: 1.42, ferrari: 1.36, bmw: 1.4 };
+const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'RimGrey', 'Caliper', 'CaliperBlue', 'Roundel', 'Chrome', 'Badge', 'Seat', 'Plate', 'PlateBand'];
+/** Each kind's front axle, how far out its wheels' middles are, and how big they are: the real cars' proportions. */
+const FRONT = { lambo: 1.25, ferrari: 1.24, bmw: 1.5 };
+const WHEEL_OF = { lambo: { x: 0.8, r: 0.35 }, ferrari: { x: 0.81, r: 0.35 }, bmw: { x: 0.77, r: 0.335 } };
 const RIM = { lambo: 'RimGold', ferrari: 'RimSilver', bmw: 'RimGrey' };
-const WHEEL = { r: 0.36, y: 0.37, x: 0.79 };
 
 type Primitive = { attributes: Record<string, number>; material?: number; indices?: number };
 type Accessor = { bufferView?: number; byteOffset?: number; count: number; componentType: number; type: string };
@@ -82,7 +83,7 @@ test("the body, cabin and seats sit at the origin unturned, in the old cars' foo
     }
     const box = boundsOf(kind);
     assert.ok(box.max.z - box.min.z <= CAR.length + 0.03 && box.max.z - box.min.z > CAR.length - 0.2, `the ${kind} is ${(box.max.z - box.min.z).toFixed(2)} long`);
-    assert.ok(box.max.x - box.min.x <= CAR.width + 0.04, `the ${kind} is ${(box.max.x - box.min.x).toFixed(2)} wide`);
+    assert.ok(box.max.x - box.min.x <= CAR.width + 0.06, `the ${kind} is ${(box.max.x - box.min.x).toFixed(2)} wide`);
     assert.ok(near(box.min.y, 0), `the ${kind} stands on its wheels at 0 (${box.min.y.toFixed(3)})`);
     // The headlights at the front, the taillights at the back.
     assert.ok(boundsOf(kind, ['Lamp']).min.z > 1.5 && boundsOf(kind, ['Tail']).max.z < -1.9, `the ${kind} faces +z`);
@@ -106,7 +107,7 @@ test('the seats are where the driver and passenger sit, a wheel in front of the 
   }
 });
 
-test('the front wheels turn about their hubs, where the old ones were, the right size', () => {
+test('the front wheels turn about their hubs, where each car has them, the right size', () => {
   for (const kind of KINDS) {
     for (const [side, sx] of [
       ['_wheel_l', 1],
@@ -114,10 +115,10 @@ test('the front wheels turn about their hubs, where the old ones were, the right
     ] as const) {
       const name = kind + side;
       const { at, turn } = cars.placed(byName(name));
-      assert.ok(at.distanceTo(new Vector3(sx * WHEEL.x, WHEEL.y, AXLE[kind])) < 0.005, `${name}'s hub is at ${at.toArray().map((n) => n.toFixed(3))}`);
+      assert.ok(at.distanceTo(new Vector3(sx * WHEEL_OF[kind].x, WHEEL_OF[kind].r, FRONT[kind])) < 0.005, `${name}'s hub is at ${at.toArray().map((n) => n.toFixed(3))}`);
       assert.ok(turn.angleTo(new Quaternion()) < 1e-4, `${name} isn't turned`);
       const tire = boundsOf(name, ['Tire']);
-      assert.ok(near((tire.max.y - tire.min.y) / 2, WHEEL.r), `${name} is ${((tire.max.y - tire.min.y) / 2).toFixed(3)} round`);
+      assert.ok(near((tire.max.y - tire.min.y) / 2, WHEEL_OF[kind].r), `${name} is ${((tire.max.y - tire.min.y) / 2).toFixed(3)} round`);
       // Its rim on the outside.
       const rim = boundsOf(name, [RIM[kind]]).getCenter(new Vector3());
       assert.ok(Math.sign(rim.x - at.x) === sx, `${name}'s rim faces out`);

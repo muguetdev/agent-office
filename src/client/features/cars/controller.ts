@@ -1,4 +1,4 @@
-import { CAR, SEATS, carFits, carPoint, drive, onPavement, type Box, type CarPose, type CarSeat, type Pedals } from '../../../shared/garage';
+import { CAR, CARS, SEATS_OF, carFits, carPoint, drive, onPavement, type Box, type CarPose, type CarSeat, type Pedals } from '../../../shared/garage';
 import { LOOP_PAVED, nearLoop } from '../../../shared/scenic';
 import type { PlayerController } from '../../player';
 import type { Fleet } from './world';
@@ -94,7 +94,7 @@ export class Driver {
     if (car === null || seat === null) return null;
     const pose = this.fleet.cars[car].pose;
     const y = this.fleet.seatAt(car, seat)!.y;
-    const s = SEATS[seat];
+    const s = SEATS_OF[CARS[car].kind][seat];
     // Far enough out to clear the car's boxes at any angle (turned, they stick out past its sides).
     const out = CAR.width / 2 + 0.8;
     const side = Math.sign(s.x);
