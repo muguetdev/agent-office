@@ -1,8 +1,16 @@
 /* The jukebox */
-.modal.jukebox { width: min(520px, 100%); }
+.modal.jukebox { width: min(600px, 100%); }
 .jb-now { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 3px solid var(--ink); border-radius: 14px; background: var(--paper-2); }
 .jb-now .btn { flex: none; padding: 4px 10px; font-size: 13px; }
 .jb-disc { flex: none; font-size: 30px; line-height: 1; }
 .jb-disc.spin { animation: jb-spin 2.4s linear infinite; }
 @keyframes jb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .jb-disc.spin { animation: none; } }
+/* Its YouTube: the video (the player's laid over this spot, see youtube.ts), and videos to pick */
+.jb-screen { flex: none; aspect-ratio: 16 / 9; max-height: 34vh; margin: 12px 16px 0; border: 3px solid var(--ink); border-radius: 14px; background: #000; }
+.jb-screen[hidden] { display: none; }
+.svc-list li.jb-yt { padding: 6px 10px 6px 6px; gap: 10px; }
+.jb-yt img { flex: none; width: 104px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px; background: var(--paper-2); }
+.jb-yt .svc-main { min-width: 0; }
+.jb-yt .svc-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.jukebox .svc-list li.empty { cursor: default; box-shadow: none; justify-content: center; color: var(--muted); font-weight: 700; }

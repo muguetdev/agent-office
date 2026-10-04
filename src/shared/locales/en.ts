@@ -1704,6 +1704,12 @@ Options:
     cantPlay: "📻 The jukebox can't play that stream in your browser",
     cantYoutube: "▶ YouTube won't let the jukebox play that video (or that playlist)",
     youtube: 'YouTube',
+    ytSearch: 'Search YouTube',
+    ytPlaceholder: 'A song, an artist…',
+    ytSearching: 'Searching YouTube…',
+    ytNothing: 'Nothing found on YouTube',
+    ytFailed: "YouTube didn't answer. Try again",
+    upNext: 'Up next',
     doing: '🎵 at the jukebox',
   },
   where: {

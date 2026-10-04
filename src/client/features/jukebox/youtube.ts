@@ -29,6 +29,8 @@ declare global {
 const ENDED = 0;
 const PLAYING = 1;
 const CUED = 5;
+/** Out of sight but on the page (a browser won't play one that isn't), and never in the way. */
+const HIDDEN = 'position:fixed;right:0;bottom:0;width:200px;height:200px;opacity:0.01;pointer-events:none;z-index:-1';
 /** How far from everyone else it may drift before it's put back (s). */
 const DRIFT = 3;
 
@@ -69,6 +71,12 @@ class YoutubeJukebox {
   private playing: { video: string; startedAt: number } | null = null;
   private volume = 50;
   private errors = 0;
+  private box?: HTMLElement;
+  /** Where on the page it's shown, while the jukebox is open; out of sight otherwise. */
+  private screen: HTMLElement | null = null;
+  private placing = 0;
+  /** Told when the playlist's videos are known, or the video on changes. */
+  readonly listeners = new Set<() => void>();
 
   /** Plays what the office says is on; called again whenever that changes, or just to stay in step. */
   play(want: YoutubeWant, at: () => number) {
@@ -102,7 +110,41 @@ class YoutubeJukebox {
 
   /** On to the next video in the playlist (the ⏭️ on the jukebox). */
   skip() {
-    if (this.want && this.playing) this.report({ t: 'jukebox.yt', at: this.want.startedAt, video: this.nextId(), next: 'skip' });
+    if (this.playing) this.jump(this.nextId());
+  }
+
+  /** Straight to this video (one of the playlist's, from the jukebox's "up next"), for everyone. */
+  jump(video: string) {
+    if (this.want && this.playing) this.report({ t: 'jukebox.yt', at: this.want.startedAt, video, next: 'skip' });
+  }
+
+  /** The playlist's videos, and the one on now. */
+  queue(): { ids: string[]; current?: string } {
+    return { ids: this.ids, current: this.playing?.video };
+  }
+
+  /** Shows the video over `el` (a 16:9 spot in the jukebox), following it while it's there; null hides it again. */
+  show(el: HTMLElement | null) {
+    this.screen = el;
+    cancelAnimationFrame(this.placing);
+    this.place();
+  }
+
+  private place() {
+    const box = this.box;
+    if (!box) return;
+    const el = this.screen;
+    if (!el || !el.isConnected) {
+      box.style.cssText = HIDDEN;
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    box.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:51;border-radius:12px;overflow:hidden`;
+    this.placing = requestAnimationFrame(() => this.place());
+  }
+
+  private told() {
+    for (const f of this.listeners) f();
   }
 
   private nextId(): string {
@@ -113,16 +155,16 @@ class YoutubeJukebox {
   private async create() {
     await loadApi();
     if (this.player) return;
-    // Out of sight but on the page (a browser won't play one that isn't), and never in the way.
-    const box = document.createElement('div');
-    box.style.cssText = 'position:fixed;right:0;bottom:0;width:200px;height:200px;opacity:0.01;pointer-events:none;z-index:-1';
+    const box = (this.box = document.createElement('div'));
+    box.style.cssText = HIDDEN;
     // Its own frame, which tells YouTube which site it's on: the office's pages send no referrer, and
     // without one YouTube won't play in Safari (error 153).
     const frame = document.createElement('iframe');
     const vars = new URLSearchParams({ enablejsapi: '1', autoplay: '1', controls: '0', disablekb: '1', playsinline: '1', rel: '0', origin: location.origin });
-    Object.assign(frame, { width: '200', height: '200', referrerPolicy: 'strict-origin-when-cross-origin', allow: 'autoplay; encrypted-media', src: `https://www.youtube.com/embed/?${vars}` });
+    Object.assign(frame, { width: '100%', height: '100%', referrerPolicy: 'strict-origin-when-cross-origin', allow: 'autoplay; encrypted-media', src: `https://www.youtube.com/embed/?${vars}` });
     box.append(frame);
     document.body.append(box);
+    this.place();
     this.player = new window.YT!.Player(frame, {
       events: {
         onReady: () => {
@@ -164,6 +206,7 @@ class YoutubeJukebox {
       return;
     }
     this.playing = { video, startedAt: w.startedAt };
+    this.told();
     p.loadVideoById({ videoId: video, startSeconds: this.at() });
   }
 
@@ -173,6 +216,7 @@ class YoutubeJukebox {
     this.listTimer = 0;
     this.ids = this.player!.getPlaylist() ?? [];
     this.sync();
+    this.told();
   }
 
   private changed(state: number) {

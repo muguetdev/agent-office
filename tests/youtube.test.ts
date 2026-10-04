@@ -47,3 +47,13 @@ test('the jukebox plays a YouTube playlist, and the first browser to finish a vi
   j.play({ url: 'https://radio.example.com/live.mp3' }, 'Ana');
   assert.equal(j.youtube(j.state().startedAt, 'aaaaaaaaaaa', undefined, true), false);
 });
+
+test("YouTube's search: the videos in a results page, each once, with their channel and length", async () => {
+  const { resultsOf } = await import('../src/server/youtube');
+  const v = (id: string, title: string) => ({ videoRenderer: { videoId: id, title: { runs: [{ text: title }] }, ownerText: { runs: [{ text: 'Chan' }] }, lengthText: { simpleText: '3:10' } } });
+  const page = { contents: { sections: [{ items: [v('aaaaaaaaaaa', 'One'), { ad: true }, v('bbbbbbbbbbb', 'Two'), v('aaaaaaaaaaa', 'One again'), v('bad', 'Bad')] }] } };
+  assert.deepEqual(resultsOf(page), [
+    { id: 'aaaaaaaaaaa', title: 'One', channel: 'Chan', length: '3:10' },
+    { id: 'bbbbbbbbbbb', title: 'Two', channel: 'Chan', length: '3:10' },
+  ]);
+});

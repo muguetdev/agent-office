@@ -34,3 +34,17 @@ export function youtubeLink(raw: string): YoutubeLink | null {
   };
   return out.video || out.list ? out : null;
 }
+
+/** A video, as the jukebox's YouTube search and its "up next" list show it. */
+export interface YoutubeVideo {
+  id: string;
+  title: string;
+  channel?: string;
+  /** "5:22"; none for a live one. */
+  length?: string;
+}
+
+/** A video's own link with a mix that starts from it: put on, it carries on like a radio. */
+export const radioOf = (id: string) => `https://www.youtube.com/watch?v=${id}&list=RD${id}`;
+/** A video's thumbnail. */
+export const thumbOf = (id: string) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;

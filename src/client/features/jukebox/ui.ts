@@ -1,6 +1,7 @@
 import './ui.css';
 import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById } from '../../../shared/jukebox';
 import { youtube } from './youtube';
+import { youtubePanel } from './youtube-ui';
 import type { Net } from '../../net';
 import { store } from '../../state';
 import { h, openModal, toast } from '../../ui/dom';
@@ -19,14 +20,17 @@ export function openJukebox(net: Net, openVolume: () => void) {
   const url = h('input', { type: 'text', placeholder: L.jukebox.urlPlaceholder, 'aria-label': L.jukebox.urlLabel, spellcheck: 'false', autocomplete: 'off' }) as HTMLInputElement;
   const playUrl = h('button.btn.primary', { type: 'button' }, L.jukebox.playUrl);
   const volume = h('button.btn', { type: 'button' }, L.jukebox.volume);
+  const tube = youtubePanel(net);
   const el = h(
     'div.modal.jukebox',
     { role: 'dialog', 'aria-label': 'Jukebox' },
     h('header', {}, h('h2', {}, '🎵 Jukebox'), close),
+    tube.screen,
     h(
       'div.body',
       {},
       now,
+      tube.section,
       h('label', { style: 'margin-top:16px' }, L.jukebox.putTune),
       list,
       h('label', { style: 'margin-top:16px' }, L.jukebox.orStream),
@@ -39,6 +43,7 @@ export function openJukebox(net: Net, openVolume: () => void) {
   const button = (label: string, title: string, send: () => void, primary = false) => h(primary ? 'button.btn.primary' : 'button.btn', { type: 'button', title, onclick: send }, label);
 
   const render = () => {
+    tube.render();
     const j = store.jukebox;
     const stream = j.track === STREAM;
     const yt = j.track === YOUTUBE;
@@ -91,7 +96,14 @@ export function openJukebox(net: Net, openVolume: () => void) {
     if (e.key === 'Enter') play();
   });
 
-  const modal = openModal(el, { doing: L.jukebox.doing, onClose: store.on('jukebox', render) });
+  const off = store.on('jukebox', render);
+  const modal = openModal(el, {
+    doing: L.jukebox.doing,
+    onClose: () => {
+      off();
+      tube.dispose();
+    },
+  });
   close.addEventListener('click', () => modal.close());
   volume.addEventListener('click', () => {
     modal.close();
