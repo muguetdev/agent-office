@@ -7,7 +7,9 @@
 @keyframes jb-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .jb-disc.spin { animation: none; } }
 /* Its YouTube: the video (the player's laid over this spot, see youtube.ts), and videos to pick */
-.jb-screen { flex: none; aspect-ratio: 16 / 9; max-height: 34vh; margin: 12px 16px 0; border: 3px solid var(--ink); border-radius: 14px; background: #000; }
+/* 16:9 of the window's width (min(600px, the page less the backdrop's padding), less its own margins and
+   borders), worked out rather than aspect-ratio, which Safari sizes the other way round in a column. */
+.jb-screen { flex: none; align-self: stretch; height: min(34vh, calc((min(600px, 100vw - 32px) - 38px) * 9 / 16)); margin: 12px 16px 0; border: 3px solid var(--ink); border-radius: 14px; background: #000; }
 .jb-screen[hidden] { display: none; }
 .svc-list li.jb-yt { padding: 6px 10px 6px 6px; gap: 10px; }
 .jb-yt img { flex: none; width: 104px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 9px; background: var(--paper-2); }
