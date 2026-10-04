@@ -21,9 +21,9 @@ export interface JukeboxPlay {
   since: number;
 }
 
-/** How the jukebox fades with distance: the same curve for its tunes (a panner) and a stream (by hand). */
-const MUSIC_REF = 2.5;
-const MUSIC_ROLLOFF = 1.3;
+/** How the jukebox fades with distance, gently, so it fills the floor like background music: the same curve for its tunes (a panner) and a stream (by hand). */
+const MUSIC_REF = 6;
+const MUSIC_ROLLOFF = 0.25;
 
 /** The jukebox on your floor: a tune or a stream, muffled from across the room, at your own volume. */
 export class Jukebox {
@@ -172,7 +172,7 @@ export class Jukebox {
   /** Muffles the jukebox the further you are from it. */
   hearJukebox(now: number) {
     const d = this.jukeboxDistance();
-    const cutoff = d < 5 ? 16000 : Math.max(1600, 16000 * (5 / d) ** 1.5);
+    const cutoff = d < 12 ? 16000 : Math.max(3500, 16000 * (12 / d) ** 1.2);
     if (Math.abs(cutoff - this.musicCutoff) > this.musicCutoff * 0.02) {
       this.musicCutoff = cutoff;
       this.musicTone.frequency.setTargetAtTime(cutoff, now, 0.1);

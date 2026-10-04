@@ -25,9 +25,9 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
   const OFFICE = { x: 0, z: (FLOOR.maxZ + FLOOR.minZ - WING.rows * WING.row) / 2, half: Math.max(FLOOR.maxX, (FLOOR.maxZ - FLOOR.minZ + WING.rows * WING.row) / 2) + 1.5 };
   let tight = false;
   /**
-   * From outside, the sun would fall across everything in the office (it has no roof to stop it), in
-   * shadows that are gone once you step in, where the light's overhead: so out there nothing in the
-   * office takes the sun's shadows. The walls' outsides still do (and their insides never do).
+   * Nothing in the office takes shadows, wherever you look at it from: from outside they'd be the sun's
+   * (it has no roof to stop it), from inside the lamps', and never the same ones. The walls' outsides
+   * still take the sun's (and their insides never take any).
    */
   const sphere = new THREE.Sphere();
   const inOffice = (o: THREE.Mesh) => {
@@ -39,7 +39,7 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
     if (sphere.radius > 12 || y > WALL_HEIGHT) return false;
     return (x > FLOOR.minX && x < FLOOR.maxX && z > FLOOR.minZ && z < FLOOR.maxZ) || (x > WING.minX && x < WING.maxX && z > FLOOR.minZ - WING.rows * WING.row && z <= FLOOR.minZ);
   };
-  let wasOut = false;
+  let wasOn = false;
   let lookAgain = 0;
   const shade = (out: boolean) => {
     ctx.scene.traverse((o) => {
@@ -61,12 +61,12 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
     // A map of its own (the castle) lights itself (see World.mood), and the roof's out under the sky.
     const inside = ctx.inOffice() && !ctx.upTop() && parts.place.indoors();
     indoorness += ((inside ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
-    // Outdoors, looked over now and then for whatever's come in (workers, a box being carried); indoors, put back.
-    const out = ctx.inOffice() && !inside;
+    // Looked over now and then for whatever's come in (workers, a box being carried); on a map of its own, put back.
+    const on = ctx.inOffice();
     lookAgain -= dt;
-    if (out !== wasOut || (out && lookAgain <= 0)) {
-      shade(out);
-      wasOut = out;
+    if (on !== wasOn || (on && lookAgain <= 0)) {
+      shade(on);
+      wasOn = on;
       lookAgain = 0.5;
     }
     const cam = sun.shadow.camera;
