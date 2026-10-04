@@ -2,7 +2,8 @@
  * Life on the street: cars driving round the street and the scenic loop by themselves (a police car, a
  * taxi, an SUV, everyday cars), each on its side of the road, slowing behind one another and stopping
  * for you, your car or anyone's; and people walking up and down both sidewalks, who stop for you too.
- * Only for show, and each browser's own: nobody else sees the same car in the same place.
+ * Each browser's own (nobody else sees the same car in the same place), but solid: you, and the car
+ * you drive, bump into them as into the garage's cars.
  */
 import * as THREE from 'three';
 import type { CarPose } from '../../../shared/garage';
@@ -12,6 +13,7 @@ import { randomLook } from '../../../shared/avatar';
 import type { Ctx } from '../../core/context';
 import { loadModel, palette, piece } from '../../world/models';
 import { Person } from '../../world/character/person';
+import type { Collider } from '../../world/types';
 
 export interface TrafficDeps {
   /** The car you're in, as it's going; null on foot. */
@@ -54,6 +56,8 @@ const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#8338ec', '#ffbe0b'
 
 interface Driver {
   root: THREE.Object3D;
+  /** Its boxes, a slice along it at a time (so a car turned on a bend isn't a big square). */
+  boxes: Collider[];
   dir: 1 | -1;
   s: number;
   cruise: number;
@@ -62,12 +66,15 @@ interface Driver {
 
 interface Walker {
   person: Person;
+  box: Collider;
   z: number;
   x: number;
   dir: 1 | -1;
   pace: number;
 }
 
+/** How long the traffic's cars are (see build_traffic.py LENGTH). */
+const CAR_LENGTH = 4.3;
 /** How close something ahead stops a car (m), and the slowest it creeps along behind another. */
 const STOP_AT = 7;
 const LOOK_AHEAD = 16;
@@ -78,13 +85,19 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
   ctx.scene.add(group);
   const drivers: Driver[] = [];
   const walkers: Walker[] = [];
+  /** A box that's nowhere, until it's put where its car or person is. */
+  const box = (): Collider => {
+    const c: Collider = { minX: 1e9, maxX: 1e9, minZ: 1e9, maxZ: 1e9, top: 0 };
+    ctx.office.colliders.push(c);
+    return c;
+  };
 
   void loadModel('traffic')
     .then(() => {
       for (const f of FLEET) {
         const root = piece('traffic', f.kind, PAINT);
         group.add(root);
-        drivers.push({ root, dir: f.dir, s: f.at * CIRCUIT_LENGTH, cruise: f.speed, speed: f.speed });
+        drivers.push({ root, boxes: [box(), box(), box()], dir: f.dir, s: f.at * CIRCUIT_LENGTH, cruise: f.speed, speed: f.speed });
       }
     })
     .catch(() => {});
@@ -93,7 +106,7 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
       const person = new Person('', SHIRTS[(i * 3 + side * 5) % SHIRTS.length], randomLook());
       person.showLabel(false);
       group.add(person.root);
-      walkers.push({ person, z: z + (i % 2 ? 0.35 : -0.35), x: -WALK_X + ((i * 2 + side) / 10) * WALK_X * 2, dir: i % 2 ? 1 : -1, pace: 1.1 + ((i * 7 + side * 3) % 5) * 0.1 });
+      walkers.push({ person, box: box(), z: z + (i % 2 ? 0.35 : -0.35), x: -WALK_X + ((i * 2 + side) / 10) * WALK_X * 2, dir: i % 2 ? 1 : -1, pace: 1.1 + ((i * 7 + side * 3) % 5) * 0.1 });
     }
   });
 
@@ -109,7 +122,11 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
   ctx.ticks.add('env', ({ t, dt }) => {
     const here = ctx.inOffice() && !ctx.upTop();
     group.visible = here;
-    if (!here) return;
+    if (!here) {
+      // Away from the street: nothing of them to bump into.
+      for (const c of [...drivers.flatMap((d) => d.boxes), ...walkers.map((w) => w.box)]) c.minX = c.maxX = 1e9;
+      return;
+    }
     const street = ctx.player.street;
     group.position.y = street;
     // What a car stops for: you on foot down at the street, the car you're in, the garage's cars, and the people walking.
@@ -132,13 +149,38 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
       const now = onCircuit(d.s, d.dir);
       d.root.position.set(now.x, 0, now.z);
       d.root.rotation.y = now.rotY;
+      // Three slices along it, each an upright box round that part of it as it's turned.
+      const s = Math.sin(now.rotY);
+      const c = Math.cos(now.rotY);
+      const half = 0.95;
+      const len = CAR_LENGTH / 3;
+      d.boxes.forEach((b, k) => {
+        const along = -CAR_LENGTH / 2 + len * (k + 0.5);
+        const mx = now.x + s * along;
+        const mz = now.z + c * along;
+        const ex = Math.abs(c) * half + (Math.abs(s) * len) / 2;
+        const ez = Math.abs(s) * half + (Math.abs(c) * len) / 2;
+        Object.assign(b, { minX: mx - ex, maxX: mx + ex, minZ: mz - ez, maxZ: mz + ez, bottom: street, top: street + 1.4 });
+      });
     });
+    // A car that's come up beside you (on foot) pushes you out of its way, off whichever side is nearer.
+    if (!mine && Math.abs(me.y - street) < 1.5) {
+      for (const b of drivers.flatMap((d) => d.boxes)) {
+        const r = 0.3;
+        if (me.x < b.minX - r || me.x > b.maxX + r || me.z < b.minZ - r || me.z > b.maxZ + r) continue;
+        const outs = [b.minX - r - me.x, b.maxX + r - me.x, b.minZ - r - me.z, b.maxZ + r - me.z];
+        const k = outs.map(Math.abs).indexOf(Math.min(...outs.map(Math.abs)));
+        if (k < 2) me.x += outs[k];
+        else me.z += outs[k];
+      }
+    }
     for (const w of walkers) {
       // Turns round at the ends of its stretch; stops for you (on foot) in its way.
       if (Math.abs(w.x) > WALK_X) w.dir = w.x > 0 ? -1 : 1;
       const blocked = !mine && Math.abs(me.y - street) < 1.5 && Math.abs(me.z - w.z) < 0.9 && (me.x - w.x) * w.dir > 0 && (me.x - w.x) * w.dir < 1.4;
       if (!blocked) w.x += w.dir * w.pace * dt;
       w.person.root.position.set(w.x, 0, w.z);
+      Object.assign(w.box, { minX: w.x - 0.25, maxX: w.x + 0.25, minZ: w.z - 0.25, maxZ: w.z + 0.25, bottom: street, top: street + 1.7 });
       w.person.root.rotation.y = w.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
       w.person.update(dt, t, !blocked, false, w.pace / 1.3);
     }
