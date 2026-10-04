@@ -39,6 +39,9 @@ export function buildWhiteboard(): WhiteboardStand {
   // The writing surface in its aluminium frame; the back is a plain grey panel.
   const frame = mesh(roundedBox(width + 0.14, 0.07, height + 0.14, 0.04), alu, 0, mid, 0);
   frame.rotation.x = Math.PI / 2;
+  // A big flat panel the light comes across side-on speckles in stripes with its own shadow
+  // ("shadow acne"): it casts its shadow on the floor, but takes none itself.
+  frame.receiveShadow = false;
   group.add(frame);
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(width * PX);
