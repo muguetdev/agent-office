@@ -23,6 +23,13 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
   /** How far the back office was built out when the walls were last gone over: building it out makes new ones. */
   let wing = -1;
   const from = new THREE.Vector3();
+  /**
+   * Indoors the shadows only need to cover the room round you, not the whole lot outside: a tighter box,
+   * following you a few meters at a time (so the shadows don't swim as you walk), has finer texels.
+   */
+  const OUTDOORS = { left: -32, right: 32, top: 30, bottom: -30 };
+  const ROOM = 22;
+  let tight = false;
 
   ctx.ticks.add('env', ({ dt }) => {
     const { sun } = parts.stage;
@@ -30,8 +37,21 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
     // A map of its own (the castle) lights itself (see World.mood), and the roof's out under the sky.
     const inside = ctx.inOffice() && !ctx.upTop() && parts.place.indoors();
     indoorness += ((inside ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
+    const cam = sun.shadow.camera;
+    if (inside !== tight) {
+      tight = inside;
+      Object.assign(cam, inside ? { left: -ROOM, right: ROOM, top: ROOM, bottom: -ROOM } : OUTDOORS);
+      cam.updateProjectionMatrix();
+    }
+    // Where the light comes from, before the box moves over to you.
+    from.copy(sun.position).sub(sun.target.position).normalize();
+    if (inside) {
+      const p = ctx.player.pos;
+      sun.target.position.set(Math.round(p.x / 4) * 4, 0, Math.round(p.z / 4) * 4);
+      sun.target.updateMatrixWorld();
+      if (indoorness <= 0.001) sun.position.copy(sun.target.position).addScaledVector(from, 45);
+    }
     if (indoorness > 0.001) {
-      from.copy(sun.position).sub(sun.target.position).normalize();
       sun.position.copy(sun.target.position).addScaledVector(from.lerp(INDOOR_LIGHT.dir, indoorness).normalize(), 45);
       const lamp = INDOOR_LIGHT.lamp * sky.lampsOn;
       if (lamp > sun.intensity) {
