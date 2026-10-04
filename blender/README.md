@@ -9,6 +9,7 @@ changing its script and running it again.
 | --- | --- |
 | `scripts/aokit.py` | The kit every script uses: shapes, one smooth skin, painted patches, rigs and clips, export, review renders |
 | `scripts/build_<name>.py` | One model (or a small set), exported as `src/client/models/<name>.glb` |
+| `scripts/build_traffic.py` | The cars that drive round by themselves (police car, taxi, SUV, two everyday cars), Quaternius's CC0 ones as they come, exported as `src/client/models/traffic.glb` |
 | `scripts/build_cars.py` | The garage's Lambos and Ferraris and the BMW out front, fitted from Quaternius's CC0 low-poly cars (`assets/cars/`) and exported as `src/client/models/cars.glb`: each car's body, cabin, roof-off interior and front wheels as roots of their own |
 | `scripts/build_dog.py`, `scripts/dog_breeds.py` | The office dog in every breed (the presets are in `dog_breeds.py`), each exported as `src/client/models/dog-<breed>.glb` with the same bones, sockets, materials and clips |
 

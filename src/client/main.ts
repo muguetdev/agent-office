@@ -36,6 +36,7 @@ import { installBookshelf } from './features/bookshelf';
 import { installCabinet } from './features/cabinet';
 import { installCarrying } from './features/carrying';
 import { installCars } from './features/cars';
+import { installTraffic } from './features/traffic';
 import { installChat } from './features/chat';
 import { installClimbing } from './features/climbing';
 import { installCoffee } from './features/coffee';
@@ -144,6 +145,7 @@ parts.bargames = installBarGames(ctx, { roof: parts.rooftop.roof, standUp, stopW
 parts.hanging = installHanging(ctx, { gallery: parts.gallery, reach });
 parts.climbing = installClimbing(ctx, { travel: (floorId, how, at) => parts.travel.travel(floorId, how, at), standUp, stopWalking });
 parts.cars = installCars(ctx, { standUp, stopWalking });
+installTraffic(ctx, { myCar: () => parts.cars.driver.pose });
 
 parts.travel = installTravel(ctx, core, parts);
 parts.arrival = installArrival(ctx, core, parts);

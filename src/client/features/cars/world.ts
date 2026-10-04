@@ -304,8 +304,9 @@ export class Fleet {
       const occupied = !!(c.driver || c.passenger) || v.index === mine?.car;
       if (occupied !== v.occupied) {
         v.occupied = occupied;
-        v.top.visible = !occupied;
-        v.open.visible = occupied;
+        // The roof stays on: whoever's in it is hidden, and it's seen from behind (see controller.ts).
+        v.top.visible = true;
+        v.open.visible = false;
         this.show(v);
       }
       if (v.index === mine?.car && mine.driving) {
@@ -428,7 +429,7 @@ export class Fleet {
     const roof = carPoint(p, 0, -0.6);
     const rx = c * 0.6 + s * 0.7;
     const rz = s * 0.6 + c * 0.7;
-    Object.assign(v.colliders[SLICES], { minX: roof.x - rx, maxX: roof.x + rx, minZ: roof.z - rz, maxZ: roof.z + rz, bottom: this.street, top: this.street + (v.occupied ? CAR.body : CAR_ROOF[v.def.kind]) });
+    Object.assign(v.colliders[SLICES], { minX: roof.x - rx, maxX: roof.x + rx, minZ: roof.z - rz, maxZ: roof.z + rz, bottom: this.street, top: this.street + CAR_ROOF[v.def.kind] });
     Object.assign(v.interactable, { x: p.x, z: p.z, y: this.street });
   }
 }

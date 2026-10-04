@@ -105,6 +105,8 @@ export function installPeers(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'puff
       if (!p) continue;
       // Sitting, they're wherever their seat puts them; in a car, right in it as it goes.
       const ride = parts.cars.rideOf(id);
+      // In a car you see the car, not who's in it.
+      r.person.root.visible = !ride;
       const sat = ride ?? (p.seat ? seatOn(plan(), p.seat) : undefined);
       const at = sat ?? p;
       r.target.set(at.x, at.y, at.z);

@@ -35,8 +35,8 @@ export class Driver {
   private bumpedAt = -Infinity;
   /** The way the car pointed last frame, to turn a first-person view along with it. */
   private yaw = 0;
-  /** How the third-person camera was before you got in: it pulls back to see the car. */
-  private camWas: { dist: number; pitch: number } | null = null;
+  /** How the camera was before you got in: it goes behind the car, pulled back to see it, and comes back as it was. */
+  private camWas: { dist: number; pitch: number; view: PlayerController['view'] } | null = null;
 
   constructor(
     private player: PlayerController,
@@ -70,15 +70,12 @@ export class Driver {
     p.moving = false;
     p.vy = 0;
     this.yaw = v.pose.rotY;
-    if (p.view === 'first') {
-      p.camYaw = v.pose.rotY + Math.PI;
-      p.lookPitch = -0.12;
-    } else {
-      this.camWas = { dist: p.camDist, pitch: p.camPitch };
-      p.camDist = Math.max(p.camDist, 9);
-      p.camPitch = Math.min(p.camPitch, 0.32);
-      p.camYaw = v.pose.rotY + Math.PI;
-    }
+    // Always from behind the car, whichever way you were looking on foot.
+    this.camWas = { dist: p.camDist, pitch: p.camPitch, view: p.view };
+    p.view = 'third';
+    p.camDist = Math.max(p.camDist, 9);
+    p.camPitch = Math.min(p.camPitch, 0.32);
+    p.camYaw = v.pose.rotY + Math.PI;
     p.rig = (dt) => this.step(dt);
     p.riding = true;
     this.sit(0);
@@ -141,6 +138,7 @@ export class Driver {
     if (this.camWas) {
       p.camDist = this.camWas.dist;
       p.camPitch = this.camWas.pitch;
+      p.view = this.camWas.view;
       this.camWas = null;
     }
     this.car = null;

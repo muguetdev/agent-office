@@ -7,3 +7,4 @@ use, change and ship, no credit required (given here anyway).
 
 - `sports-car.glb`: the saloon the BMW is made from (its "Sports Car", a three-box saloon).
 - `sports-car-2.glb`: the coupé the Lambos and the Ferraris are made from (its other "Sports Car").
+- `police.glb`, `taxi.glb`, `suv.glb`, `car.glb`, `hatch.glb`: the traffic that drives round by itself (blender/scripts/build_traffic.py).
