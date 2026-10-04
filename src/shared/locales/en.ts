@@ -3385,4 +3385,13 @@ Options:
     team: 'Whole team',
     teamTip: 'Hires one worker for each area at the next free desks: databases, security, apps, monitoring, frontends',
   },
+  autoModel: {
+    chose: (who: string, model: string, why: string) => `🧠 ${who} switched to ${model}${why ? `: ${why}` : ''}`,
+    title: '🧠 Workers choose their model',
+    note: 'Claude Code workers switch their own model by how big their task is: Opus to plan and debug, Sonnet to build, Haiku for small chores. The floor sees each switch.',
+    on: 'On',
+    off: 'Off',
+    onToast: (who: string) => `🧠 ${who} let Claude Code workers choose their own model by task`,
+    offToast: (who: string) => `🧠 ${who} switched off workers choosing their own model`,
+  },
 };

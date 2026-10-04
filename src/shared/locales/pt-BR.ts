@@ -3374,4 +3374,13 @@ Opções:
     team: 'Equipe completa',
     teamTip: 'Contrata um worker para cada área nas próximas mesas livres: banco de dados, segurança, apps, monitoramento e frontends',
   },
+  autoModel: {
+    chose: (who: string, model: string, why: string) => `🧠 ${who} trocou para ${model}${why ? `: ${why}` : ''}`,
+    title: '🧠 Workers escolhem o modelo',
+    note: 'Os workers do Claude Code trocam o próprio modelo pelo tamanho da tarefa: Opus para planejar e depurar, Sonnet para construir, Haiku para tarefas pequenas. O andar vê cada troca.',
+    on: 'Ligado',
+    off: 'Desligado',
+    onToast: (who: string) => `🧠 ${who} deixou os workers do Claude Code escolherem o próprio modelo pela tarefa`,
+    offToast: (who: string) => `🧠 ${who} desligou a troca automática de modelo dos workers`,
+  },
 };

@@ -37,7 +37,17 @@ export class OfficePrompts implements PromptSource {
   }
 
   state(): PromptsState {
-    return { custom: { ...this.saved.custom }, ...(this.saved.agent ? { agent: { ...this.saved.agent } } : {}) };
+    return { custom: { ...this.saved.custom }, ...(this.saved.agent ? { agent: { ...this.saved.agent } } : {}), ...(this.saved.autoModel ? { autoModel: { ...this.saved.autoModel } } : {}) };
+  }
+
+  /** Whether Claude Code workers may switch their own model by task (see PromptsState.autoModel). */
+  get autoModel(): boolean {
+    return this.saved.autoModel?.on !== false;
+  }
+
+  setAutoModel(on: boolean, by: string) {
+    this.saved.autoModel = { on, by, at: Date.now() };
+    this.changed();
   }
 
   text(id: PromptId): string {
@@ -98,6 +108,8 @@ export class OfficePrompts implements PromptSource {
       if (!isPromptId(id) || typeof v?.text !== 'string') continue;
       this.saved.custom[id] = { text: v.text.slice(0, PROMPT_MAX), by: typeof v.by === 'string' ? v.by : 'someone', at: typeof v.at === 'number' ? v.at : 0 };
     }
+    const m = raw?.autoModel;
+    if (m && typeof m.on === 'boolean') this.saved.autoModel = { on: m.on, by: typeof m.by === 'string' ? m.by : 'someone', at: typeof m.at === 'number' ? m.at : 0 };
     const a = raw?.agent;
     if (a && isAgentProvider(a.provider)) {
       const choice: AgentChoice = { provider: a.provider, model: typeof a.model === 'string' ? a.model : undefined, effort: isAgentEffort(a.effort) ? a.effort : undefined };

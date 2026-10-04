@@ -11,6 +11,7 @@ import { h, openModal, timeAgo } from './dom';
 import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
+import { autoModelSetting } from './settings-automodel';
 import { choiceRow } from './settings-rows';
 import { L } from '../i18n';
 import { languageSettings } from './settings-language';
@@ -446,6 +447,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
 
   // What the sky's doing, and which clock it keeps (see settings-sky.ts).
   const sky = outside && outsideSetting(net, outside, (body) => setting(L.settings.outside, 'office', ...body));
+  const autoModel = autoModelSetting(net, (body) => setting(L.autoModel.title, 'office', ...body));
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
   signOut.addEventListener('click', onSignOut);
@@ -478,6 +480,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     ],
     workers: [
       setting(L.settings2.defaultWorker, 'office', agentNow, agent.element, agentActions, agentNote),
+      autoModel.section,
       setting(L.settings2.workerLimit, 'office', limitRow, limitNote),
       setting(L.settings.merged, 'office', leaveRow, leaveNote),
       setting(L.promptEditor.prompts, 'office', promptsOpen, promptsNote),
@@ -534,6 +537,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       offDog();
       offTheme();
       sky?.off();
+      autoModel.off();
       offMap();
       offLeave();
       offLang.forEach((f) => f());

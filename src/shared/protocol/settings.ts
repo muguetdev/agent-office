@@ -17,6 +17,11 @@ export interface PromptsState {
    * started with (--agent), on its own default model.
    */
   agent?: AgentChoice & { by: string; at: number };
+  /**
+   * Whether Claude Code workers may switch their own model by how big their task is (choose_model:
+   * opus to plan, sonnet to build, haiku for chores; see server/model-tiers.ts). On unless an admin turned it off.
+   */
+  autoModel?: { on: boolean; by: string; at: number };
 }
 
 /** Where a team webhook posts: Slack and Discord get their own message format, anything else plain JSON. */
@@ -200,7 +205,9 @@ export type SettingsClientMsg =
   /** Rewrite one of the office's prompts (admins only); null puts the default back. */
   | { t: 'prompts.set'; id: PromptId; text: string | null }
   /** Pick the worker everyone starts on (admins only); null goes back to the office's --agent. */
-  | { t: 'prompts.agent'; choice: AgentChoice | null };
+  | { t: 'prompts.agent'; choice: AgentChoice | null }
+  /** Let Claude Code workers switch their own model by task (see PromptsState.autoModel), or not. */
+  | { t: 'prompts.autoModel'; on: boolean };
 
 export type SettingsServerMsg =
   | { t: 'upgrade'; state: UpgradeState }

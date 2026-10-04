@@ -162,4 +162,12 @@ export const settingsHandlers = {
     if (err) return ctx.warn(c, err);
     ctx.toastAll(choice ? L.srv.setDefaultWorker(who) : L.srv.defaultWorkerBack(who, path.basename(ctx.cfg.agentCmd)));
   },
+  'prompts.autoModel'(ctx, c, msg) {
+    const who = c.peer.name;
+    if (!ctx.meOf(c.accountId, c.guest).admin) return ctx.warn(c, L.srv.adminsWorker);
+    const on = msg.on === true;
+    if (on === ctx.prompts.autoModel) return;
+    ctx.prompts.setAutoModel(on, who);
+    ctx.toastAll(on ? L.autoModel.onToast(who) : L.autoModel.offToast(who));
+  },
 } satisfies HandlerMap<SettingsClientMsg>;

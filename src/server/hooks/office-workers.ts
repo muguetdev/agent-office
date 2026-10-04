@@ -132,13 +132,15 @@ export async function officeWorkers(ctx: Ctx, req: http.IncomingMessage, res: ht
   if (action === '/model') {
     const b = (body ?? {}) as { tier?: unknown; model?: unknown; reason?: unknown };
     if (me.kind !== 'agent' || me.provider !== 'claude') return send(res, 400, { error: 'Only a Claude Code worker can change its own model' });
+    // An admin can switch it off for the whole office (⚙️ Settings).
+    if (!ctx.prompts.autoModel) return send(res, 400, { error: 'Choosing your own model is switched off in this office: keep the model you are on' });
     const pick = pickModel(b.tier, b.model);
     if (typeof pick === 'string') return send(res, 400, { error: pick });
     // Claude Code's own /model command, typed into its terminal: the conversation carries on in the new model.
     const err = floor.workers.prompt(me.id, `/model ${pick.model}`, who);
     if (err) return send(res, 400, { error: err });
     const why = str(b.reason, 200).replace(/\s+/g, ' ').trim();
-    ctx.toastFloor(floor, `🧠 ${who} chose ${pick.model}${pick.tier ? ` (${pick.tier})` : ''}${why ? `: ${why}` : ''}`);
+    ctx.toastFloor(floor, L.autoModel.chose(who, pick.model, why));
     return send(res, 200, { ok: true, model: pick.model, ...(pick.tier ? { tier: pick.tier } : {}) });
   }
 
