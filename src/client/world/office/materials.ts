@@ -124,6 +124,9 @@ export function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ
   return t;
 }
 
+/** How much darker the east and west walls are than the north and south ones (see Looks.wallShade). */
+export const WALL_SHADE = 0.86;
+
 export function box(w: number, h: number, d: number) {
   return new THREE.BoxGeometry(w, h, d);
 }
@@ -131,6 +134,11 @@ export function box(w: number, h: number, d: number) {
 /** The materials and textures a floor paints in its own colors. */
 export interface Looks {
   wall: THREE.MeshToonMaterial;
+  /**
+   * The walls that face east and west, a shade darker (see WALL_SHADE): with the light from overhead
+   * indoors, walls meeting in a corner were lit the same, and the corner didn't show.
+   */
+  wallShade: THREE.MeshToonMaterial;
   trim: THREE.MeshToonMaterial;
   planks: THREE.CanvasTexture[];
   /** Whatever changes on a server's floor (see FloorPalette.night), told whether this floor is one. */

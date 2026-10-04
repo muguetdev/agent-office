@@ -185,7 +185,6 @@ const SHADE_HEIGHT = 4.2;
  * the floor's colors and outside in the building's.
  */
 export function buildWalls(group: THREE.Group, colliders: Collider[], openings: Opening[], looks: Looks) {
-  const inside = looks.wall;
   const outside = toon(PALETTE.exterior);
   const trimMat = looks.trim;
   const T = WALL_T;
@@ -198,6 +197,8 @@ export function buildWalls(group: THREE.Group, colliders: Collider[], openings: 
   ];
   for (const w of walls) {
     const alongX = w.side === 'north' || w.side === 'south';
+    // East and west a shade darker than north and south, so every corner shows.
+    const inside = alongX ? looks.wall : looks.wallShade;
     // A box's faces go +x, -x, +y, -y, +z, -z; the one facing outdoors gets the outside paint, and so
     // do the ends of the north and south walls, which run on past the east and west ones to the corners.
     const out = { east: 0, west: 1, south: 4, north: 5 }[w.side];
@@ -259,7 +260,7 @@ export function exitPlug(looks: Looks): { group: THREE.Group; collider: Collider
   const at = onWall(o.wall, o.u);
   const group = new THREE.Group();
   // A box's faces go +x, -x, +y, -y, +z, -z; on the west wall, -x is outdoors.
-  const mats = Array.from({ length: 6 }, (_, i) => (i === 1 ? toon(PALETTE.exterior) : looks.wall));
+  const mats = Array.from({ length: 6 }, (_, i) => (i === 1 ? toon(PALETTE.exterior) : looks.wallShade));
   const wall = new THREE.Mesh(box(WALL_T, o.y1 - o.y0, o.width), mats);
   wall.position.set(at.x, (o.y0 + o.y1) / 2, at.z);
   wall.receiveShadow = true;
@@ -282,7 +283,7 @@ export function wallRun(into: THREE.Group, cols: Collider[], axis: 'x' | 'z', at
   // A box's faces go +x, -x, +y, -y, +z, -z.
   const outFace = axis === 'x' ? (out > 0 ? 4 : 5) : out > 0 ? 0 : 1;
   const endFaces = axis === 'x' ? [1, 0] : [5, 4];
-  const paint = Array.from({ length: 6 }, (_, i) => (i === outFace || endFaces.some((f, k) => f === i && endsOut[k]) ? outside : looks.wall));
+  const paint = Array.from({ length: 6 }, (_, i) => (i === outFace || endFaces.some((f, k) => f === i && endsOut[k]) ? outside : axis === 'x' ? looks.wall : looks.wallShade));
   const piece = (a: number, b: number, y0: number, y1: number) => {
     if (b - a < 0.001 || y1 - y0 < 0.001) return;
     if (y0 < SHADE_HEIGHT && y1 > SHADE_HEIGHT) {

@@ -18,7 +18,7 @@ import { hoop } from '../../features/basketball/world';
 import { kitchen } from '../kitchen';
 import { signs } from '../desksigns';
 import type { Collider, DeskView, Interactable, Office, OfficeHandles } from '../types';
-import { PALETTE, floorTexture, paintPlanks, type Looks } from './materials';
+import { PALETTE, WALL_SHADE, floorTexture, paintPlanks, type Looks } from './materials';
 import { boards, clearOfStairs, lamps, lounge, machineMonitor, nightLights, plants, rugs, tv } from './room';
 import { plug, walls, type Door } from './shell';
 import { balcony } from './balcony';
@@ -88,7 +88,8 @@ export function buildOffice(): Office {
   const interactables: Interactable[] = [];
   const walls: WallRect[] = [];
   // What each floor paints its own way (see setLook): the walls, their trim, the planks.
-  const looks: Looks = { wall: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim), planks: [], night: [] };
+  const looks: Looks = { wall: toonUnique(PALETTE.wall), wallShade: toonUnique(PALETTE.wall), trim: toonUnique(PALETTE.wallTrim), planks: [], night: [] };
+  looks.wallShade.color.multiplyScalar(WALL_SHADE);
   // The floor's planks, which the stack lays the floor with (and the back office its own).
   const floorTex = floorTexture();
   looks.planks.push(floorTex);
@@ -132,6 +133,7 @@ export function buildOffice(): Office {
 
   const setLook = (p: FloorPalette) => {
     looks.wall.color.set(p.wall);
+    looks.wallShade.color.set(p.wall).multiplyScalar(WALL_SHADE);
     looks.trim.color.set(p.trim);
     for (const t of looks.planks) {
       paintPlanks(t.image as HTMLCanvasElement, p);
