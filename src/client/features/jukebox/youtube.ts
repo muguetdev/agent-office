@@ -116,13 +116,14 @@ class YoutubeJukebox {
     // Out of sight but on the page (a browser won't play one that isn't), and never in the way.
     const box = document.createElement('div');
     box.style.cssText = 'position:fixed;right:0;bottom:0;width:200px;height:200px;opacity:0.01;pointer-events:none;z-index:-1';
-    const el = document.createElement('div');
-    box.append(el);
+    // Its own frame, which tells YouTube which site it's on: the office's pages send no referrer, and
+    // without one YouTube won't play in Safari (error 153).
+    const frame = document.createElement('iframe');
+    const vars = new URLSearchParams({ enablejsapi: '1', autoplay: '1', controls: '0', disablekb: '1', playsinline: '1', rel: '0', origin: location.origin });
+    Object.assign(frame, { width: '200', height: '200', referrerPolicy: 'strict-origin-when-cross-origin', allow: 'autoplay; encrypted-media', src: `https://www.youtube.com/embed/?${vars}` });
+    box.append(frame);
     document.body.append(box);
-    this.player = new window.YT!.Player(el, {
-      width: 200,
-      height: 200,
-      playerVars: { autoplay: 1, controls: 0, disablekb: 1, playsinline: 1, rel: 0 },
+    this.player = new window.YT!.Player(frame, {
       events: {
         onReady: () => {
           this.ready = true;
