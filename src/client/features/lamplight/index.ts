@@ -4,16 +4,18 @@ import type { Parts } from '../../core/parts';
 import { FLOOR, WALL_HEIGHT, WING } from '../../../shared/layout';
 
 /**
- * Indoors the light that casts shadows comes from the lamps overhead, not the street's sun: the office is
- * lit as if it had no roof, so the sun's shadows fell across the walls from nowhere anyone could see.
- * INDOOR_LIGHT is where that light comes from (nearly straight down, a little off so walls aren't
- * side-on to it), how dark its shadows are, and how bright and warm it is once the lamps are on.
+ * Round the office (in it or out on its street) the light comes from the lamps overhead, not the sky's
+ * sun, the same wherever you stand: lit by the sun from outside and by the lamps from inside, the office
+ * looked different the moment you walked in (its walls a shade lighter or darker, the desks shaded the
+ * other way). The roof, and a map of its own, keep the sky's sun. INDOOR_LIGHT is where that light
+ * comes from (nearly straight down, a little off so walls aren't side-on to it), how dark its shadows
+ * are, and how bright and warm it is once the lamps are on.
  */
 const INDOOR_LIGHT = { dir: new THREE.Vector3(0.22, 1, 0.14).normalize(), shadow: 0.7, lamp: 0.7, color: new THREE.Color('#ffe2b8') };
 
 /** Indoors in the office, after the sky's had its say (core/loop.ts's env tick): the shadows come from overhead (the inside of the walls never takes any, see shadowless in world/office/materials.ts). */
 export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>) {
-  /** 0 outdoors to 1 indoors, eased as you come in or go out. */
+  /** 0 under the sky's sun (up on the roof, on a map of its own) to 1 round the office, eased between them. */
   let indoorness = 0;
   const from = new THREE.Vector3();
   /**
@@ -60,7 +62,8 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
     const { sky } = ctx;
     // A map of its own (the castle) lights itself (see World.mood), and the roof's out under the sky.
     const inside = ctx.inOffice() && !ctx.upTop() && parts.place.indoors();
-    indoorness += ((inside ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
+    const lamplit = ctx.inOffice() && !ctx.upTop();
+    indoorness += ((lamplit ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
     // Looked over now and then for whatever's come in (workers, a box being carried); on a map of its own, put back.
     const on = ctx.inOffice();
     lookAgain -= dt;
