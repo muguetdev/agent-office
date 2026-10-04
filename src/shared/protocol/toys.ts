@@ -20,6 +20,11 @@ export type JukeboxClientMsg =
   | { t: 'jukebox.play'; track?: string; url?: string }
   /** On to the next tune. */
   | { t: 'jukebox.skip' }
+  /**
+   * Playing YouTube: the video on now and its title, or (`next`) the one after the video that started at
+   * `at`, which is over (`ended`) or skipped (`skip`).
+   */
+  | { t: 'jukebox.yt'; at: number; video: string; title?: string; next?: 'ended' | 'skip' }
   | { t: 'jukebox.stop' };
 
 export type CabinetClientMsg =

@@ -1,12 +1,16 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { JUKEBOX_TUNES, STREAM, checkStreamUrl, trackTitle, tuneById, type JukeboxState } from '../shared/jukebox.js';
+import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById, type JukeboxState } from '../shared/jukebox.js';
+import { VIDEO_RE, youtubeLink } from '../shared/youtube.js';
 import { L } from './i18n.js';
 
 interface Saved {
   on: boolean;
   track: string;
   url?: string;
+  list?: string;
+  video?: string;
+  title?: string;
   by?: string;
   /** When the track started, on this machine's clock. */
   startedAt: number;
@@ -26,8 +30,9 @@ export class Jukebox {
   }
 
   state(): JukeboxState {
-    const { on, track, url, by, startedAt } = this.s;
-    return { on, track, ...(url && track === STREAM ? { url } : {}), ...(by ? { by } : {}), startedAt, elapsed: Math.max(0, Date.now() - startedAt) };
+    const { on, track, url, list, video, title, by, startedAt } = this.s;
+    const yt = track === YOUTUBE ? { ...(list ? { list } : {}), ...(video ? { video } : {}), ...(title ? { title } : {}) } : {};
+    return { on, track, ...(url && (track === STREAM || track === YOUTUBE) ? { url } : {}), ...yt, ...(by ? { by } : {}), startedAt, elapsed: Math.max(0, Date.now() - startedAt) };
   }
 
   /** What's on, for toasts: “Rainy Window”, or where a stream comes from. */
@@ -40,7 +45,8 @@ export class Jukebox {
     if (input.url !== undefined && input.url !== '') {
       const u = checkStreamUrl(input.url, L);
       if ('error' in u) return u;
-      this.set({ on: true, track: STREAM, url: u.url, by });
+      const yt = youtubeLink(u.url);
+      this.set(yt ? { on: true, track: YOUTUBE, url: u.url, ...yt, by } : { on: true, track: STREAM, url: u.url, by });
     } else if (input.track !== undefined) {
       if (typeof input.track !== 'string' || !tuneById(input.track)) return { error: L.srvFloor.noTune };
       this.set({ on: true, track: input.track, by });
@@ -49,6 +55,27 @@ export class Jukebox {
       this.set({ ...this.s, on: true, by });
     }
     return { changed: true };
+  }
+
+  /**
+   * What a browser playing YouTube here says: the video that's on and its title, or (`next`) the one after
+   * the video that started at `at`, once it's over or someone skipped it. Only the first browser to say
+   * so moves it on (they all would); says whether anything changed.
+   */
+  youtube(at: unknown, video: unknown, title: unknown, next: boolean, by?: string): boolean {
+    const s = this.s;
+    if (s.track !== YOUTUBE || !s.on || at !== s.startedAt || typeof video !== 'string' || !VIDEO_RE.test(video)) return false;
+    const name = typeof title === 'string' && title.trim() ? title.trim().slice(0, 120) : undefined;
+    if (next) {
+      this.set({ ...s, video, title: name, ...(by ? { by } : {}) });
+      return true;
+    }
+    // Naming the video that's on: the first one of a playlist, or its title.
+    if (s.video && s.video !== video) return false;
+    if (s.video === video && (s.title || !name)) return false;
+    this.s = { ...s, video, ...(name ? { title: name } : {}) };
+    this.save();
+    return true;
   }
 
   /** On to the next tune; from a stream, back to the first one. */
@@ -65,7 +92,8 @@ export class Jukebox {
   }
 
   private set(s: Omit<Saved, 'startedAt'>) {
-    this.s = { ...s, startedAt: Date.now() };
+    // Always later than the last start, which is what tells one play from the next.
+    this.s = { ...s, startedAt: Math.max(Date.now(), this.s.startedAt + 1) };
     this.save();
   }
 
@@ -73,12 +101,18 @@ export class Jukebox {
     if (!existsSync(this.file)) return;
     try {
       const s = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Saved>;
-      const url = s.track === STREAM ? checkStreamUrl(s.url) : undefined;
-      if (s.track === STREAM ? !url || 'error' in url : typeof s.track !== 'string' || !tuneById(s.track)) return;
+      const linked = s.track === STREAM || s.track === YOUTUBE;
+      const url = linked ? checkStreamUrl(s.url) : undefined;
+      if (linked ? !url || 'error' in url : typeof s.track !== 'string' || !tuneById(s.track)) return;
+      const yt = s.track === YOUTUBE && url && 'url' in url ? youtubeLink(url.url) : null;
+      if (s.track === YOUTUBE && !yt) return;
       this.s = {
         on: s.on === true,
         track: s.track!,
         ...(url && 'url' in url ? { url: url.url } : {}),
+        ...(yt ?? {}),
+        ...(yt && typeof s.video === 'string' && VIDEO_RE.test(s.video) ? { video: s.video } : {}),
+        ...(yt && typeof s.title === 'string' ? { title: s.title.slice(0, 120) } : {}),
         ...(typeof s.by === 'string' ? { by: s.by.slice(0, 24) } : {}),
         startedAt: typeof s.startedAt === 'number' && Number.isFinite(s.startedAt) ? s.startedAt : Date.now(),
       };

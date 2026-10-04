@@ -1,9 +1,10 @@
 import { JUKEBOX } from '../../../shared/layout';
-import { STREAM } from '../../../shared/jukebox';
+import { STREAM, YOUTUBE } from '../../../shared/jukebox';
 import type { AudioCore } from '../../sound/core';
 import { biquad, rms } from '../../sound/dsp';
 import { TunePlayer } from '../../sound/music';
 import { L } from '../../i18n';
+import { youtube } from './youtube';
 
 // ---- The jukebox ------------------------------------------------------------------------------
 
@@ -11,6 +12,10 @@ import { L } from '../../i18n';
 export interface JukeboxPlay {
   track: string;
   url?: string;
+  /** On YouTube (see youtube.ts). */
+  list?: string;
+  video?: string;
+  title?: string;
   /** When it started on the office's clock, which tells one play of a track from the next. */
   startedAt: number;
   since: number;
@@ -59,6 +64,7 @@ export class Jukebox {
   touched() {
     // A ding can start audio before you've touched the page, when a stream isn't allowed to play yet.
     if (this.stream?.paused) void this.stream.play().catch(() => {});
+    youtube.touched();
   }
 
   /** The jukebox's level (RMS) where you stand, after your music volume. A stream doesn't show here. */
@@ -70,6 +76,8 @@ export class Jukebox {
   setJukebox(play: JukeboxPlay | null) {
     const was = this.jukebox;
     this.jukebox = play;
+    // YouTube keeps itself in step with whatever the office says (the next video, its title).
+    if (was?.track === YOUTUBE && play?.track === YOUTUBE && was.url === play.url) return this.playYoutube();
     // The same play, sent again after a reconnect or timed better once the clocks are compared: carry on
     // (a tune lines itself up again as it goes; an audio file jumps to the right spot).
     if (was && play && was.startedAt === play.startedAt && was.track === play.track && was.url === play.url) {
@@ -89,7 +97,7 @@ export class Jukebox {
   /** 1 on each beat of the tune, falling to 0 before the next, for the jukebox's lights. */
   beat(): number {
     if (this.tune) return this.tune.beat(this.musicAt());
-    if (this.stream && !this.stream.paused) return 0.35 + 0.25 * Math.sin(performance.now() / 320);
+    if ((this.stream && !this.stream.paused) || youtube.on) return 0.35 + 0.25 * Math.sin(performance.now() / 320);
     return 0;
   }
 
@@ -122,7 +130,9 @@ export class Jukebox {
     }
     clearInterval(this.musicTimer);
     const j = this.jukebox;
+    if (j?.track !== YOUTUBE) youtube.stop();
     if (!j) return;
+    if (j.track === YOUTUBE) return this.playYoutube();
     if (j.track === STREAM && j.url) return this.startStream(j.url);
     const tune = (this.tune = new TunePlayer(ctx, this.musicIn, j.track));
     this.a.count('tune');
@@ -147,6 +157,13 @@ export class Jukebox {
     this.a.count('stream');
   }
 
+  private playYoutube() {
+    const j = this.jukebox;
+    if (!this.a.ctx || !j) return;
+    youtube.play(j, () => this.musicAt());
+    this.hearStream();
+  }
+
   /** An audio file (not live radio) picks up where everyone else is. */
   private seekStream(a: HTMLAudioElement) {
     if (Number.isFinite(a.duration) && a.duration > 0) a.currentTime = this.musicAt() % a.duration;
@@ -165,9 +182,11 @@ export class Jukebox {
 
   /** A stream plays outside Web Audio (most don't allow that), so it gets quieter with distance by hand. */
   private hearStream() {
-    if (!this.stream) return;
+    if (!this.stream && this.jukebox?.track !== YOUTUBE) return;
     const d = Math.max(MUSIC_REF, this.jukeboxDistance());
-    this.stream.volume = Math.min(1, this.musicGain() * (MUSIC_REF / (MUSIC_REF + MUSIC_ROLLOFF * (d - MUSIC_REF))));
+    const v = Math.min(1, this.musicGain() * (MUSIC_REF / (MUSIC_REF + MUSIC_ROLLOFF * (d - MUSIC_REF))));
+    if (this.stream) this.stream.volume = v;
+    else youtube.setVolume(v);
   }
 
   private jukeboxDistance(): number {

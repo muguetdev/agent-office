@@ -1,5 +1,6 @@
 import './ui.css';
-import { JUKEBOX_TUNES, STREAM, checkStreamUrl, trackTitle, tuneById } from '../../../shared/jukebox';
+import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById } from '../../../shared/jukebox';
+import { youtube } from './youtube';
 import type { Net } from '../../net';
 import { store } from '../../state';
 import { h, openModal, toast } from '../../ui/dom';
@@ -40,15 +41,16 @@ export function openJukebox(net: Net, openVolume: () => void) {
   const render = () => {
     const j = store.jukebox;
     const stream = j.track === STREAM;
+    const yt = j.track === YOUTUBE;
     now.replaceChildren(
-      h('span.jb-disc', { class: j.on ? 'spin' : '' }, stream ? '📻' : '💿'),
+      h('span.jb-disc', { class: j.on ? 'spin' : '' }, yt ? '▶️' : stream ? '📻' : '💿'),
       h(
         'div.svc-main',
         {},
         h('div.svc-title', {}, j.on ? trackTitle(j, L) : L.jukebox.off),
-        h('div.svc-meta', {}, j.on ? [stream ? L.jukebox.aStream : moodOf(j.track), j.by && L.jukebox.putOnBy(j.by)].filter(Boolean).join(' · ') : j.by ? L.jukebox.turnedOff(j.by) : L.jukebox.pick),
+        h('div.svc-meta', {}, j.on ? [yt ? L.jukebox.youtube : stream ? L.jukebox.aStream : moodOf(j.track), j.by && L.jukebox.putOnBy(j.by)].filter(Boolean).join(' · ') : j.by ? L.jukebox.turnedOff(j.by) : L.jukebox.pick),
       ),
-      j.on ? button(L.jukebox.skip, L.jukebox.skipTip, () => net.send({ t: 'jukebox.skip' })) : button(L.jukebox.play, L.jukebox.playTip(trackTitle(j, L)), () => net.send({ t: 'jukebox.play' }), true),
+      j.on ? button(L.jukebox.skip, L.jukebox.skipTip, () => (yt ? youtube.skip() : net.send({ t: 'jukebox.skip' }))) : button(L.jukebox.play, L.jukebox.playTip(trackTitle(j, L)), () => net.send({ t: 'jukebox.play' }), true),
       j.on ? button(L.jukebox.stop, L.jukebox.stopTip, () => net.send({ t: 'jukebox.stop' })) : '',
     );
     list.replaceChildren(

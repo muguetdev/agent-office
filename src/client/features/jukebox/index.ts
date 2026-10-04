@@ -4,6 +4,7 @@ import { aside, hintTitle, key, onE } from '../../core/hint';
 import { store } from '../../state';
 import { clip } from '../../ui/dom';
 import { openJukebox } from './ui';
+import { youtube } from './youtube';
 import type { SettingsPane } from '../../ui/settings';
 import { L } from '../../i18n';
 
@@ -25,10 +26,11 @@ export function installJukebox(ctx: Ctx, deps: JukeboxDeps) {
   // It's the office's: on a map of its own there's none to hear.
   function playJukebox() {
     const j = store.jukebox;
-    ctx.sound.setJukebox(j.on && ctx.inOffice() ? { track: j.track, url: j.url, startedAt: j.startedAt, since: j.since } : null);
+    ctx.sound.setJukebox(j.on && ctx.inOffice() ? { track: j.track, url: j.url, list: j.list, video: j.video, title: j.title, startedAt: j.startedAt, since: j.since } : null);
     ctx.office.jukebox.show(j.on, trackTitle(j));
   }
   store.on('jukebox', playJukebox);
+  youtube.report = (msg) => ctx.net.send(msg);
   ctx.interactions.define('jukebox', {
     reach: 4,
     hint: () => {

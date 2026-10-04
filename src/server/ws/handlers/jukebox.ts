@@ -29,6 +29,14 @@ export const jukeboxHandlers = {
     jukeboxChanged(ctx, floor);
     ctx.toastFloor(floor, L.srv.skipped(who, floor.jukebox.title()));
   },
+  'jukebox.yt'(ctx, c, msg) {
+    const who = c.peer.name;
+    const floor = here(ctx, c);
+    const skip = msg.next === 'skip';
+    if (!floor || !floor.jukebox.youtube(msg.at, msg.video, msg.title, !!msg.next, skip ? who : undefined)) return;
+    jukeboxChanged(ctx, floor);
+    if (skip) ctx.toastFloor(floor, L.srv.skipped(who, floor.jukebox.title()));
+  },
   'jukebox.stop'(ctx, c) {
     const who = c.peer.name;
     const floor = here(ctx, c);

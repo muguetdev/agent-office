@@ -18,13 +18,20 @@ export const JUKEBOX_TUNES: readonly JukeboxTune[] = [
 
 /** The `track` of a stream someone pasted. */
 export const STREAM = 'stream';
+/** The `track` of a YouTube video or playlist someone pasted (see youtube.ts). */
+export const YOUTUBE = 'youtube';
 
 export interface JukeboxState {
   on: boolean;
-  /** One of JUKEBOX_TUNES, or STREAM for `url`. It stays put while the jukebox is off, to turn back on. */
+  /** One of JUKEBOX_TUNES, STREAM or YOUTUBE for `url`. It stays put while the jukebox is off, to turn back on. */
   track: string;
-  /** Internet radio or an audio file someone pasted. */
+  /** Internet radio, an audio file or a YouTube link someone pasted. */
   url?: string;
+  /** On YouTube: the playlist, and the video on now (until someone's browser has seen the playlist, maybe none yet). */
+  list?: string;
+  video?: string;
+  /** The video's title, as the first browser to play it saw it. */
+  title?: string;
   /** Who last put something on, or turned it off. */
   by?: string;
   /** When the track started, on the office's clock (see the 'pong' message), so everyone hears the same bar. */
@@ -36,7 +43,8 @@ export interface JukeboxState {
 export const tuneById = (id: string): JukeboxTune | undefined => JUKEBOX_TUNES.find((t) => t.id === id);
 
 /** What's on, for the hint bar and the jukebox's own display: a tune's title, or where the stream comes from. */
-export function trackTitle(s: Pick<JukeboxState, 'track' | 'url'>, m: Messages = messages('en')): string {
+export function trackTitle(s: Pick<JukeboxState, 'track' | 'url' | 'title'>, m: Messages = messages('en')): string {
+  if (s.track === YOUTUBE) return s.title ? `▶ ${s.title}` : 'YouTube';
   if (s.track !== STREAM) return tuneById(s.track)?.title ?? m.shared.aTune;
   try {
     const u = new URL(s.url ?? '');
