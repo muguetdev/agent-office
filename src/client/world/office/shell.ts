@@ -217,7 +217,7 @@ export function buildWalls(group: THREE.Group, colliders: Collider[], openings: 
       m.position.copy(at((u0 + u1) / 2, (y0 + y1) / 2));
       m.castShadow = y1 <= SHADE_HEIGHT;
       m.receiveShadow = true;
-      // Indoors, walls stop taking shadows (see features/lamplight): the lamps overhead would cast them down the wall from whatever hangs there.
+      // Its inside never takes shadows (see shadowless in materials.ts); its outside takes the sun's.
       m.userData.wall = true;
       group.add(m);
     };

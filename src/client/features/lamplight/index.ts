@@ -11,18 +11,10 @@ import { FLOOR, WING } from '../../../shared/layout';
  */
 const INDOOR_LIGHT = { dir: new THREE.Vector3(0.22, 1, 0.14).normalize(), shadow: 0.7, lamp: 0.7, color: new THREE.Color('#ffe2b8') };
 
-/** Indoors in the office, after the sky's had its say (core/loop.ts's env tick): the shadows come from overhead and the walls take none. */
+/** Indoors in the office, after the sky's had its say (core/loop.ts's env tick): the shadows come from overhead (the inside of the walls never takes any, see shadowless in world/office/materials.ts). */
 export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>) {
   /** 0 outdoors to 1 indoors, eased as you come in or go out. */
   let indoorness = 0;
-  /**
-   * The office's outside walls, the back office's too (tagged `userData.wall` in world/office/shell.ts):
-   * indoors they take no shadows, or the light from overhead would streak them down from the hoop, the TV
-   * and the boards hanging on them, and speckle the wall itself, nearly side-on to it.
-   */
-  let wallsShaded = true;
-  /** How far the back office was built out when the walls were last gone over: building it out makes new ones. */
-  let wing = -1;
   const from = new THREE.Vector3();
   /**
    * Indoors the shadows only need to cover the office, not the whole lot outside: a box round all of it
@@ -61,12 +53,5 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
       }
     }
     sun.shadow.intensity = 1 + (INDOOR_LIGHT.shadow - 1) * indoorness;
-    if (wallsShaded !== indoorness < 0.5 || wing !== ctx.office.wing.level) {
-      wallsShaded = indoorness < 0.5;
-      wing = ctx.office.wing.level;
-      ctx.office.group.traverse((o) => {
-        if (o.userData.wall) o.receiveShadow = wallsShaded;
-      });
-    }
   });
 }

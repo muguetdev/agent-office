@@ -124,6 +124,22 @@ export function floorTexture(width = FLOOR.maxX - FLOOR.minX, depth = FLOOR.maxZ
   return t;
 }
 
+/**
+ * A material that takes no shadows, whatever its mesh says: the inside of the office's walls, whose
+ * outside (another material on the same box) still takes the sun's. Indoors the light comes from
+ * overhead and would streak the walls down from whatever hangs on them; seen from outside through a
+ * door or a window, the sun's would fall across them. Either way the inside of a wall stays as painted.
+ */
+export function shadowless<T extends THREE.Material>(m: T): T {
+  const inherited = THREE.Material.prototype.onBeforeCompile;
+  m.onBeforeCompile = function (shader, renderer) {
+    inherited.call(this, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', THREE.ShaderChunk.lights_fragment_begin.replaceAll('directLight.visible && receiveShadow', 'false'));
+  };
+  m.customProgramCacheKey = () => 'shadowless';
+  return m;
+}
+
 /** How much darker the east and west walls are than the north and south ones (see Looks.wallShade). */
 export const WALL_SHADE = 0.86;
 
