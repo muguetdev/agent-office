@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Ctx } from '../../core/context';
 import type { Parts } from '../../core/parts';
-import { FLOOR, WING } from '../../../shared/layout';
+import { FLOOR, WALL_HEIGHT, WING } from '../../../shared/layout';
 
 /**
  * Indoors the light that casts shadows comes from the lamps overhead, not the street's sun: the office is
@@ -24,6 +24,36 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
   const OUTDOORS = { left: -32, right: 32, top: 30, bottom: -30 };
   const OFFICE = { x: 0, z: (FLOOR.maxZ + FLOOR.minZ - WING.rows * WING.row) / 2, half: Math.max(FLOOR.maxX, (FLOOR.maxZ - FLOOR.minZ + WING.rows * WING.row) / 2) + 1.5 };
   let tight = false;
+  /**
+   * From outside, the sun would fall across everything in the office (it has no roof to stop it), in
+   * shadows that are gone once you step in, where the light's overhead: so out there nothing in the
+   * office takes the sun's shadows. The walls' outsides still do (and their insides never do).
+   */
+  const sphere = new THREE.Sphere();
+  const inOffice = (o: THREE.Mesh) => {
+    const g = o.geometry;
+    if (!g) return false;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    sphere.copy(g.boundingSphere!).applyMatrix4(o.matrixWorld);
+    const { x, y, z } = sphere.center;
+    if (sphere.radius > 12 || y > WALL_HEIGHT) return false;
+    return (x > FLOOR.minX && x < FLOOR.maxX && z > FLOOR.minZ && z < FLOOR.maxZ) || (x > WING.minX && x < WING.maxX && z > FLOOR.minZ - WING.rows * WING.row && z <= FLOOR.minZ);
+  };
+  let wasOut = false;
+  let lookAgain = 0;
+  const shade = (out: boolean) => {
+    ctx.scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || m.userData.wall) return;
+      if (out && m.receiveShadow && inOffice(m)) {
+        m.receiveShadow = false;
+        m.userData.sunless = true;
+      } else if (!out && m.userData.sunless) {
+        m.receiveShadow = true;
+        delete m.userData.sunless;
+      }
+    });
+  };
 
   ctx.ticks.add('env', ({ dt }) => {
     const { sun } = parts.stage;
@@ -31,6 +61,14 @@ export function installLamplight(ctx: Ctx, parts: Pick<Parts, 'stage' | 'place'>
     // A map of its own (the castle) lights itself (see World.mood), and the roof's out under the sky.
     const inside = ctx.inOffice() && !ctx.upTop() && parts.place.indoors();
     indoorness += ((inside ? 1 : 0) - indoorness) * (1 - Math.exp(-dt * 3));
+    // Outdoors, looked over now and then for whatever's come in (workers, a box being carried); indoors, put back.
+    const out = ctx.inOffice() && !inside;
+    lookAgain -= dt;
+    if (out !== wasOut || (out && lookAgain <= 0)) {
+      shade(out);
+      wasOut = out;
+      lookAgain = 0.5;
+    }
     const cam = sun.shadow.camera;
     if (inside !== tight) {
       tight = inside;
