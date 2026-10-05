@@ -27,3 +27,15 @@ test("traffic.glb has a car of each kind, painted with the colors features/traff
   for (const kind of ['police', 'taxi', 'suv', 'car', 'hatch']) assert.ok(cars.byName(kind) >= 0, `${kind} is there`);
   for (const m of cars.materials()) assert.ok(known.includes(m), `${m} has a color`);
 });
+
+test('each traffic car has its four wheels, each about its hub, front ones ahead and left ones on the left', () => {
+  const cars = openModel('traffic');
+  for (const kind of ['police', 'taxi', 'suv', 'car', 'hatch']) {
+    for (const [w, sx, sz] of [['fl', 1, 1], ['fr', -1, 1], ['rl', 1, -1], ['rr', -1, -1]] as const) {
+      const i = cars.byName(`${kind}_wheel_${w}`);
+      assert.ok(i >= 0, `${kind} has its ${w} wheel`);
+      const { at } = cars.placed(i);
+      assert.ok(Math.sign(at.x) === sx && Math.sign(at.z) === sz && at.y > 0.2 && at.y < 0.4, `${kind}'s ${w} wheel's hub is at ${at.toArray().map((n) => n.toFixed(2))}`);
+    }
+  }
+});

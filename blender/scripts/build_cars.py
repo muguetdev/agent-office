@@ -10,13 +10,15 @@ builds and shoots just that one, without exporting):
 
     blender --background --factory-startup --python blender/scripts/build_cars.py [-- --shots] [--only <kind>]
 
-Each car is five roots, named after its kind:
-  <kind>          the body, with the rear wheels, lights and trim
+Each car is seven roots, named after its kind:
+  <kind>          the body, with its lights and trim
   <kind>_top      the glass cabin and its painted roof and pillars, which the office takes off while anyone's in it
   <kind>_open     what's left with the roof off: the windshield (see-through Screen), the dashboard, the
                   seats and the steering wheel
-  <kind>_wheel_l  the front wheels, each with its origin at its hub: the office turns them to steer
-  <kind>_wheel_r
+  <kind>_wheel_l  the front wheels, each with its origin at its hub: the office turns them to steer, and
+  <kind>_wheel_r  rolls them as the car goes
+  <kind>_rear_l   the rear wheels, each with its origin at its hub, which the office rolls
+  <kind>_rear_r
 
 All stand on the floor at the origin under the car's middle, nose forward, within shared/garage.ts's
 CAR footprint (4.6 long, 2 wide), so the colliders stay as they are. Roots and material names are a
@@ -191,8 +193,22 @@ def build(kind):
         o.data.transform(shift)
     top, shield, belt = split_cabin(body, kind)
     inside = opened(kind, shield, belt)
-    ao.join(body, [rear])
     body.name = body.data.name = kind
+    # The rear wheels are one mesh, both sides: each side on its own, about its own hub, to roll.
+    rears = []
+    for side, name in ((1, f"{kind}_rear_l"), (-1, f"{kind}_rear_r")):
+        w = rear.copy()
+        w.data = rear.data.copy()
+        bpy.context.collection.objects.link(w)
+        bm = bmesh.new()
+        bm.from_mesh(w.data)
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if (v.co.x > 0) != (side > 0)], context='VERTS')
+        bm.to_mesh(w.data)
+        bm.free()
+        w.name = w.data.name = name
+        ao.set_origin(w, middle([v.co for v in w.data.vertices]))
+        rears.append(w)
+    bpy.data.objects.remove(rear, do_unlink=True)
     # The right front wheel is the left one mirrored, so the two are the same, hubs and all.
     mirrored = left.data.copy()
     mirrored.transform(Matrix.Diagonal(Vector((-1, 1, 1, 1))))
@@ -202,7 +218,7 @@ def build(kind):
     for w, name in ((left, f"{kind}_wheel_l"), (right, f"{kind}_wheel_r")):
         w.name = w.data.name = name
         ao.set_origin(w, middle([v.co for v in w.data.vertices]))
-    return [body, top, inside, left, right]
+    return [body, top, inside, left, right, *rears]
 
 
 def main(write=True, only=None):

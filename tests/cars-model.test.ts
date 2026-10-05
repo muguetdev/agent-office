@@ -14,7 +14,7 @@ const cars = openModel('cars');
 const { gltf, nodes, byName } = cars;
 
 const KINDS = ['lambo', 'ferrari', 'bmw'] as const;
-const PARTS = ['', '_top', '_open', '_wheel_l', '_wheel_r'];
+const PARTS = ['', '_top', '_open', '_wheel_l', '_wheel_r', '_rear_l', '_rear_r'];
 /** What features/cars/world.ts paints: CAR_COLORS there, and Paint, Glass, Screen, Lamp and Tail, which it makes itself. */
 const MATERIALS = ['Paint', 'Glass', 'Screen', 'Lamp', 'Tail', 'Dark', 'Tire', 'RimGold', 'RimSilver', 'RimGrey', 'Caliper', 'CaliperBlue', 'Roundel', 'Chrome', 'Badge', 'Seat', 'Plate', 'PlateBand'];
 /** Each kind's front axle, how far out its wheels' middles are, and how big they are, as blender/scripts/build_cars.py fits them. */
@@ -84,7 +84,9 @@ test("the body, cabin and seats sit at the origin unturned, in the old cars' foo
     const box = boundsOf(kind);
     assert.ok(box.max.z - box.min.z <= CAR.length + 0.03 && box.max.z - box.min.z > CAR.length - 0.2, `the ${kind} is ${(box.max.z - box.min.z).toFixed(2)} long`);
     assert.ok(box.max.x - box.min.x <= CAR.width + 0.06, `the ${kind} is ${(box.max.x - box.min.x).toFixed(2)} wide`);
-    assert.ok(near(box.min.y, 0), `the ${kind} stands on its wheels at 0 (${box.min.y.toFixed(3)})`);
+    const ground = Math.min(...['_wheel_l', '_wheel_r', '_rear_l', '_rear_r'].map((w) => boundsOf(kind + w).min.y));
+    assert.ok(near(ground, 0), `the ${kind} stands on its wheels at 0 (${ground.toFixed(3)})`);
+    assert.ok(box.min.y > 0, `the ${kind}'s body is up off the ground`);
     // The headlights at the front, the taillights at the back.
     assert.ok(boundsOf(kind, ['Lamp']).min.z > 1.5 && boundsOf(kind, ['Tail']).max.z < -1.9, `the ${kind} faces +z`);
     // The cabin's roof comes up to its kind's roof, which the colliders' top is.
@@ -120,6 +122,24 @@ test('the front wheels turn about their hubs, where each car has them, the right
       const tire = boundsOf(name, ['Tire']);
       assert.ok(near((tire.max.y - tire.min.y) / 2, WHEEL_OF[kind].r), `${name} is ${((tire.max.y - tire.min.y) / 2).toFixed(3)} round`);
       // Its rim on the outside.
+      const rim = boundsOf(name, [RIM[kind]]).getCenter(new Vector3());
+      assert.ok(Math.sign(rim.x - at.x) === sx, `${name}'s rim faces out`);
+    }
+  }
+});
+
+test('the rear wheels roll about their hubs, as high off the ground as they are round, behind the body', () => {
+  for (const kind of KINDS) {
+    for (const [side, sx] of [
+      ['_rear_l', 1],
+      ['_rear_r', -1],
+    ] as const) {
+      const name = kind + side;
+      const { at } = cars.placed(byName(name));
+      const tire = boundsOf(name, ['Tire']);
+      assert.ok(tire.getCenter(new Vector3()).distanceTo(at) < 0.01, `${name}'s origin is its hub`);
+      assert.ok(near(at.y, (tire.max.y - tire.min.y) / 2), `${name}'s hub is ${at.y.toFixed(3)} up`);
+      assert.ok(Math.sign(at.x) === sx && at.z < 0, `${name} is at the back on its side`);
       const rim = boundsOf(name, [RIM[kind]]).getCenter(new Vector3());
       assert.ok(Math.sign(rim.x - at.x) === sx, `${name}'s rim faces out`);
     }

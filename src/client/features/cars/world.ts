@@ -89,8 +89,11 @@ export interface CarModel {
   top: THREE.Object3D;
   /** With the roof off: the windshield, the two seats and the steering wheel. */
   open: THREE.Object3D;
-  /** The front wheels, which turn to steer. */
+  /** The front wheels, which turn to steer, and the rear ones: all four roll as it goes. */
   wheels: THREE.Object3D[];
+  rear: THREE.Object3D[];
+  /** How big round the wheels are, for how far they roll. */
+  radius: number;
 }
 
 /** The colours of the modelled cars' parts, by material name (see blender/scripts/build_cars.py); Paint is each car's own. */
@@ -133,11 +136,13 @@ export function supercar(kind: CarKind, color: string): CarModel {
   const top = part(`${kind}_top`);
   const open = part(`${kind}_open`);
   const wheels = [part(`${kind}_wheel_l`), part(`${kind}_wheel_r`)];
-  if (!body || !top || !open || !wheels[0] || !wheels[1]) return codedCar(kind, color);
+  const rear = [part(`${kind}_rear_l`), part(`${kind}_rear_r`)];
+  if (!body || !top || !open || !wheels[0] || !wheels[1] || !rear[0] || !rear[1]) return codedCar(kind, color);
   open.visible = false;
   const root = new THREE.Group();
-  root.add(body, top, open, ...(wheels as THREE.Object3D[]));
-  return { root, top, open, wheels: wheels as THREE.Object3D[] };
+  root.add(body, top, open, ...(wheels as THREE.Object3D[]), ...(rear as THREE.Object3D[]));
+  // Each wheel's origin is its hub, as high off the ground as the wheel is round.
+  return { root, top, open, wheels: wheels as THREE.Object3D[], rear: rear as THREE.Object3D[], radius: wheels[0].position.y };
 }
 
 /**
@@ -163,9 +168,10 @@ function codedCar(kind: CarKind, color: string): CarModel {
     return w;
   };
   const wheels: THREE.Object3D[] = [];
+  const rear: THREE.Object3D[] = [];
   for (const sx of [-1, 1]) {
     const x = sx * (WIDTH / 2 - 0.16);
-    g.add(wheel(x, -axle));
+    rear.push(wheel(x, -axle));
     wheels.push(wheel(x, axle));
   }
   const L = CAR.length / 2;
@@ -218,8 +224,8 @@ function codedCar(kind: CarKind, color: string): CarModel {
   const top = mergeByMaterial(closed);
   const inside = mergeByMaterial(open);
   inside.visible = false;
-  root.add(mergeByMaterial(g), top, inside, ...wheels);
-  return { root, top, open: inside, wheels };
+  root.add(mergeByMaterial(g), top, inside, ...wheels, ...rear);
+  return { root, top, open: inside, wheels, rear, radius: WHEEL_Y };
 }
 
 /** One of the floor's cars, as it's drawn here. */
@@ -230,6 +236,9 @@ export interface CarView extends CarModel {
   pose: CarPose;
   /** Somebody's in it: the roof's off. */
   occupied: boolean;
+  /** How far round its wheels have rolled (radians), and where it was when they last did. */
+  rolled: number;
+  was: { x: number; z: number };
   /** What you bump into and stand on: along its body (turned, it takes a few boxes), and its roof. */
   colliders: Collider[];
   interactable: Interactable;
@@ -275,7 +284,7 @@ export class Fleet {
       const colliders: Collider[] = [];
       for (let i = 0; i <= SLICES; i++) colliders.push({ minX: 0, maxX: 0, minZ: 0, maxZ: 0, top: 0, bottom: 0 });
       all.push(...colliders);
-      const view: CarView = { ...model, index, def, pose: { x: def.x, z: def.z, rotY: def.rotY, speed: 0, steer: 0 }, occupied: false, colliders, interactable };
+      const view: CarView = { ...model, index, def, pose: { x: def.x, z: def.z, rotY: def.rotY, speed: 0, steer: 0 }, occupied: false, colliders, interactable, rolled: 0, was: { x: def.x, z: def.z } };
       this.show(view);
       return view;
     });
@@ -413,7 +422,12 @@ export class Fleet {
     const p = v.pose;
     v.root.position.set(p.x, STREET_Y, p.z);
     v.root.rotation.y = p.rotY;
-    for (const w of v.wheels) w.rotation.y = p.steer;
+    // Rolled as far as it's come along its length since last time (backward too); a jump (back to its spot) doesn't count.
+    const moved = (p.x - v.was.x) * Math.sin(p.rotY) + (p.z - v.was.z) * Math.cos(p.rotY);
+    if (Math.abs(moved) < 3) v.rolled = (v.rolled + moved / v.radius) % (Math.PI * 2);
+    v.was = { x: p.x, z: p.z };
+    for (const w of v.wheels) w.rotation.set(v.rolled, p.steer, 0, 'YXZ');
+    for (const w of v.rear) w.rotation.x = v.rolled;
     const s = Math.abs(Math.sin(p.rotY));
     const c = Math.abs(Math.cos(p.rotY));
     const hx = CAR.width / 2 - 0.08;

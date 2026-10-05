@@ -64,6 +64,9 @@ const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#8338ec', '#ffbe0b'
 
 interface Driver {
   root: THREE.Object3D;
+  /** Its wheels (see build_traffic.py), each turned about its hub, and how big round they are. */
+  wheels: THREE.Object3D[];
+  radius: number;
   /** Its boxes, a slice along it at a time (so a car turned on a bend isn't a big square). */
   boxes: Collider[];
   dir: 1 | -1;
@@ -110,7 +113,8 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
       for (const f of FLEET) {
         const root = piece('traffic', f.kind, PAINT);
         group.add(root);
-        drivers.push({ root, boxes: [box(), box(), box()], dir: f.dir, s: f.at * CIRCUIT_LENGTH, cruise: f.speed, speed: f.speed });
+        const wheels = ['fl', 'fr', 'rl', 'rr'].map((w) => root.getObjectByName(`${f.kind}_wheel_${w}`)).filter((w): w is THREE.Object3D => !!w);
+        drivers.push({ root, wheels, radius: wheels[0]?.position.y || 0.3, boxes: [box(), box(), box()], dir: f.dir, s: f.at * CIRCUIT_LENGTH, cruise: f.speed, speed: f.speed });
       }
     })
     .catch(() => {});
@@ -184,6 +188,8 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
       // Brakes harder than it pulls away.
       d.speed += (want - d.speed) * Math.min(1, dt * (want < d.speed ? 4 : 1.2));
       d.s += d.dir * d.speed * dt;
+      // Its wheels roll as far as it's come.
+      for (const w of d.wheels) w.rotation.x = (w.rotation.x + (d.speed * dt) / d.radius) % (Math.PI * 2);
       const now = onCircuit(d.s, d.dir);
       d.root.position.set(now.x, 0, now.z);
       d.root.rotation.y = now.rotY;
