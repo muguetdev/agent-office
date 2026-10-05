@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { toCreasedNormals } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import carsUrl from '../models/cars.glb?url';
 import deskPropsUrl from '../models/desk_props.glb?url';
 import dogCorgiUrl from '../models/dog-corgi.glb?url';
@@ -19,6 +20,9 @@ import { toon } from './toon';
 // script in blender/scripts/ (blender/README.md has the conventions they keep); add it here by name.
 // `preload` ones are loaded before the world is built, for builders that take theirs with model();
 // the rest load the first time loadModel() asks for them (a floor's dog is only ever one breed).
+// `smooth` ones are low-poly curves (the cars' bodies): their faces are shaded as one smooth surface where
+// they meet at less than that many degrees, and stay sharp-edged where they meet at more, so the toon
+// light's edge runs round a curve instead of picking out its triangles one by one.
 const MODELS = {
   'dog-pup': { url: dogPupUrl, preload: false },
   'dog-corgi': { url: dogCorgiUrl, preload: false },
@@ -26,13 +30,13 @@ const MODELS = {
   'dog-pug': { url: dogPugUrl, preload: false },
   'dog-shiba': { url: dogShibaUrl, preload: false },
   'dog-pomeranian': { url: dogPomeranianUrl, preload: false },
-  cars: { url: carsUrl, preload: true },
+  cars: { url: carsUrl, preload: true, smooth: 40 },
   desk_props: { url: deskPropsUrl, preload: true },
   kitchen: { url: kitchenUrl, preload: true },
   lounge: { url: loungeUrl, preload: true },
   plants: { url: plantsUrl, preload: true },
-  traffic: { url: trafficUrl, preload: false },
-} satisfies Record<string, { url: string; preload: boolean }>;
+  traffic: { url: trafficUrl, preload: false, smooth: 40 },
+} satisfies Record<string, { url: string; preload: boolean; smooth?: number }>;
 
 export type ModelName = keyof typeof MODELS;
 
@@ -80,6 +84,14 @@ function fetchModel(name: ModelName): Promise<GLTF> {
   if (!p) {
     // Each chunk that comes in tells the watchers too, though the counts are still by file.
     p = new GLTFLoader().loadAsync(MODELS[name].url, () => tell()).then((gltf) => {
+      const def = MODELS[name] as { smooth?: number };
+      if (def.smooth) {
+        const angle = THREE.MathUtils.degToRad(def.smooth);
+        gltf.scene.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.isMesh && !(m as THREE.SkinnedMesh).isSkinnedMesh) m.geometry = toCreasedNormals(m.geometry, angle);
+        });
+      }
       loaded.set(name, gltf);
       return gltf;
     });
