@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { INDOOR_LIGHTS, INDOOR_PARS, indoorUniforms } from './indoor-light';
+import { INDOOR_LIGHTS } from './indoor-light';
 import { FLOOR, SLAB, STREET_Y, WALL_HEIGHT, WALL_T, WING, wingMinZ } from '../../shared/layout';
 import type { SkyState, Theme, Weather } from '../../shared/protocol';
 import { guessPlace, skyNow, sunPosition } from '../../shared/sun';
@@ -188,7 +188,7 @@ const HAZE = /* glsl */ `
 `;
 
 // Everything with fog gets the haze above; every lit material also gets the lines before that, and the
-// light indoors (indoor-light.ts), sharing one set of uniforms; unlit ones (glass, signs) only the haze.
+// sun and the light indoors each where they belong (indoor-light.ts); unlit ones (glass, signs) only the haze.
 THREE.Material.prototype.onBeforeCompile = function (shader) {
   if (shader.fragmentShader.includes('#include <fog_fragment>')) {
     shader.uniforms.skyStreet = uniforms.skyStreet;
@@ -196,10 +196,10 @@ THREE.Material.prototype.onBeforeCompile = function (shader) {
     shader.fragmentShader = shader.fragmentShader.replace('#include <fog_pars_fragment>', `#include <fog_pars_fragment>\n${HAZE_PARS}`).replace('#include <fog_fragment>', HAZE);
   }
   if (!shader.fragmentShader.includes('#include <lights_fragment_end>')) return;
-  Object.assign(shader.uniforms, uniforms, indoorUniforms);
+  Object.assign(shader.uniforms, uniforms);
   shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSkyWorld;').replace('#include <project_vertex>', `#include <project_vertex>\n${WORLD}`);
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', `#include <common>\n${PARS}${INDOOR_PARS}`)
+    .replace('#include <common>', `#include <common>\n${PARS}`)
     .replace('#include <lights_fragment_begin>', `${SURFACE}\n${INDOOR_LIGHTS}`)
     .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>\n${LIGHT}`);
 };
