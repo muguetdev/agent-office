@@ -49,9 +49,17 @@ const FLEET: { kind: (typeof KINDS)[number]; dir: 1 | -1; at: number; speed: num
   { kind: 'suv', dir: -1, at: 0.85, speed: 10 },
 ];
 
-/** The sidewalks' walking lines (z), clear of the trees and the lamp posts, and how far along them people go (x). */
+/** The sidewalks' walking lines (z), how far either side of them people may step round something (z), and how far along them they go (x). */
 const WALKS = [ROAD.minZ - 0.35, ROAD.maxZ + 0.3];
+const SIDEWALKS = [
+  [ROAD.minZ - 1.75, ROAD.minZ - 0.25],
+  [ROAD.maxZ + 0.25, ROAD.maxZ + 1.75],
+];
 const WALK_X = 70;
+/** How wide a walker is (half), how far ahead they look for something in their way, and how fast they step aside (m/s). */
+const WALKER_R = 0.25;
+const LOOK = 0.9;
+const SIDESTEP = 1.2;
 const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#8338ec', '#ffbe0b', '#3a86ff', '#6a994e', '#ef476f', '#264653'];
 
 interface Driver {
@@ -67,7 +75,11 @@ interface Driver {
 interface Walker {
   person: Person;
   box: Collider;
+  /** Their own line along the sidewalk, where they are now, and the one they're stepping over to. */
+  home: number;
   z: number;
+  to: number;
+  side: number;
   x: number;
   dir: 1 | -1;
   pace: number;
@@ -81,6 +93,7 @@ const LOOK_AHEAD = 16;
 
 export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
   const group = new THREE.Group();
+  group.name = 'traffic';
   group.visible = false;
   ctx.scene.add(group);
   const drivers: Driver[] = [];
@@ -106,7 +119,8 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
       const person = new Person('', SHIRTS[(i * 3 + side * 5) % SHIRTS.length], randomLook());
       person.showLabel(false);
       group.add(person.root);
-      walkers.push({ person, box: box(), z: z + (i % 2 ? 0.35 : -0.35), x: -WALK_X + ((i * 2 + side) / 10) * WALK_X * 2, dir: i % 2 ? 1 : -1, pace: 1.1 + ((i * 7 + side * 3) % 5) * 0.1 });
+      const line = z + (i % 2 ? 0.35 : -0.35);
+      walkers.push({ person, box: box(), home: line, z: line, to: line, side, x: -WALK_X + ((i * 2 + side) / 10) * WALK_X * 2, dir: i % 2 ? 1 : -1, pace: 1.1 + ((i * 7 + side * 3) % 5) * 0.1 });
     }
   });
 
@@ -119,6 +133,22 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
     return f > 0 && f < LOOK_AHEAD && l < 1.7 ? f : Infinity;
   };
 
+  /** What's standing on the sidewalks (trees, lamp posts, hydrants…), looked up again now and then. */
+  let statics: Collider[] = [];
+  let lookedAt = -Infinity;
+  const ours = new Set<Collider>();
+  const blocked = (x: number, z: number) =>
+    statics.some((c) => x + WALKER_R > c.minX && x - WALKER_R < c.maxX && z + WALKER_R > c.minZ && z - WALKER_R < c.maxZ);
+  /** Where on their sidewalk a walker can get past whatever's ahead: the nearest clear line to where they are, or none. */
+  const clearLine = (w: Walker, ahead: number) => {
+    const [lo, hi] = SIDEWALKS[w.side];
+    for (let k = 0; k <= 12; k++) {
+      const z = w.z + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.15;
+      if (z >= lo && z <= hi && !blocked(ahead, z) && !blocked(w.x, z)) return z;
+    }
+    return undefined;
+  };
+
   ctx.ticks.add('env', ({ t, dt }) => {
     const here = ctx.inOffice() && !ctx.upTop();
     group.visible = here;
@@ -129,6 +159,14 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
     }
     const street = ctx.player.street;
     group.position.y = street;
+    if (t - lookedAt > 5) {
+      lookedAt = t;
+      for (const d of drivers) for (const b of d.boxes) ours.add(b);
+      for (const w of walkers) ours.add(w.box);
+      statics = ctx.office.colliders.filter(
+        (c) => !ours.has(c) && c.maxZ > SIDEWALKS[0][0] - 1 && c.minZ < SIDEWALKS[1][1] + 1 && (c.bottom ?? street) < street + 1.5 && c.top > street + 0.2 && !(c.minZ > ROAD.minZ && c.maxZ < ROAD.maxZ),
+      );
+    }
     // What a car stops for: you on foot down at the street, the car you're in, the garage's cars, and the people walking.
     const me = ctx.player.pos;
     const mine = deps.myCar();
@@ -177,12 +215,24 @@ export function installTraffic(ctx: Ctx, deps: TrafficDeps) {
     for (const w of walkers) {
       // Turns round at the ends of its stretch; stops for you (on foot) in its way.
       if (Math.abs(w.x) > WALK_X) w.dir = w.x > 0 ? -1 : 1;
-      const blocked = !mine && Math.abs(me.y - street) < 1.5 && Math.abs(me.z - w.z) < 0.9 && (me.x - w.x) * w.dir > 0 && (me.x - w.x) * w.dir < 1.4;
-      if (!blocked) w.x += w.dir * w.pace * dt;
+      const forYou = !mine && Math.abs(me.y - street) < 1.5 && Math.abs(me.z - w.z) < 0.9 && (me.x - w.x) * w.dir > 0 && (me.x - w.x) * w.dir < 1.4;
+      // Something standing in the way ahead (a tree, a lamp post): step over to a clear line on the
+      // sidewalk to get past it, or turn back if there's none; once past, back to their own line.
+      const ahead = w.x + w.dir * LOOK;
+      if (blocked(ahead, w.to)) {
+        const z = clearLine(w, ahead);
+        if (z === undefined) w.dir = w.dir > 0 ? -1 : 1;
+        else w.to = z;
+      } else if (w.to !== w.home && !blocked(ahead, w.home) && !blocked(w.x, w.home)) w.to = w.home;
+      w.z += Math.max(-SIDESTEP * dt, Math.min(SIDESTEP * dt, w.to - w.z));
+      const next = w.x + w.dir * w.pace * dt;
+      // (One that's somehow inside something walks on out of it.)
+      const walking = !forYou && (!blocked(next, w.z) || blocked(w.x, w.z));
+      if (walking) w.x = next;
       w.person.root.position.set(w.x, 0, w.z);
       Object.assign(w.box, { minX: w.x - 0.25, maxX: w.x + 0.25, minZ: w.z - 0.25, maxZ: w.z + 0.25, bottom: street, top: street + 1.7 });
       w.person.root.rotation.y = w.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-      w.person.update(dt, t, !blocked, false, w.pace / 1.3);
+      w.person.update(dt, t, walking, false, w.pace / 1.3);
     }
   });
 }
