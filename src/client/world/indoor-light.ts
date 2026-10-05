@@ -8,24 +8,19 @@ import * as THREE from 'three';
 export const INDOOR_LIGHT = { dir: new THREE.Vector3(0.22, 1, 0.14).normalize(), shadow: 0.7, lamp: 0.7, color: new THREE.Color('#ffe2b8') };
 
 const ANCHOR = 'getDirectionalLightInfo( directionalLight, directLight );';
-const SHADOWED = '( directLight.visible && receiveShadow )';
 
 /**
  * three.js's lights, with the sun (the first directional light) lighting only what `skyIndoor` (sky.ts's
  * SURFACE) says is outdoors and the indoor light (the second) only what's indoors. A scene with the sun
- * alone (a preview) keeps it everywhere. A surface facing away from a light takes no shadows from it: it's
- * on its own dark side already, and the garage's ceiling would otherwise catch the shadows of whatever
- * stands on the floor over it.
+ * alone (a preview) keeps it everywhere.
  */
-export const INDOOR_LIGHTS = THREE.ShaderChunk.lights_fragment_begin
-  .replace(
-    ANCHOR,
-    `${ANCHOR}
+export const INDOOR_LIGHTS = THREE.ShaderChunk.lights_fragment_begin.replace(
+  ANCHOR,
+  `${ANCHOR}
 		#if NUM_DIR_LIGHTS > 1
 		directLight.color *= UNROLLED_LOOP_INDEX == 1 ? skyIndoor : 1.0 - skyIndoor;
 		#endif`,
-  )
-  .replaceAll(SHADOWED, '( directLight.visible && receiveShadow && dot( geometryNormal, directLight.direction ) > 0.0 )');
+);
 
 /** The indoor light as bright as the sun is, or as the lamps when they're brighter. */
 export function lightIndoors(light: THREE.DirectionalLight, sun: THREE.DirectionalLight, lampsOn: number) {

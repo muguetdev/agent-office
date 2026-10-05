@@ -430,8 +430,12 @@ export function buildStack(colliders: Collider[], planks: THREE.Material): Stack
     const slabShape = new THREE.Shape(rectOutline(B).map(([x, z]) => new THREE.Vector2(x, -z)));
     slabShape.holes = slabHoles.map((h) => holePath(h, -1));
     const slabGeo = new THREE.ExtrudeGeometry(slabShape, { depth: SLAB - 0.01, bevelEnabled: false, curveSegments: 24 }).rotateX(-Math.PI / 2).translate(0, -SLAB, 0);
-    // Its top and bottom are concrete (group 0); its edges are the band.
-    take(mesh(slabGeo, concrete)).material = [concrete, band];
+    // Its top and bottom are concrete (group 0); its edges are the band. It takes no shadows: its top is
+    // under the planks, and its underside, the garage's ceiling, would catch those of everything on the
+    // floor over it.
+    const slab = take(mesh(slabGeo, concrete));
+    slab.material = [concrete, band];
+    slab.receiveShadow = false;
     for (const h of slabHoles.map((h) => ('r' in h ? around(h, h.r) : h))) {
       const lid = take(mesh(new THREE.PlaneGeometry(h.maxX - h.minX, h.maxZ - h.minZ), concrete, (h.minX + h.maxX) / 2, -SLAB - 0.002, (h.minZ + h.maxZ) / 2, false));
       lid.rotation.x = Math.PI / 2;
