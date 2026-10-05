@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { INDOOR_LIGHTS, INDOOR_PARS, indoorUniforms } from './indoor-light';
 import { FLOOR, SLAB, STREET_Y, WALL_HEIGHT, WALL_T, WING, wingMinZ } from '../../shared/layout';
 import type { SkyState, Theme, Weather } from '../../shared/protocol';
 import { guessPlace, skyNow, sunPosition } from '../../shared/sun';
@@ -186,9 +187,8 @@ const HAZE = /* glsl */ `
 #endif
 `;
 
-// Everything with fog gets the haze above; every lit material also gets the lines before that,
-// sharing one set of uniforms. Nothing else in the office uses onBeforeCompile, so this is its
-// default; unlit ones (glass, signs, outlines) only get the haze.
+// Everything with fog gets the haze above; every lit material also gets the lines before that, and the
+// light indoors (indoor-light.ts), sharing one set of uniforms; unlit ones (glass, signs) only the haze.
 THREE.Material.prototype.onBeforeCompile = function (shader) {
   if (shader.fragmentShader.includes('#include <fog_fragment>')) {
     shader.uniforms.skyStreet = uniforms.skyStreet;
@@ -196,11 +196,11 @@ THREE.Material.prototype.onBeforeCompile = function (shader) {
     shader.fragmentShader = shader.fragmentShader.replace('#include <fog_pars_fragment>', `#include <fog_pars_fragment>\n${HAZE_PARS}`).replace('#include <fog_fragment>', HAZE);
   }
   if (!shader.fragmentShader.includes('#include <lights_fragment_end>')) return;
-  Object.assign(shader.uniforms, uniforms);
+  Object.assign(shader.uniforms, uniforms, indoorUniforms);
   shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSkyWorld;').replace('#include <project_vertex>', `#include <project_vertex>\n${WORLD}`);
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', `#include <common>\n${PARS}`)
-    .replace('#include <lights_fragment_begin>', `${SURFACE}\n#include <lights_fragment_begin>`)
+    .replace('#include <common>', `#include <common>\n${PARS}${INDOOR_PARS}`)
+    .replace('#include <lights_fragment_begin>', `${SURFACE}\n${INDOOR_LIGHTS}`)
     .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>\n${LIGHT}`);
 };
 

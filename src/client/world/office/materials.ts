@@ -134,7 +134,8 @@ export function shadowless<T extends THREE.Material>(m: T): T {
   const inherited = THREE.Material.prototype.onBeforeCompile;
   m.onBeforeCompile = function (shader, renderer) {
     inherited.call(this, shader, renderer);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <lights_fragment_begin>', THREE.ShaderChunk.lights_fragment_begin.replaceAll('directLight.visible && receiveShadow', 'false'));
+    // The lights as the sky's patch has written them out by now (see world/indoor-light.ts), with no shadows.
+    shader.fragmentShader = shader.fragmentShader.replaceAll('directLight.visible && receiveShadow', 'false');
   };
   m.customProgramCacheKey = () => 'shadowless';
   return m;

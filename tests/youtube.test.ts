@@ -57,3 +57,23 @@ test("YouTube's search: the videos in a results page, each once, with their chan
     { id: 'bbbbbbbbbbb', title: 'Two', channel: 'Chan', length: '3:10' },
   ]);
 });
+
+test('a jukebox playing to an empty floor turns itself off after a while, and not while anyone is there', async () => {
+  const { idleJukeboxes, IDLE_OFF_MS } = await import('../src/server/ws/handlers/jukebox');
+  const j = new Jukebox(mkdtempSync(path.join(tmpdir(), 'jukebox-')));
+  j.play({ track: 'coffee-break' }, 'Ana');
+  const floor = { id: 'f1', jukebox: j };
+  const clients = new Map<string, any>([['c1', { peer: { floor: 'f1' } }]]);
+  const sent: unknown[] = [];
+  const ctx = { floors: new Map([['f1', floor]]), clients, toFloor: (_f: unknown, m: unknown) => sent.push(m) } as any;
+  idleJukeboxes(ctx, 0);
+  idleJukeboxes(ctx, IDLE_OFF_MS * 2);
+  assert.equal(j.state().on, true, 'someone is on the floor');
+  clients.clear();
+  idleJukeboxes(ctx, IDLE_OFF_MS * 3);
+  idleJukeboxes(ctx, IDLE_OFF_MS * 3 + IDLE_OFF_MS / 2);
+  assert.equal(j.state().on, true, 'not empty for long enough yet');
+  idleJukeboxes(ctx, IDLE_OFF_MS * 4);
+  assert.equal(j.state().on, false);
+  assert.equal(sent.length, 1, 'the floor hears it went off');
+});

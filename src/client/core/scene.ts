@@ -77,14 +77,13 @@ export function createScene(canvas: HTMLCanvasElement, renderer: THREE.WebGLRend
   sun.shadow.mapSize.set(size, size);
   // Wide enough for the office, the garage under it and the balcony and lot out front, from wherever the sun is.
   Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 30, bottom: -30, near: 1, far: 100 });
-  // Its box square to the building (north up) whichever way the light comes from, so the one round the
-  // office indoors (see lamplight) covers every corner of it rather than a turned square of it.
+  // Its box square to the building (north up) whichever way the light comes from.
   sun.shadow.camera.up.set(0, 0, -1);
   sun.shadow.bias = -0.0008;
-  // A texel of the shadow map is about 1.5 cm across outdoors (64 m over 4096), and a centimetre indoors
-  // (about 42 m over 4096, see lamplight): anything the light catches side-on (indoors, where it comes
-  // from overhead, every upright surface) speckles in stripes with its own shadow unless the lookup is
-  // pushed out past a few of them. Much further, and the shadows come away from the corners.
+  // A texel of the shadow map is about 1.5 cm across (64 m over 4096): anything the light catches
+  // side-on speckles in stripes with its own shadow unless the lookup is pushed out past a few of them.
+  // Much further, and the shadows come away from the corners. (Nothing indoors takes the sun's shadows:
+  // see world/indoor-light.ts.)
   sun.shadow.normalBias = 0.05;
   scene.add(sun);
 
