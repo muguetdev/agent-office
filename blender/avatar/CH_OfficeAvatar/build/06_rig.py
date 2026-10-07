@@ -198,9 +198,10 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
             for i in island:
                 root_of[i] = i0
             xs = [(mw @ me.vertices[i].co).x for i in island]
-            # A sleeve (or its cuff) is all on one side, well out from the middle; the body crosses it,
-            # and the front's trims (piping, drawstrings) sit near it.
-            if (min(xs) > 0 or max(xs) < 0) and abs(sum(xs) / len(xs)) > 0.15:
+            # A sleeve (or its cuff) is all on one side and reaches well out from the middle (rooted deep in
+            # the body, its average can be close in); the body crosses the middle, and the front's trims
+            # (piping, drawstrings) stay near it.
+            if (min(xs) > 0 or max(xs) < 0) and max(abs(x) for x in xs) > 0.2:
                 sleeve.update(island)
         for i in sleeve:
             p = mw @ me.vertices[i].co
