@@ -23,8 +23,7 @@ export type Pose = 'stand' | 'walk' | 'sit' | 'type';
 /** Voice loudness (RMS) above which someone counts as speaking. */
 const SPEAKING = 0.04;
 
-const v1 = new THREE.Vector3();
-const v2 = new THREE.Vector3();
+const [v1, v2] = [new THREE.Vector3(), new THREE.Vector3()];
 
 /** Where the line under a person's name tag sits, just over their hair, and how far it lifts the name tag. */
 const DOING_Y = 1.95;
@@ -40,11 +39,12 @@ export class Person {
   private legR: THREE.Object3D;
   private armL: THREE.Object3D;
   private armR: THREE.Object3D;
-  private shirt: THREE.MeshToonMaterial;
+  /** The shirt's colour, the look and (below) how far the talking mouth is open: what an avatar dressing it reads (see features/avatars). */
+  readonly shirt: THREE.MeshToonMaterial;
   private skin: THREE.MeshToonMaterial;
   private hairMat: THREE.MeshToonMaterial;
   private hair = new THREE.Group();
-  private look: Look;
+  look: Look;
   private label: THREE.Sprite | null = null;
   /** The smaller line under the name tag: what they have open, or where they are (see whereabouts). */
   private doing: THREE.Sprite | null = null;
@@ -56,7 +56,7 @@ export class Person {
   private mouth: THREE.Mesh;
   private voiceLevel = 0;
   /** 0 = lips together, 1 = wide open. Follows the voice's loudness. */
-  private mouthOpen = 0;
+  mouthOpen = 0;
   /** Keep the talking mouth up through the short gaps between words. */
   private talkUntil = 0;
   private walkPhase = 0;
@@ -99,11 +99,7 @@ export class Person {
   private sitK = 0;
   /** Holding on to the ladder or a fire pole (see setGrip). */
   private grip: 'ladder' | 'pole' | null = null;
-  /**
-   * At the golf tee with a club (see setGolf): the club's swing, how far back it's been taken (and
-   * `want`, where it's going), and a swing under way (`swingT` seconds in, from `top`), or -1.
-   * `autoT` is a whole swing playing by itself (golfSwing), taken back to `power`.
-   */
+  /** At the golf tee with a club (see setGolf): the club's swing, how far back it's been taken (and `want`, where it's going), and a swing under way (`swingT` seconds in, from `top`), or -1. `autoT` is a whole swing playing by itself (golfSwing), taken back to `power`. */
   private golf: Golf | null = null;
   /**
    * At the dart board's oche or the axe lane's line (see setThrowing): the dart or axe in hand, how
@@ -118,9 +114,11 @@ export class Person {
   private gripping = false;
   /** Something they're saying (see say), and for how many more seconds. */
   private speech: { sprite: THREE.Sprite; left: number } | null = null;
+  /** Called with every Person as it's made, to dress it (see features/avatars). */
+  static made: ((p: Person) => void) | null = null;
 
   constructor(
-    private name: string,
+    public name: string,
     color: string,
     look: Look,
   ) {
@@ -215,6 +213,7 @@ export class Person {
 
     this.rig = { root: this.root, body: this.body, torso, head: this.head, armL: this.armL, armR: this.armR, legL: this.legL, legR: this.legR };
     this.setLabel(name, false);
+    Person.made?.(this);
   }
 
   setColor(color: string) {
@@ -480,10 +479,7 @@ export class Person {
     this.pose = hips === null ? 'stand' : 'sit';
   }
 
-  /**
-   * On the ladder (hand over hand, as they climb) or a fire pole (hanging on with both arms up, legs
-   * wrapped round it: it's on their left, the +x side), or neither.
-   */
+  /** On the ladder (hand over hand, as they climb) or a fire pole (hanging on with both arms up, legs wrapped round it: it's on their left, the +x side), or neither. */
   setGrip(grip: 'ladder' | 'pole' | null) {
     this.grip = grip;
   }

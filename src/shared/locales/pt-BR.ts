@@ -3214,6 +3214,13 @@ Opções:
     takeTheirs: 'Carregar o deles (perder o meu)',
     keepMine: 'Salvar o meu por cima',
   },
+  avatars: {
+    title: 'Personagens',
+    avatar: '🧑‍💻 Avatares',
+    classic: '🙂 Clássicos',
+    avatarNote: 'Todo mundo com os avatares do escritório: o cabelo, a pele e a cor da roupa que cada um escolheu, e uma roupa própria.',
+    classicNote: 'Todo mundo como os bonequinhos clássicos.',
+  },
   diorama: {
     title: 'Visual',
     classic: '🏢 Clássico',

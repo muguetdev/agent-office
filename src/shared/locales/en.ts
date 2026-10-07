@@ -3225,6 +3225,13 @@ Options:
     takeTheirs: 'Load theirs (lose mine)',
     keepMine: 'Save mine over it',
   },
+  avatars: {
+    title: 'Characters',
+    avatar: '🧑‍💻 Avatars',
+    classic: '🙂 Classic',
+    avatarNote: 'Everyone as the office avatars: the hair, skin and shirt colour each person picked, and an outfit of their own.',
+    classicNote: 'Everyone as the classic cartoon people.',
+  },
   diorama: {
     title: 'Look',
     classic: '🏢 Classic',

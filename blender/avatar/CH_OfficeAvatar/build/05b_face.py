@@ -161,6 +161,9 @@ def build(scene, args):
             ob.shape_key_clear()
     eye_keys(eyes)
     brow_keys(brows)
+    for ob in (m, eyes, brows):
+        for kb in ob.data.shape_keys.key_blocks:
+            kb.value = 0.0
     # Every LOD of a face piece is its LOD0, keys and all.
     for base in (m, eyes, brows):
         for lv in (1, 2):
@@ -175,6 +178,10 @@ def build(scene, args):
             lod.hide_render = True
             own(lod)
     for ob in (m, eyes, brows):
+        # Every expression off to start with (a new key comes in at 1, and the exporter carries the
+        # values over as the morph targets' default weights).
+        for kb in ob.data.shape_keys.key_blocks:
+            kb.value = 0.0
         log(ob.name, [k.name for k in ob.data.shape_keys.key_blocks])
 
 
