@@ -1,0 +1,93 @@
+{
+  "blend": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_master.blend",
+  "mode": "material",
+  "engine": "cycles",
+  "bbox_min": [
+    -0.3529999554157257,
+    -0.2699998617172241,
+    0.0
+  ],
+  "bbox_max": [
+    0.3529999852180481,
+    0.21000000834465027,
+    1.5399999618530273
+  ],
+  "size_xyz": [
+    0.7059999704360962,
+    0.4799998700618744,
+    1.5399999618530273
+  ],
+  "objects": [
+    "CH_OfficeAvatar_Body_Blockout",
+    "CH_OfficeAvatar_Head_Blockout",
+    "CH_OfficeAvatar_Ear_L_Blockout",
+    "CH_OfficeAvatar_Eye_L_Blockout",
+    "CH_OfficeAvatar_Brow_L_Blockout",
+    "CH_OfficeAvatar_Ear_R_Blockout",
+    "CH_OfficeAvatar_Eye_R_Blockout",
+    "CH_OfficeAvatar_Brow_R_Blockout",
+    "CH_OfficeAvatar_Mouth_Blockout",
+    "CH_OfficeAvatar_Hair_Top_Blockout",
+    "CH_OfficeAvatar_Hair_Side_L_Blockout",
+    "CH_OfficeAvatar_Hair_Side_R_Blockout",
+    "CH_OfficeAvatar_Hair_Back_Blockout",
+    "CH_OfficeAvatar_Hoodie_Blockout",
+    "CH_OfficeAvatar_Hood_Blockout",
+    "CH_OfficeAvatar_Tee_Blockout",
+    "CH_OfficeAvatar_ShoulderCap_L_Blockout",
+    "CH_OfficeAvatar_Sleeve_L_Blockout",
+    "CH_OfficeAvatar_Fist_L_Blockout",
+    "CH_OfficeAvatar_TrouserLeg_L_Blockout",
+    "CH_OfficeAvatar_Sole_L_Blockout",
+    "CH_OfficeAvatar_Upper_L_Blockout",
+    "CH_OfficeAvatar_ShoulderCap_R_Blockout",
+    "CH_OfficeAvatar_Sleeve_R_Blockout",
+    "CH_OfficeAvatar_Fist_R_Blockout",
+    "CH_OfficeAvatar_TrouserLeg_R_Blockout",
+    "CH_OfficeAvatar_Sole_R_Blockout",
+    "CH_OfficeAvatar_Upper_R_Blockout",
+    "CH_OfficeAvatar_TrouserSeat_Blockout"
+  ],
+  "renders": {
+    "front": {
+      "file": "review/02_blockout/material_front.png",
+      "az_el_lens": [
+        0,
+        0,
+        0
+      ],
+      "distance": 4.239999935030937
+    },
+    "side": {
+      "file": "review/02_blockout/material_side.png",
+      "az_el_lens": [
+        90,
+        0,
+        0
+      ],
+      "distance": 4.352999985218048
+    },
+    "back": {
+      "file": "review/02_blockout/material_back.png",
+      "az_el_lens": [
+        180,
+        0,
+        0
+      ],
+      "distance": 4.239999935030937
+    },
+    "threequarter": {
+      "file": "review/02_blockout/material_threequarter.png",
+      "az_el_lens": [
+        35,
+        15,
+        50
+      ],
+      "distance": 2.8920326840339428
+    },
+    "gameplay": {
+      "file": "review/02_blockout/material_gameplay_96px.png",
+      "subject_px": 96
+    }
+  }
+}
