@@ -1,0 +1,84 @@
+{
+  "roles": {
+    "M_Skin": {
+      "default": "#F7D2B4",
+      "palette": [
+        "#F7D2B4",
+        "#E3A97F",
+        "#B07A57",
+        "#5E3B2A"
+      ]
+    },
+    "M_Hair": {
+      "default": "#4A2C22",
+      "palette": [
+        "#4A2C22",
+        "#1E1A1A",
+        "#E9B95B",
+        "#E8642C"
+      ]
+    },
+    "M_PrimaryClothing": {
+      "default": "#3E7DF1",
+      "palette": [
+        "#3E7DF1",
+        "#2E8A84",
+        "#FFC21F",
+        "#F26B4F",
+        "#8E5CC9",
+        "#F3EEE4",
+        "#2B2F37"
+      ]
+    },
+    "M_SecondaryClothing": {
+      "default": "#F4F4F2",
+      "palette": [
+        "#F4F4F2",
+        "#2B2F37",
+        "#FFC21F"
+      ]
+    },
+    "M_Pants": {
+      "default": "#2A3044",
+      "palette": [
+        "#2A3044",
+        "#3B4256",
+        "#7F858F",
+        "#B8A486"
+      ]
+    },
+    "M_Shoes": {
+      "default": "#F4F4F4",
+      "palette": [
+        "#F4F4F4",
+        "#2F7FF0",
+        "#2B2F37",
+        "#B9BCC2"
+      ]
+    },
+    "M_ShoesAccent": {
+      "default": "#2F7FF0",
+      "palette": [
+        "#2F7FF0",
+        "#F4F4F4",
+        "#2B2F37",
+        "#2E8A84"
+      ]
+    },
+    "M_Accessories": {
+      "default": "#22252B",
+      "palette": [
+        "#22252B",
+        "#2F7FF0",
+        "#B07A57",
+        "#C9A227"
+      ]
+    }
+  },
+  "fixed": {
+    "M_Eyes": "#17120F",
+    "M_EyeHighlight": "#FFFFFF",
+    "M_Mouth": "#8A2E22",
+    "M_Teeth": "#FAFAF7"
+  }
+}

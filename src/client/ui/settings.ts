@@ -12,7 +12,7 @@ import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
 import { autoModelSetting } from './settings-automodel';
-import { lookSetting } from './settings-look';
+import { charactersSetting, lookSetting } from './settings-look';
 import { choiceRow } from './settings-rows';
 import { L } from '../i18n';
 import { languageSettings } from './settings-language';
@@ -463,6 +463,14 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
         ...lookSetting(
           () => settings.look,
           (look) => onChange((settings = { ...settings, look })),
+        ),
+      ),
+      setting(
+        L.avatars.title,
+        'you',
+        ...charactersSetting(
+          () => settings.characters,
+          (characters) => onChange((settings = { ...settings, characters })),
         ),
       ),
       langs.yours,

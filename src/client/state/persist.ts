@@ -37,6 +37,8 @@ export function saveProfile(p: Omit<Profile, 'look'> & { look?: Look }) {
 export type ViewMode = 'first' | 'third';
 /** How the office looks: as it always was, or as a scale model from above (see features/diorama). */
 export type OfficeLook = 'classic' | 'diorama';
+/** Who the people are drawn as: the office avatars, or the classic cartoon people (see features/avatars). */
+export type Characters = 'avatar' | 'classic';
 
 /** The panels you can show or hide on screen, from the ☰ menu. */
 export type HudPanel = 'workers' | 'people' | 'spend' | 'limits' | 'chat' | 'floor' | 'map';
@@ -50,6 +52,7 @@ export type NeedsYouSound = (typeof NEEDS_YOU_SOUNDS)[number];
 export interface Settings {
   view: ViewMode;
   look: OfficeLook;
+  characters: Characters;
   /** Office sounds, 0–1. */
   volume: number;
   muted: boolean;
@@ -130,11 +133,12 @@ export function rememberSpot(s: Spot) {
 }
 
 export function loadSettings(): Settings {
-  const s: Settings = { view: 'first', look: 'classic', volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [] };
+  const s: Settings = { view: 'first', look: 'classic', characters: 'avatar', volume: 0.7, muted: false, music: 0.5, musicMuted: false, pageTurns: true, pushToTalk: false, notify: true, needsYouSound: 'once', hud: { ...HUD_DEFAULTS }, pins: [] };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null');
     if (saved?.view === 'first' || saved?.view === 'third') s.view = saved.view;
     if (saved?.look === 'classic' || saved?.look === 'diorama') s.look = saved.look;
+    if (saved?.characters === 'avatar' || saved?.characters === 'classic') s.characters = saved.characters;
     if (typeof saved?.volume === 'number' && Number.isFinite(saved.volume)) s.volume = Math.max(0, Math.min(1, saved.volume));
     if (typeof saved?.muted === 'boolean') s.muted = saved.muted;
     if (typeof saved?.music === 'number' && Number.isFinite(saved.music)) s.music = Math.max(0, Math.min(1, saved.music));

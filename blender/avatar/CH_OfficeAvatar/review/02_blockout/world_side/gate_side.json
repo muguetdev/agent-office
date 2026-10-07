@@ -1,0 +1,21 @@
+{
+  "view": "side",
+  "az": 90.0,
+  "matte": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/ref/matte_side.png",
+  "m_per_px": 0.003144,
+  "iou": 0.8501,
+  "ref_only_pct": 8.52,
+  "render_only_pct": 7.62,
+  "band_width_diff": [
+    0.0302,
+    -0.0241,
+    -0.0241,
+    0.0101,
+    -0.0302,
+    -0.0141,
+    -0.008,
+    0.002,
+    0.004,
+    -0.0362
+  ]
+}

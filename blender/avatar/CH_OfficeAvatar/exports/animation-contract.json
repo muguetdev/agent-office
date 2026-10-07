@@ -1,0 +1,63 @@
+{
+  "asset": "CH_OfficeAvatar",
+  "fps": 30,
+  "time_unit": "seconds from clip start",
+  "clips": [
+    {
+      "name": "Idle",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 61,
+      "length_s": 2.0,
+      "loop": true,
+      "events_s": {}
+    },
+    {
+      "name": "Sit",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 31,
+      "length_s": 1.0,
+      "loop": true,
+      "events_s": {}
+    },
+    {
+      "name": "TPose",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 1,
+      "length_s": 0.0,
+      "loop": false,
+      "events_s": {}
+    },
+    {
+      "name": "Typing",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 31,
+      "length_s": 1.0,
+      "loop": true,
+      "events_s": {}
+    },
+    {
+      "name": "Walk",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 25,
+      "length_s": 0.8,
+      "loop": true,
+      "events_s": {},
+      "speed_mps": 1.3
+    },
+    {
+      "name": "Wave",
+      "fps": 30,
+      "frame_start": 1,
+      "frame_end": 31,
+      "length_s": 1.0,
+      "loop": true,
+      "events_s": {}
+    }
+  ],
+  "note": "events come from pose markers on each action; loop/speed/root_motion from action custom properties"
+}

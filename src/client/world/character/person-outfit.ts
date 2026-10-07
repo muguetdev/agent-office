@@ -63,6 +63,7 @@ export class HolidayOutfit {
 
   /** Hangs `o` off `on`. */
   private put(on: THREE.Object3D, o: THREE.Object3D) {
+    o.userData.outfit = true; // an avatar shows only its hat (see features/avatars)
     on.add(o);
     this.parts.push(o);
   }

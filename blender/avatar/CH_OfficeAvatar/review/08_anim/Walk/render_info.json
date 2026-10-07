@@ -1,0 +1,55 @@
+{
+  "blend": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_master.blend",
+  "mode": "material",
+  "engine": "cycles",
+  "bbox_min": [
+    -0.30898547172546387,
+    -0.3383919596672058,
+    -0.09420978277921677
+  ],
+  "bbox_max": [
+    0.3108137845993042,
+    0.25902730226516724,
+    1.538301944732666
+  ],
+  "size_xyz": [
+    0.6197992563247681,
+    0.597419261932373,
+    1.6325117349624634
+  ],
+  "objects": [
+    "CH_OfficeAvatar_Body_Torso_LOD0",
+    "CH_OfficeAvatar_Body_Arms_LOD0",
+    "CH_OfficeAvatar_Body_Legs_LOD0",
+    "CH_OfficeAvatar_Body_Head_LOD0",
+    "CH_OfficeAvatar_Body_Hands_LOD0",
+    "CH_OfficeAvatar_Face_Eyes_LOD0",
+    "CH_OfficeAvatar_Face_Brows_LOD0",
+    "CH_OfficeAvatar_Face_Mouth_LOD0",
+    "CH_OfficeAvatar_Hair_Wavy_LOD0",
+    "CH_OfficeAvatar_Top_Tee_LOD0",
+    "CH_OfficeAvatar_Top_HoodieOpen_LOD0",
+    "CH_OfficeAvatar_Bottom_Trousers_LOD0",
+    "CH_OfficeAvatar_Shoes_Sneakers_LOD0"
+  ],
+  "renders": {
+    "threequarter": {
+      "file": "review/08_anim/Walk/material_threequarter.png",
+      "az_el_lens": [
+        35,
+        15,
+        50
+      ],
+      "distance": 3.0646847116036544
+    },
+    "side": {
+      "file": "review/08_anim/Walk/material_side.png",
+      "az_el_lens": [
+        90,
+        0,
+        0
+      ],
+      "distance": 4.309899628162384
+    }
+  }
+}
