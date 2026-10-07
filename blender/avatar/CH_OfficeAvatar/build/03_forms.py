@@ -14,7 +14,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 exec(open(os.path.join(HERE, "_kit.py")).read())
 _blockout = {"__file__": os.path.join(HERE, "02_blockout.py"), "__name__": "02_blockout"}
-exec(compile(open(os.path.join(HERE, "02_blockout.py")).read().split('if __name__ == "__main__":')[0], "02_blockout.py", "exec"), _blockout)
+exec(compile(open(os.path.join(HERE, "02_blockout.py")).read().split('\nif __name__ == "__main__":')[0], "02_blockout.py", "exec"), _blockout)
 for _k in ("H", "CHIN_Z", "SKULL", "HEAD_C", "HEAD_R", "EYE_Z", "EYE_X", "EYE_SIZE", "BROW_Z", "MOUTH_Z", "EAR_Z", "EAR_R", "HAIR_TOP",
            "SHOULDER_Z", "HEM_Z", "CROTCH_Z", "FIST_C_Z", "FIST_X", "FOOT_X", "LEG_X", "ANKLE_Z", "SHOE_LEN", "SHOE_H", "SHOE_W",
            "SHOE_FRONT", "LEG_R", "SKIN", "HAIR", "BLUE", "WHITE", "NAVY", "INK"):
