@@ -1,0 +1,786 @@
+{
+  "blend": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_master.blend",
+  "summary": {
+    "tris_by_lod": {
+      "0": 33319
+    },
+    "fail": [],
+    "warn": []
+  },
+  "objects": [
+    {
+      "name": "CH_OfficeAvatar_Body_Neck_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 80,
+        "verts_evaluated": 47,
+        "verts": 47,
+        "faces": 40,
+        "boundary_edges": 12,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Torso_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 202,
+        "verts_evaluated": 127,
+        "verts": 127,
+        "faces": 101,
+        "boundary_edges": 56,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Arms_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 272,
+        "verts_evaluated": 150,
+        "verts": 150,
+        "faces": 136,
+        "boundary_edges": 24,
+        "nonmanifold_edges": 0,
+        "islands": 2,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Legs_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 554,
+        "verts_evaluated": 288,
+        "verts": 288,
+        "faces": 277,
+        "boundary_edges": 20,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Head_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1600,
+        "verts_evaluated": 802,
+        "verts": 802,
+        "faces": 1578,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Hands_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 940,
+        "verts_evaluated": 474,
+        "verts": 474,
+        "faces": 930,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 2,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Skin"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Eyes_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 400,
+        "verts_evaluated": 208,
+        "verts": 208,
+        "faces": 344,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 4,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Eyes",
+          "M_EyeHighlight"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Brows_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 160,
+        "verts_evaluated": 84,
+        "verts": 84,
+        "faces": 121,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 2,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Mouth_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 100,
+        "verts_evaluated": 52,
+        "verts": 52,
+        "faces": 79,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Mouth"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Wavy_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1740,
+        "verts_evaluated": 872,
+        "verts": 872,
+        "faces": 1724,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 2,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Bun_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1798,
+        "verts_evaluated": 905,
+        "verts": 905,
+        "faces": 1779,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 3,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Bob_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 2000,
+        "verts_evaluated": 1000,
+        "verts": 1000,
+        "faces": 1977,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Beard_Stubble_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 600,
+        "verts_evaluated": 300,
+        "verts": 300,
+        "faces": 588,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Beard_Full_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1200,
+        "verts_evaluated": 602,
+        "verts": 602,
+        "faces": 1124,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 2,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Hair"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_Tee_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 3043,
+        "verts_evaluated": 1601,
+        "verts": 1601,
+        "faces": 2921,
+        "boundary_edges": 149,
+        "nonmanifold_edges": 0,
+        "islands": 6,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_PrimaryClothing"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_HoodieOpen_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 5248,
+        "verts_evaluated": 2782,
+        "verts": 2782,
+        "faces": 4949,
+        "boundary_edges": 294,
+        "nonmanifold_edges": 0,
+        "islands": 16,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_PrimaryClothing",
+          "M_SecondaryClothing"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_Jacket_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 3200,
+        "verts_evaluated": 1682,
+        "verts": 1682,
+        "faces": 3023,
+        "boundary_edges": 146,
+        "nonmanifold_edges": 0,
+        "islands": 10,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_PrimaryClothing",
+          "M_SecondaryClothing"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Bottom_Trousers_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1450,
+        "verts_evaluated": 727,
+        "verts": 727,
+        "faces": 1401,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 1,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Pants"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Bottom_Joggers_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 1800,
+        "verts_evaluated": 906,
+        "verts": 906,
+        "faces": 1738,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 3,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Pants",
+          "M_SecondaryClothing"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Shoes_Sneakers_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 3032,
+        "verts_evaluated": 1540,
+        "verts": 1540,
+        "faces": 2220,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 12,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Shoes",
+          "M_ShoesAccent"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Shoes_Runners_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 2400,
+        "verts_evaluated": 1212,
+        "verts": 1212,
+        "faces": 1484,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "islands": 6,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_ShoesAccent",
+          "M_Shoes"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Glasses_Round_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 700,
+        "verts_evaluated": 369,
+        "verts": 369,
+        "faces": 558,
+        "boundary_edges": 26,
+        "nonmanifold_edges": 0,
+        "islands": 5,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Accessories"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Glasses_Square_LOD0",
+      "type": "MESH",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "tris_evaluated": 800,
+        "verts_evaluated": 418,
+        "verts": 418,
+        "faces": 577,
+        "boundary_edges": 28,
+        "nonmanifold_edges": 0,
+        "islands": 5,
+        "uv_loops_outside_0_1": 0,
+        "materials": [
+          "M_Accessories"
+        ],
+        "modifiers": [
+          "ARMATURE:Armature"
+        ],
+        "skin": {
+          "armature": "CH_OfficeAvatar_Rig",
+          "unweighted": 0,
+          "over_influences": 0,
+          "not_normalised": 0,
+          "tiny_weights": 0,
+          "orphan_groups": []
+        }
+      }
+    },
+    {
+      "name": "CH_OfficeAvatar_Rig",
+      "type": "ARMATURE",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "bones": 35,
+        "deform_bones": 27,
+        "roots": [
+          "root"
+        ]
+      }
+    },
+    {
+      "name": "SOCKET_head",
+      "type": "SOCKET",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "parent": "CH_OfficeAvatar_Rig",
+        "parent_bone": "head",
+        "props": {
+          "owner": "phase:06_rig"
+        }
+      }
+    },
+    {
+      "name": "SOCKET_face",
+      "type": "SOCKET",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "parent": "CH_OfficeAvatar_Rig",
+        "parent_bone": "head",
+        "props": {
+          "owner": "phase:06_rig"
+        }
+      }
+    },
+    {
+      "name": "SOCKET_chest",
+      "type": "SOCKET",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "parent": "CH_OfficeAvatar_Rig",
+        "parent_bone": "chest",
+        "props": {
+          "owner": "phase:06_rig"
+        }
+      }
+    },
+    {
+      "name": "SOCKET_hand_L",
+      "type": "SOCKET",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "parent": "CH_OfficeAvatar_Rig",
+        "parent_bone": "hand_L",
+        "props": {
+          "owner": "phase:06_rig"
+        }
+      }
+    },
+    {
+      "name": "SOCKET_hand_R",
+      "type": "SOCKET",
+      "warn": [],
+      "fail": [],
+      "info": {
+        "parent": "CH_OfficeAvatar_Rig",
+        "parent_bone": "hand_R",
+        "props": {
+          "owner": "phase:06_rig"
+        }
+      }
+    }
+  ]
+}
