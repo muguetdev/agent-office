@@ -190,7 +190,9 @@ def build(scene, args):
 
     reduce_to(copy_high(f"{A}_Hair_HIGH", f"{A}_Hair_Wavy_LOD0", "02_HAIR"), TRIS["Hair"])
 
-    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS")] + [reduce_to(copy_high(f"{A}_TeeSleeve_{s}_HIGH", f"_teesl{s}", "04_TOPS"), 120) for s in "LR"]
+    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS")]
+    for s in "LR":
+        tee += [reduce_to(copy_high(f"{A}_TeeSleeve_{s}_HIGH", f"_teesl{s}", "04_TOPS"), 560)]  # a tee's sleeve ends plain, no rolled cuff
     merge(f"{A}_Top_Tee_LOD0", tee, "04_TOPS")
 
     # One top at a time (no shirts layered inside each other, which fight as the arms move): the open

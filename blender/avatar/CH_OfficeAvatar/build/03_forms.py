@@ -261,13 +261,14 @@ def tee(white):
     cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.1), 0.06), cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z + 0.018))]
     # Short sleeves of their own (like the tops', see sleeve()): fused to the body they'd stay behind
     # when the arm rises and stick out under a top's sleeve.
+    # (Each sleeve fused with its shoulder, rooted deep in the body, like the tops' sleeves: see sleeve().)
+    tee_path = lambda s: [Vector((s * 0.06, 0.0, 0.86)), Vector((s * 0.12, 0.0, 0.885)), Vector((s * 0.18, -0.003, 0.83)), Vector((s * 0.205, -0.007, 0.77))]
     for side, s in (("L", 1), ("R", -1)):
-        sl = [Vector((s * 0.12, 0.0, 0.88)), Vector((s * 0.18, -0.003, 0.83)), Vector((s * 0.205, -0.007, 0.77))]
-        tube = sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", sl, 0.06, white, segments=20, radii=[0.062, 0.06, 0.058], cap=False)
-        solidify(tube, 0.01, offset=-1.0)
-        apply_all_modifiers(tube)
-        shade_smooth(tube, math.radians(180))
-    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=560, smooth=10)
+        sleeve(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", s, white, [0.064, 0.062, 0.06, 0.058], 0.058, thick=0.01, shoulder=(0.072, 0.084, 0.064),
+               path=tee_path, cuff_thick=0.008, shoulder_at=(0.145, 0.0, 0.865))
+    hem = [(0.182 * math.cos(a), 0.132 * math.sin(a) - 0.01, HEM_Z + 0.02) for a in [i * math.tau / 40 for i in range(41)]]
+    parts.append(sweep("_teehem", hem, 0.009, white, cap=False))
+    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=1100, smooth=6)
 
 
 GAP = 0.07  # half the hoodie's open front at the chest (front view: the tee shows 44 px wide)
@@ -315,22 +316,22 @@ def cutter_tube(name, a, b, r):
     return inside
 
 
-def sleeve(name, s, mat, radii, cuff_r, thick=0.016, shoulder=(0.075, 0.09, 0.07)):
+def sleeve(name, s, mat, radii, cuff_r, thick=0.016, shoulder=(0.075, 0.09, 0.07), path=None, cuff_thick=0.017, shoulder_at=(0.155, -0.002, 0.875)):
     """A sleeve of its own (not fused to the garment's body: in the A-pose it hangs against the side, and
     fused there it would stretch into a web when the arm's raised): the rounded shoulder and a puffy tube
     from deep inside the body to the cuff, fused into one smooth surface (a shoulder that was the body's
     and a sleeve pushed into it met in a ragged seam), hollowed to the cloth's thickness and open at the
     cuff, and its rolled cuff. Returns both."""
-    sl = SLEEVE(s)
+    sl = path(s) if path else SLEEVE(s)
     tube = sweep("_tube", sl, 0.08, mat, segments=24, radii=radii)
-    cap = blob("_shoulder", (s * 0.155, -0.002, 0.875), shoulder)
+    cap = blob("_shoulder", (s * shoulder_at[0], shoulder_at[1], shoulder_at[2]), shoulder)
     end, axis = sl[-1], (sl[-1] - sl[-2]).normalized()
     cut = cutter_tube("_cut_cuff", end - axis * 0.03, end + axis * 0.06, cuff_r - 0.012)
     body = garment(name, [tube, cap], mat, thick, [cut], voxel=0.005, outer_tris=900)
     n = axis.cross(Vector((0, 1, 0))).normalized()
     b2 = axis.cross(n).normalized()
     ring = [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * cuff_r for a in [i * math.tau / 24 for i in range(25)]]
-    cuff = sweep(name.replace("Sleeve", "Cuff"), ring, 0.017, mat, cap=False)
+    cuff = sweep(name.replace("Sleeve", "Cuff"), ring, cuff_thick, mat, cap=False)
     return body, cuff
 
 
