@@ -50,15 +50,16 @@ def bones():
             (f"hand_{side}", (x(0.262), -0.03, 0.6), (x(0.29), -0.06, 0.52), f"lowerarm_{side}", (0, -1, 0), True),
             (f"fingers_{side}", (x(0.29), -0.06, 0.52), (x(0.285), -0.075, 0.45), f"hand_{side}", (0, -1, 0), True),
             (f"thumb_{side}", (x(0.27), -0.09, 0.56), (x(0.262), -0.13, 0.52), f"hand_{side}", (0, 0, 1), True),
-            (f"thigh_{side}", (x(0.095), -0.01, 0.49), (x(0.125), -0.015, 0.3), "pelvis", (0, -1, 0), True),
-            (f"shin_{side}", (x(0.125), -0.015, 0.3), (x(0.125), -0.015, 0.155), f"thigh_{side}", (0, -1, 0), True),
-            (f"foot_{side}", (x(0.125), -0.015, 0.155), (x(0.16), -0.17, 0.05), f"shin_{side}", (0, 0, 1), True),
-            (f"toe_{side}", (x(0.16), -0.17, 0.05), (x(0.165), -0.27, 0.045), f"foot_{side}", (0, 0, 1), True),
+            # The leg straight down to the ankle, the foot straight ahead under it (forms: LEG_X 0.13, FOOT_X 0.14).
+            (f"thigh_{side}", (x(0.1), -0.01, 0.49), (x(0.13), -0.015, 0.3), "pelvis", (0, -1, 0), True),
+            (f"shin_{side}", (x(0.13), -0.015, 0.3), (x(0.13), -0.015, 0.155), f"thigh_{side}", (0, -1, 0), True),
+            (f"foot_{side}", (x(0.13), -0.015, 0.155), (x(0.14), -0.17, 0.05), f"shin_{side}", (0, 0, 1), True),
+            (f"toe_{side}", (x(0.14), -0.17, 0.05), (x(0.14), -0.27, 0.045), f"foot_{side}", (0, 0, 1), True),
             # Animator controls (no deforming): IK targets at the wrist and the ankle, poles ahead of the knee, behind the elbow.
             (f"ik_hand_{side}", (x(0.262), -0.03, 0.6), (x(0.262), -0.03, 0.52), "root", (0, -1, 0), False),
             (f"pole_arm_{side}", (x(0.25), 0.3, 0.73), (x(0.25), 0.3, 0.68), "root", (0, -1, 0), False),
-            (f"ik_foot_{side}", (x(0.125), -0.015, 0.155), (x(0.125), -0.12, 0.155), "root", (0, 0, 1), False),
-            (f"pole_leg_{side}", (x(0.125), -0.45, 0.3), (x(0.125), -0.45, 0.35), "root", (0, -1, 0), False),
+            (f"ik_foot_{side}", (x(0.13), -0.015, 0.155), (x(0.13), -0.12, 0.155), "root", (0, 0, 1), False),
+            (f"pole_leg_{side}", (x(0.13), -0.45, 0.3), (x(0.13), -0.45, 0.35), "root", (0, -1, 0), False),
         ]
     return b
 

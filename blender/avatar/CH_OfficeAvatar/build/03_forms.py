@@ -22,7 +22,9 @@ for _k in ("H", "CHIN_Z", "SKULL", "HEAD_C", "HEAD_R", "EYE_Z", "EYE_X", "EYE_SI
 
 # Forms refinements of the blockout's measurements (world gate, side and front views).
 HEAD_C = (HEAD_C[0], HEAD_C[1] - 0.01, HEAD_C[2])   # the face 1 cm further forward
-LEG_X = 0.125                                        # the gap between the legs 8 cm at the knee
+LEG_X = 0.13                                         # the legs a little apart (a 9 cm gap at the knee)
+FOOT_X = 0.14                                        # each shoe under its leg, not splayed out as the sheet draws them
+SHOE_W = 0.23                                        # so the two shoes keep a 5 cm gap between them
 EYE_SIZE = (0.022, 0.012, 0.04)                      # a size up: the sheet's eyes read bigger than 22 px at the game camera
 
 PHASE = "03_forms"
