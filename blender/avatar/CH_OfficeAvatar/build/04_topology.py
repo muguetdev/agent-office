@@ -37,9 +37,9 @@ A = "CH_OfficeAvatar"
 
 # Target triangles per piece at LOD0 (the brief's 8,000 to 15,000 for the body, base outfit and hair).
 TRIS = {
-    "Head": 1600, "Hair": 1850, "Hand": 470, "Hood": 500, "ShoulderCap": 160, "Seat": 300,
+    "Head": 1600, "Hair": 1740, "Hand": 470, "Hood": 500, "ShoulderCap": 160, "Seat": 300,
     "Eye": 160, "Highlight": 40, "Aglet": 60, "ShoeMark": 80, "Ring": 220,
-    "Brow": 80, "Cuff": 150, "Hoodie": 3400, "Trousers": 1400, "Mouth": 100, "Rim": 200, "Upper": 520, "Sole": 300, "Strap": 110,
+    "Brow": 80, "Cuff": 150, "Hoodie": 3150, "Trousers": 1400, "Mouth": 100, "Rim": 200, "Upper": 450, "Sole": 220, "Strap": 100,
 }
 SHOE_PARTS = {"Sole": "Sole", "SoleStripe": None, "Upper": "Upper", "Strap0": "Strap", "Strap1": "Strap"}
 
@@ -190,8 +190,7 @@ def build(scene, args):
 
     reduce_to(copy_high(f"{A}_Hair_HIGH", f"{A}_Hair_Wavy_LOD0", "02_HAIR"), TRIS["Hair"])
 
-    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS"), reduce_to(copy_high(f"{A}_TeeCollar_HIGH", "_teecollar", "04_TOPS"), TRIS["Cuff"])]
-    tee += [cut_along(copy_high(f"{A}_TeeSleeve_{s}_HIGH", f"_teesleeve{s}", "04_TOPS"), 1) for s in "LR"]
+    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS")]
     merge(f"{A}_Top_Tee_LOD0", tee, "04_TOPS")
 
     hoodie = [reduce_to(copy_high(f"{A}_Hoodie_HIGH", "_shell", "04_TOPS"), TRIS["Hoodie"])]

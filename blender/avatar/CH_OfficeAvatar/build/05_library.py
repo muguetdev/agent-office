@@ -78,9 +78,12 @@ def piece(name, parts, collection, budget=None):
 # ---- hair ---------------------------------------------------------------------------------------
 
 def scalp(name, hairline_z, side_z, nape_z, thick=0.02):
-    """A hair cap over the skull, off the face above `hairline_z`, the sides down to `side_z`, the nape to `nape_z`."""
+    """A hair cap over the skull: off the face above a curved hairline (`hairline_z` in the middle of the
+    forehead, lower towards the temples, so its edge is an arc, not a visor), the sides down to `side_z`,
+    the nape to `nape_z`."""
     cx, cy, cz = HEAD_C
-    cap = sphere(name, 1.0, "HIGH", location=(cx, cy + 0.005, cz + 0.005), u=48, v=32, scale=(HEAD_R[0] + 0.02, HEAD_R[1] + 0.02, HEAD_R[2] + 0.018))
+    # Fine enough that cutting it along the hairline leaves a smooth edge, not steps.
+    cap = sphere(name, 1.0, "HIGH", location=(cx, cy + 0.005, cz + 0.005), u=160, v=110, scale=(HEAD_R[0] + 0.02, HEAD_R[1] + 0.02, HEAD_R[2] + 0.018))
     bpy.context.view_layer.update()
     bm = bmesh.new()
     bm.from_mesh(cap.data)
@@ -88,8 +91,11 @@ def scalp(name, hairline_z, side_z, nape_z, thick=0.02):
     kill = []
     for v in bm.verts:
         p = m @ v.co
-        side = abs(p.x) > 0.11 and p.y < cy + 0.11
-        if (p.y < cy - 0.05 and p.z < hairline_z and abs(p.x) < 0.17) or (side and p.z < side_z) or (p.z < side_z - 0.03 and p.y < cy + 0.02) or p.z < nape_z:
+        # The hairline round the face: an arc from the middle of the forehead down to the temples, then
+        # the sides' edge sloping back to the nape behind the ears.
+        line = hairline_z - 0.09 * (p.x / 0.2) ** 2 if p.y < cy + 0.02 else side_z + (nape_z - side_z) * min(1.0, (p.y - cy - 0.02) / 0.12)
+        front = p.y < cy - 0.03 and abs(p.x) < 0.2
+        if (front and p.z < line) or (not front and p.z < max(line, nape_z)) or p.z < nape_z:
             kill.append(v)
     bmesh.ops.delete(bm, geom=kill, context="VERTS")
     bm.to_mesh(cap.data)
@@ -99,38 +105,60 @@ def scalp(name, hairline_z, side_z, nape_z, thick=0.02):
     return cap
 
 
+def lock(name, pts, r0, mat):
+    """A tapering lock along `pts` (combed hair), fullest a third of the way along."""
+    n = len(pts)
+    return sweep(name, pts, r0, mat, segments=14, radii=[r0 * (0.7 + 0.5 * math.sin(math.pi * min(1, i / (n * 0.6)))) * (1 - 0.6 * max(0, i - n * 0.6) / (n * 0.4)) for i in range(n)])
+
+
+def over_head(x0, z0, x1, z1, lift=0.02, n=10, a0=0.15):
+    """Points over the head from (x0, z0) at the front to (x1, z1) behind, on the scalp plus `lift`."""
+    cx, cy, cz = HEAD_C
+    out = []
+    for i in range(n):
+        t = i / (n - 1)
+        x, z = x0 + (x1 - x0) * t, z0 + (z1 - z0) * t + 0.08 * math.sin(math.pi * t)
+        a = math.pi * (a0 + (0.85 - a0) * t)                     # from the forehead round over the crown
+        k = max(0.05, 1 - (x / (HEAD_R[0] + 0.04)) ** 2)
+        out.append((x, cy - (HEAD_R[1] + lift) * math.cos(a) * math.sqrt(k), min(z, cz + (HEAD_R[2] + lift) * math.sin(a) * math.sqrt(k) + 0.02)))
+    return out
+
+
 def hair_bun(mat):
     cx, cy, cz = HEAD_C
-    parts = [scalp("_bun_cap", 1.36, 1.22, 1.05, 0.018)]
-    # Hair drawn back tight: a few long smooth bands over the crown towards the knot, and the knot.
-    for i, x in enumerate((-0.11, -0.04, 0.04, 0.11)):
-        parts.append(blob(f"_band{i}", (x, cy - 0.03, 1.45), (0.05, 0.16, 0.035), rot=(math.radians(-25), 0, math.radians(8 * (x > 0) - 8 * (x < 0)))))
+    parts = [scalp("_bun_cap", 1.37, 1.24, 1.06, 0.018)]
+    # Hair combed back from the hairline over the crown to the knot, in a few soft locks.
+    for i, (x0, x1) in enumerate(((-0.13, -0.05), (-0.06, -0.02), (0.02, 0.02), (0.09, 0.04), (0.15, 0.06))):
+        # Starting just behind the hairline (not over it), so the forehead's edge stays a clean arc.
+        parts.append(lock(f"_comb{i}", over_head(x0, 1.42, x1, 1.5, lift=0.012, a0=0.3), 0.026, mat))
     parts.append(blob("_knot", (0.0, cy + 0.05, 1.555), (0.085, 0.08, 0.075)))
     parts.append(blob("_knot_base", (0.0, cy + 0.04, 1.5), (0.06, 0.06, 0.03)))
     # Two loose strands in front of the ears.
     for s in (1, -1):
         parts.append(blob(f"_strand{s}", (s * 0.168, cy - 0.07, 1.22), (0.016, 0.02, 0.065), rot=(0, 0, s * math.radians(8))))  # inside the glasses' arms
-    return fuse("_bun", parts, 0.005, mat, smooth=4)
+    return fuse("_bun", parts, 0.005, mat, smooth=6)
 
 
 def hair_bob(mat):
     cx, cy, cz = HEAD_C
-    parts = [scalp("_bob_cap", 1.35, 1.0, 1.06, 0.022)]
-    # Curtains either side of a centre parting, falling straight to the jaw; the back cut level above the hood.
+    parts = [scalp("_bob_cap", 1.36, 1.0, 1.06, 0.02)]
+    # A side parting: locks falling from it over either side of the head into the curtains.
+    for i, (x1, z1) in enumerate(((-0.2, 1.24), (-0.16, 1.3), (0.17, 1.28), (0.21, 1.22))):
+        pts = [(0.03, cy - 0.12 + 0.05 * k, 1.5 - 0.01 * k) for k in range(2)]
+        for k in range(1, 8):
+            t = k / 7
+            x = 0.03 + (x1 - 0.03) * t
+            z = 1.49 - (1.49 - z1) * t * t
+            y = cy - 0.08 + 0.06 * t
+            kk = max(0.05, 1 - (x / (HEAD_R[0] + 0.035)) ** 2 - ((z - cz) / (HEAD_R[2] + 0.035)) ** 2)
+            pts.append((x, min(y, cy - (HEAD_R[1] + 0.02) * math.sqrt(kk) * 0.6), z))
+        parts.append(lock(f"_part{i}", pts, 0.03, mat))
+    # Curtains either side, falling straight to the jaw; a fringe from the parting; the back cut level above the hood.
     for s in (1, -1):
-        parts.append(blob(f"_curtain{s}", (s * 0.2, cy - 0.02, 1.18), (0.05, 0.16, 0.2)))
-        parts.append(blob(f"_fringe{s}", (s * 0.075, cy - 0.185, 1.37), (0.085, 0.05, 0.05), rot=(math.radians(-25), 0, s * math.radians(-15))))
+        parts.append(blob(f"_curtain{s}", (s * 0.2, cy - 0.01, 1.18), (0.05, 0.15, 0.2)))
+    parts.append(blob("_fringe", (-0.03, cy - 0.19, 1.385), (0.12, 0.045, 0.045), rot=(math.radians(-25), 0, math.radians(8))))
     parts.append(blob("_back", (0.0, cy + 0.11, 1.2), (0.19, 0.085, 0.14)))  # cut level above the hood
-    parts.append(blob("_crown", (0.0, cy, 1.44), (0.205, 0.215, 0.11)))  # a rounded top, not a brim
-    ob = fuse("_bobm", parts, 0.005, mat, smooth=8)
-    # Off the face: anything left in front of the cheeks between the curtains.
-    bm = bmesh.new()
-    bm.from_mesh(ob.data)
-    face = [v for v in bm.verts if abs(v.co.x) < 0.15 and v.co.y < cy - 0.09 and v.co.z < 1.33]
-    bmesh.ops.delete(bm, geom=face, context="VERTS")
-    bm.to_mesh(ob.data)
-    bm.free()
-    return ob
+    return fuse("_bobm", parts, 0.005, mat, smooth=8)
 
 
 # ---- facial hair --------------------------------------------------------------------------------

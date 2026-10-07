@@ -210,23 +210,23 @@ def hair(mat):
 
 
 def hand(side, s, skin):
-    """A relaxed fist hanging at the side: palm toward the leg, fingers curled under, the thumb in front."""
-    # Built for the left hand (+X) in a frame at the wrist; the right one is its mirror.
-    wx, wy, wz = FIST_X + 0.012, -0.07, FIST_C_Z + 0.055
+    """A relaxed fist hanging at the side, as on the sheet: a smooth round fist growing straight out of the
+    sleeve's cuff (the wrist where the hand bone starts), the fingers curled under it showing only as soft
+    knuckles, the thumb lying along the front."""
+    # Built for the left hand (+X) from the wrist, where the sleeve ends; the right one is its mirror.
+    W = Vector((0.268, -0.03, 0.6))
     parts = [
-        blob("_palm", (wx + 0.005, wy, wz - 0.06), (0.045, 0.062, 0.058)),
-        blob("_back", (wx + 0.02, wy + 0.005, wz - 0.055), (0.035, 0.058, 0.055)),
+        blob("_wrist", W + Vector((0.0, 0.0, -0.012)), (0.034, 0.036, 0.03)),
+        blob("_core", W + Vector((0.012, -0.006, -0.066)), (0.05, 0.058, 0.058)),
     ]
-    for i, fy in enumerate((-0.042, -0.014, 0.014, 0.04)):
-        parts.append(blob(f"_f{i}", (wx - 0.012, wy + fy, wz - 0.125 + 0.006 * abs(fy) / 0.04), (0.03, 0.017, 0.03)))
-    parts.append(blob("_thumb", (wx - 0.03, wy - 0.06, wz - 0.07), (0.022, 0.024, 0.04), rot=(math.radians(25), 0, math.radians(-20))))
-    parts.append(blob("_wrist", (wx + 0.005, wy + 0.0, wz - 0.005), (0.035, 0.042, 0.03)))
+    for i, fy in enumerate((-0.04, -0.014, 0.012, 0.037)):
+        parts.append(blob(f"_f{i}", W + Vector((-0.004, fy - 0.006, -0.108 + 0.004 * abs(fy) / 0.04)), (0.026, 0.018, 0.026)))
+    parts.append(blob("_thumb", W + Vector((-0.028, -0.052, -0.068)), (0.019, 0.021, 0.034), rot=(math.radians(20), 0, math.radians(-15))))
     bpy.context.view_layer.update()
-    for p in parts:   # the fist a size up (front view: 0.16 m across), about the wrist
-        p.location = Vector((wx, wy, wz)) + (p.location - Vector((wx, wy, wz))) * 1.12
-        p.scale = p.scale * 1.12
-    ob = fuse("CH_OfficeAvatar_Hand_L_HIGH", parts, 0.0035, skin, smooth=6)
-    return ob
+    for p in parts:   # a size up (front view: the fist about 0.16 m across), about the wrist
+        p.location = W + (p.location - W) * 1.1
+        p.scale = p.scale * 1.1
+    return fuse("CH_OfficeAvatar_Hand_L_HIGH", parts, 0.0035, skin, smooth=12)
 
 
 def body(skin):
@@ -251,15 +251,18 @@ def body(skin):
 
 
 def tee(white):
-    ob = loft("CH_OfficeAvatar_Tee_HIGH", collection=COLL, sections=[[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in (
-        (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.91, 0.112, 0.092), (0.955, 0.07, 0.065))])  # the neck shows above it  # inside the top's shoulders
-    assign(ob, white)
-    # Short sleeves to the middle of the upper arm (inside a top's sleeves when one's worn).
+    """The tee as one piece of cloth (as the tops are, see garment()): the body, short sleeves to the
+    middle of the upper arm and the crew neck's rib, 1.2 cm thick, open at the neck, sleeves and hem."""
+    body = loft("_teebody", collection=COLL, sections=[[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in (
+        (HEM_Z + 0.015, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.91, 0.112, 0.092), (0.955, 0.07, 0.065))])  # the neck shows above it, inside the tops' shoulders
+    parts = [body, sweep("_teecollar", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.956) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)]
+    cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.1), 0.06), cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z + 0.018))]
     for side, s in (("L", 1), ("R", -1)):
-        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.14, 0.0, 0.868), (s * 0.18, -0.003, 0.83), (s * 0.205, -0.007, 0.77)], 0.06, white, segments=20, radii=[0.06, 0.06, 0.058])
-    # The crew neck's rib.
-    sweep("CH_OfficeAvatar_TeeCollar_HIGH", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.956) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)
-    return ob
+        sl = [Vector((s * 0.12, 0.0, 0.88)), Vector((s * 0.18, -0.003, 0.83)), Vector((s * 0.205, -0.007, 0.77))]
+        parts.append(sweep(f"_teesl{side}", sl, 0.06, white, segments=20, radii=[0.062, 0.06, 0.058]))
+        axis = (sl[-1] - sl[-2]).normalized()
+        cutters.append(cutter_tube(f"_cut_sl{side}", sl[-1] - axis * 0.03, sl[-1] + axis * 0.06, 0.046))
+    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=480)
 
 
 GAP = 0.07  # half the hoodie's open front at the chest (front view: the tee shows 44 px wide)
@@ -363,52 +366,67 @@ def trousers(navy):
     return fuse("CH_OfficeAvatar_Trousers_HIGH", parts, 0.006, navy, smooth=6)
 
 
+def ribbon(name, pts, width, thick, mat, out):
+    """A flat strap along `pts`, `width` across (along `out` x the path) and `thick` deep."""
+    secs = []
+    P = [Vector(p) for p in pts]
+    for i, p in enumerate(P):
+        t = (P[min(i + 1, len(P) - 1)] - P[max(i - 1, 0)]).normalized()
+        n = out(p)                                   # the strap's outward normal here
+        w = t.cross(n).normalized() * (width / 2)
+        h = n * (thick / 2)
+        secs.append([p - w - h, p + w - h, p + w + h, p - w + h])
+    ob = loft(name, secs, COLL)
+    assign(ob, mat)
+    return ob
+
+
 def sneaker(side, s, white, blue):
-    """A chunky sneaker: a thick rounded sole with a blue stripe, a padded upper rounded at the toe, two
-    straps across the top and the blue mark on the outer side."""
+    """A chunky sneaker as on the sheet: a thick white sole with a blue line round its bottom edge, a padded
+    upper with a rounded rubber toe cap and a padded collar round the ankle (one smooth piece), two wide
+    straps across the instep, and the blue mark sweeping along the outer side."""
     x0 = s * FOOT_X
     L, W = SHOE_LEN * 0.95, SHOE_W   # side view: the heel 2 cm shorter than the blockout's box
     y_toe, y_heel = SHOE_FRONT, SHOE_FRONT + L
-    # Footprint (top view): rounded toe and heel.
-    def foot(w, l, n=40):
+    def foot(w, l, n=48):
         pts = []
         for i in range(n):
             a = math.tau * i / n
             x = 0.5 * w * math.cos(a)
             y = 0.5 * l * math.sin(a)
-            # squarer than an ellipse
-            x = math.copysign(abs(x) ** 0.8 * (0.5 * w) ** 0.2, x)
-            y = math.copysign(abs(y) ** 0.85 * (0.5 * l) ** 0.15, y)
-            pts.append((x, y))
+            pts.append((math.copysign(abs(x) ** 0.8 * (0.5 * w) ** 0.2, x), math.copysign(abs(y) ** 0.85 * (0.5 * l) ** 0.15, y)))
         return pts
-    sole = profile_extrude(f"CH_OfficeAvatar_Sole_{side}_HIGH", foot(W, L), 0.05, COLL, location=(x0, (y_toe + y_heel) / 2, 0))
-    bevel(sole, 0.015, 3, 40, False)
+    SOLE = 0.055
+    sole = profile_extrude(f"CH_OfficeAvatar_Sole_{side}_HIGH", foot(W, L), SOLE, COLL, location=(x0, (y_toe + y_heel) / 2, 0))
+    bevel(sole, 0.02, 4, 40, False)
     apply_all_modifiers(sole)
     assign(sole, white)
-    stripe = profile_extrude(f"CH_OfficeAvatar_SoleStripe_{side}_HIGH", foot(W + 0.008, L + 0.008), 0.014, COLL, location=(x0, (y_toe + y_heel) / 2, 0.006))
+    shade_smooth(sole, math.radians(50))
+    stripe = profile_extrude(f"CH_OfficeAvatar_SoleStripe_{side}_HIGH", foot(W + 0.006, L + 0.006), 0.013, COLL, location=(x0, (y_toe + y_heel) / 2, 0.0))
+    bevel(stripe, 0.005, 2, 40, False)
+    apply_all_modifiers(stripe)
     assign(stripe, blue)
-    # Upper: sections from toe to heel, rising from the toe box to the collar.
+    # Upper: the arch over the foot from the toe box to the heel, a rubber toe cap and the padded collar, fused.
     secs = []
-    for t, h, w in ((0.02, 0.035, 0.12), (0.1, 0.075, 0.19), (0.25, 0.1, 0.21), (0.45, 0.13, 0.21), (0.62, 0.145, 0.2), (0.8, 0.14, 0.19), (0.93, 0.12, 0.16), (0.97, 0.08, 0.1)):
+    for t, h, w in ((0.04, 0.03, 0.13), (0.12, 0.065, 0.2), (0.26, 0.09, 0.215), (0.45, 0.12, 0.215), (0.62, 0.135, 0.205), (0.8, 0.13, 0.195), (0.93, 0.115, 0.165), (0.975, 0.08, 0.1)):
         y = y_toe + L * t
-        ring = []
-        for i in range(20):
-            a = math.pi * i / 19
-            ring.append((x0 + 0.5 * w * math.cos(a), y, 0.045 + h * math.sin(a) ** 0.7))
-        secs.append(ring)  # the arch over the foot; the loop closes along the sole
-    upper = loft(f"CH_OfficeAvatar_Upper_{side}_HIGH", secs, COLL, close_sections=True)
-    subsurf(upper, 1)
-    apply_all_modifiers(upper)
-    assign(upper, white)
-    shade_smooth(upper, math.radians(180))
-    # Two straps across the instep.
-    for k, t in enumerate((0.42, 0.56)):
+        secs.append([(x0 + 0.5 * w * math.cos(math.pi * i / 23), y, SOLE - 0.01 + h * math.sin(math.pi * i / 23) ** 0.7) for i in range(24)])
+    parts = [loft("_upper", secs, COLL, close_sections=True)]
+    parts.append(blob("_toecap", (x0, y_toe + 0.065, SOLE + 0.012), (0.5 * W - 0.012, 0.07, 0.035)))
+    collar_c = Vector((x0, y_toe + L * 0.76, SOLE + 0.105))
+    parts.append(sweep("_collar", [collar_c + Vector((0.062 * math.cos(a), 0.068 * math.sin(a), 0.01 * math.sin(a))) for a in [k * math.tau / 24 for k in range(25)]], 0.016, white, cap=False))
+    up = fuse(f"CH_OfficeAvatar_Upper_{side}_HIGH", parts, 0.004, white, smooth=6)
+    # Two wide straps across the instep, over the upper.
+    cx_arch = lambda y: Vector((x0, y, SOLE - 0.01))
+    for k, t in enumerate((0.43, 0.57)):
         y = y_toe + L * t
-        pts = [(x0 + 0.5 * 0.2 * math.cos(math.pi * i / 10), y, 0.05 + 0.135 * math.sin(math.pi * i / 10) ** 0.7 + 0.006) for i in range(11)]
-        sweep(f"CH_OfficeAvatar_Strap{k}_{side}_HIGH", pts, 0.016, white, radii=[0.014] * 11)
-    # The blue mark on the outer side.
-    mark = blob(f"CH_OfficeAvatar_ShoeMark_{side}_HIGH", (x0 + s * (0.5 * 0.225 - 0.004), y_toe + L * 0.5, 0.1), (0.008, 0.06, 0.03), rot=(math.radians(-25), 0, 0))
-    assign(mark, blue)
+        h = 0.12 + 0.015 * (t - 0.43) / 0.14
+        arch = [(x0 + (0.5 * 0.212) * math.cos(math.pi * i / 12), y, SOLE - 0.01 + (h + 0.008) * math.sin(math.pi * i / 12) ** 0.7) for i in range(13)]
+        ribbon(f"CH_OfficeAvatar_Strap{k}_{side}_HIGH", arch, 0.038, 0.012, white, lambda p, y=y: (Vector(p) - Vector((x0, y, SOLE - 0.01))).normalized())
+    # The blue mark: a soft zigzag sweeping back along the outer side.
+    side_x = x0 + s * (0.5 * 0.213 + 0.002)
+    mark = [(side_x, y_toe + L * f, z) for f, z in ((0.34, 0.085), (0.46, 0.125), (0.56, 0.088), (0.7, 0.13))]
+    sweep(f"CH_OfficeAvatar_ShoeMark_{side}_HIGH", mark, 0.018, blue, segments=10, radii=[0.016, 0.021, 0.02, 0.012])
 
 
 def build(scene, args):
