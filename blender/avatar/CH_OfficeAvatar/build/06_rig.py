@@ -151,7 +151,8 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
     for v in me.vertices:
         p = mw @ v.co
         # The garment's body (on or inside the torso, the shoulders' tops above the arm's start) doesn't follow the arms.
-        body = body_only and (outside_torso(p) < 1.18 or abs(p.x) < SLEEVE_X - 0.03)
+        # (Sleeves are pieces of their own, weighted whole to the arm below, so all of the body stays off it.)
+        body = body_only
         near = segs if not body else {n: ab for n, ab in segs.items() if n not in ARM_BONES}
         w = {n: 1.0 / (seg_dist(p, a, b) + 0.004) ** power for n, (a, b) in near.items()}
         t = sum(w.values())
@@ -193,8 +194,10 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
                     if not seen[j]:
                         seen[j] = True
                         stack.append(j)
-            cx = sum((mw @ me.vertices[i].co).x for i in island) / len(island)
-            if abs(cx) > 0.2:
+            xs = [(mw @ me.vertices[i].co).x for i in island]
+            # A sleeve (or its cuff) is all on one side, well out from the middle; the body crosses it,
+            # and the front's trims (piping, drawstrings) sit near it.
+            if (min(xs) > 0 or max(xs) < 0) and abs(sum(xs) / len(xs)) > 0.15:
                 sleeve.update(island)
         for i in sleeve:
             p = mw @ me.vertices[i].co

@@ -269,7 +269,7 @@ def jacket(mat, trim):
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for s in (1, -1):
         parts.append(blob(f"_jsh{s}", (s * 0.155, -0.002, 0.875), (0.072, 0.086, 0.068)))
-        loose += list(sleeve(f"_jSleeve{s}", s, mat, [0.064, 0.072, 0.076, 0.07, 0.054], 0.05))
+        loose += list(sleeve(f"_jSleeve{s}", s, mat, [0.07, 0.066, 0.072, 0.076, 0.07, 0.054], 0.05))
     shell = garment("_jacket", parts, mat, 0.018, cutters)
     zip_line = sweep("_zip", [(0, -0.168, z) for z in (0.98, 0.94, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
     pull = assign_r(blob("_pull", (0.0, -0.176, 0.94), (0.008, 0.004, 0.016)), trim)
@@ -382,13 +382,12 @@ def build(scene, args):
         pairs += [(h, t) for t in ("Top_HoodieOpen", "Top_Jacket")]
     pairs += [(b, g) for b in ("Beard_Stubble", "Beard_Full") for g in ("Glasses_Round", "Glasses_Square")]
     pairs += [(b, "Face_Mouth") for b in ("Beard_Stubble", "Beard_Full")]
-    pairs += [("Top_Tee", t) for t in ("Top_HoodieOpen", "Top_Jacket")]
     pairs += [(t, b) for t in ("Top_Tee", "Top_HoodieOpen", "Top_Jacket") for b in ("Bottom_Trousers", "Bottom_Joggers")]
     pairs += [(b, s) for b in ("Bottom_Trousers", "Bottom_Joggers") for s in ("Shoes_Sneakers", "Shoes_Runners")]
     # Layered by design, the inner piece out of sight inside the outer one: the tee under a top, a top's
     # hem over the trousers' waist, the trousers' hem into the shoe, glasses' arms under a bob. Reported,
     # and checked in the combination renders rather than counted as clipping.
-    TUCKED = {("Top_Tee", "Top_HoodieOpen"), ("Top_Tee", "Top_Jacket"), ("Hair_Bob", "Glasses_Round"), ("Hair_Bob", "Glasses_Square"),
+    TUCKED = {("Hair_Bob", "Glasses_Round"), ("Hair_Bob", "Glasses_Square"),
               ("Hair_Bob", "Beard_Stubble"), ("Hair_Bob", "Beard_Full")}  # a bob's curtains fall over the beard's sides
     TUCKED |= {(t, b) for t in ("Top_Tee", "Top_HoodieOpen", "Top_Jacket") for b in ("Bottom_Trousers", "Bottom_Joggers")}
     TUCKED |= {(b, s) for b in ("Bottom_Trousers", "Bottom_Joggers") for s in ("Shoes_Sneakers", "Shoes_Runners")}

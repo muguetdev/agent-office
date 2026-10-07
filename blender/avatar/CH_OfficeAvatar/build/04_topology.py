@@ -190,10 +190,12 @@ def build(scene, args):
 
     reduce_to(copy_high(f"{A}_Hair_HIGH", f"{A}_Hair_Wavy_LOD0", "02_HAIR"), TRIS["Hair"])
 
-    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS")]
+    tee = [copy_high(f"{A}_Tee_HIGH", "_tee", "04_TOPS")] + [reduce_to(copy_high(f"{A}_TeeSleeve_{s}_HIGH", f"_teesl{s}", "04_TOPS"), 120) for s in "LR"]
     merge(f"{A}_Top_Tee_LOD0", tee, "04_TOPS")
 
-    hoodie = [reduce_to(copy_high(f"{A}_Hoodie_HIGH", "_shell", "04_TOPS"), TRIS["Hoodie"])]
+    # One top at a time (no shirts layered inside each other, which fight as the arms move): the open
+    # hoodie brings its own white shirt inside, the tee's body without its sleeves.
+    hoodie = [reduce_to(copy_high(f"{A}_Hoodie_HIGH", "_shell", "04_TOPS"), TRIS["Hoodie"]), copy_high(f"{A}_Tee_HIGH", "_inner", "04_TOPS")]
     for s in "LR":
         hoodie.append(reduce_to(copy_high(f"{A}_HoodieSleeve_{s}_HIGH", f"_sleeve{s}", "04_TOPS"), TRIS["Sleeve"]))
         hoodie.append(reduce_to(copy_high(f"{A}_HoodieCuff_{s}_HIGH", f"_cuff{s}", "04_TOPS"), TRIS["Cuff"]))
@@ -241,6 +243,10 @@ def build(scene, args):
     for o in sorted(lod0, key=lambda o: o.name):
         log(f"{o.name:42s} {tris(o):6d} tris")
     mine = [o for o in col("10_LOD").objects if o.get("owner") == OWNER_TAG]
+    # The base avatar as worn: the body pieces a hoodie leaves showing, the face, the hair, the hoodie (with its
+    # shirt), the trousers and the shoes.
+    worn = [o for o in lod0 if not any(k in o.name for k in ("Body_Torso", "Body_Arms", "Body_Legs", "Top_Tee"))]
+    log("base avatar as worn", sum(tris(o) for o in worn))
     log("LOD0 total", total, "| LOD1", sum(tris(o) for o in mine if "_LOD1" in o.name), "| LOD2", sum(tris(o) for o in mine if "_LOD2" in o.name))
     # The forms step aside, as the blockout did: the game meshes are what's reviewed from here.
     for ob in col("HIGH").objects:

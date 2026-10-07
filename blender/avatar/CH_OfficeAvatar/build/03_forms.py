@@ -259,12 +259,15 @@ def tee(white):
         (HEM_Z + 0.015, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.91, 0.112, 0.092), (0.955, 0.07, 0.065))])  # the neck shows above it, inside the tops' shoulders
     parts = [body, sweep("_teecollar", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.956) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)]
     cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.1), 0.06), cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z + 0.018))]
+    # Short sleeves of their own (like the tops', see sleeve()): fused to the body they'd stay behind
+    # when the arm rises and stick out under a top's sleeve.
     for side, s in (("L", 1), ("R", -1)):
         sl = [Vector((s * 0.12, 0.0, 0.88)), Vector((s * 0.18, -0.003, 0.83)), Vector((s * 0.205, -0.007, 0.77))]
-        parts.append(sweep(f"_teesl{side}", sl, 0.06, white, segments=20, radii=[0.062, 0.06, 0.058]))
-        axis = (sl[-1] - sl[-2]).normalized()
-        cutters.append(cutter_tube(f"_cut_sl{side}", sl[-1] - axis * 0.03, sl[-1] + axis * 0.06, 0.046))
-    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=650, smooth=10)
+        tube = sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", sl, 0.06, white, segments=20, radii=[0.062, 0.06, 0.058], cap=False)
+        solidify(tube, 0.01, offset=-1.0)
+        apply_all_modifiers(tube)
+        shade_smooth(tube, math.radians(180))
+    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=560, smooth=10)
 
 
 GAP = 0.07  # half the hoodie's open front at the chest (front view: the tee shows 44 px wide)
@@ -329,7 +332,9 @@ def sleeve(name, s, mat, radii, cuff_r, thick=0.016):
     return tube, cuff
 
 
-SLEEVE = lambda s: [Vector((s * 0.13, 0.0, 0.9)), Vector((s * 0.215, -0.005, 0.8)), Vector((s * 0.248, -0.012, 0.7)), Vector((s * 0.262, -0.018, 0.64)), Vector((s * 0.27, -0.024, 0.6))]
+# Rooted deep inside the body (from 7 cm off the middle), so as the arm rises the sleeve stretches over the
+# armpit like a shoulder instead of opening a gap there.
+SLEEVE = lambda s: [Vector((s * 0.07, 0.0, 0.875)), Vector((s * 0.13, 0.0, 0.9)), Vector((s * 0.215, -0.005, 0.8)), Vector((s * 0.248, -0.012, 0.7)), Vector((s * 0.262, -0.018, 0.64)), Vector((s * 0.27, -0.024, 0.6))]
 
 
 def hoodie(blue, white):
@@ -350,7 +355,7 @@ def hoodie(blue, white):
     for side, s in (("L", 1), ("R", -1)):
         parts.append(blob(f"_sh{side}", (s * 0.155, -0.002, 0.875), (0.075, 0.09, 0.07)))
         # Puffy to the forearm, then gathered into the cuff (front view: the cuff narrower than the sleeve).
-        sleeve(f"CH_OfficeAvatar_HoodieSleeve_{side}_HIGH", s, blue, [0.068, 0.08, 0.086, 0.078, 0.058], 0.052)
+        sleeve(f"CH_OfficeAvatar_HoodieSleeve_{side}_HIGH", s, blue, [0.075, 0.072, 0.08, 0.086, 0.078, 0.058], 0.052)
         # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
         rim = [(s * (0.08 + 0.04 * t), 0.07 - 0.22 * t, 0.968 - 0.04 * t) for t in [i / 6 for i in range(7)]]
         rim += [(s * (GAP + 0.025), -0.152, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.02)]
