@@ -264,7 +264,7 @@ def tee(white):
         parts.append(sweep(f"_teesl{side}", sl, 0.06, white, segments=20, radii=[0.062, 0.06, 0.058]))
         axis = (sl[-1] - sl[-2]).normalized()
         cutters.append(cutter_tube(f"_cut_sl{side}", sl[-1] - axis * 0.03, sl[-1] + axis * 0.06, 0.046))
-    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=480)
+    return garment("CH_OfficeAvatar_Tee_HIGH", parts, white, 0.012, cutters, outer_tris=650, smooth=10)
 
 
 GAP = 0.07  # half the hoodie's open front at the chest (front view: the tee shows 44 px wide)
@@ -312,6 +312,23 @@ def cutter_tube(name, a, b, r):
     return inside
 
 
+def sleeve(name, s, mat, radii, cuff_r, thick=0.016):
+    """A sleeve of its own (not fused to the garment's body: in the A-pose it hangs against the side, and
+    fused there it would stretch into a web when the arm's raised): a puffy tube from inside the
+    shoulder to the cuff, given its cloth's thickness, and its rolled cuff. Returns both."""
+    sl = SLEEVE(s)
+    tube = sweep(name, sl, 0.08, mat, segments=24, radii=radii, cap=False)
+    solidify(tube, thick, offset=-1.0)
+    apply_all_modifiers(tube)
+    shade_smooth(tube, math.radians(180))
+    end, axis = sl[-1], (sl[-1] - sl[-2]).normalized()
+    n = axis.cross(Vector((0, 1, 0))).normalized()
+    b2 = axis.cross(n).normalized()
+    ring = [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * cuff_r for a in [i * math.tau / 24 for i in range(25)]]
+    cuff = sweep(name.replace("Sleeve", "Cuff"), ring, 0.017, mat, cap=False)
+    return tube, cuff
+
+
 SLEEVE = lambda s: [Vector((s * 0.13, 0.0, 0.9)), Vector((s * 0.215, -0.005, 0.8)), Vector((s * 0.248, -0.012, 0.7)), Vector((s * 0.262, -0.018, 0.64)), Vector((s * 0.27, -0.024, 0.6))]
 
 
@@ -332,16 +349,8 @@ def hoodie(blue, white):
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for side, s in (("L", 1), ("R", -1)):
         parts.append(blob(f"_sh{side}", (s * 0.155, -0.002, 0.875), (0.075, 0.09, 0.07)))
-        sl = SLEEVE(s)
         # Puffy to the forearm, then gathered into the cuff (front view: the cuff narrower than the sleeve).
-        parts.append(sweep(f"_sl{side}", sl, 0.08, blue, segments=24, radii=[0.07, 0.08, 0.086, 0.078, 0.058]))
-        end = sl[-1]
-        axis = (sl[-1] - sl[-2]).normalized()
-        ring_c = end - axis * 0.004   # the rolled cuff right at the sleeve's edge
-        n = axis.cross(Vector((0, 1, 0))).normalized()
-        b2 = axis.cross(n).normalized()
-        parts.append(sweep(f"_cuff{side}", [ring_c + (n * math.cos(a) + b2 * math.sin(a)) * 0.052 for a in [i * math.tau / 24 for i in range(25)]], 0.017, blue, cap=False))
-        cutters.append(cutter_tube(f"_cut_cuff{side}", end - axis * 0.05, end + axis * 0.06, 0.036))
+        sleeve(f"CH_OfficeAvatar_HoodieSleeve_{side}_HIGH", s, blue, [0.068, 0.08, 0.086, 0.078, 0.058], 0.052)
         # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
         rim = [(s * (0.08 + 0.04 * t), 0.07 - 0.22 * t, 0.968 - 0.04 * t) for t in [i / 6 for i in range(7)]]
         rim += [(s * (GAP + 0.025), -0.152, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.02)]
@@ -360,6 +369,9 @@ def trousers(navy):
     parts = [loft("_waist", [[(rx * math.cos(a), ry * math.sin(a) - 0.012, z) for a in [i * math.tau / 36 for i in range(36)]] for z, rx, ry in (
         (0.44, 0.17, 0.125), (0.5, 0.19, 0.13), (0.6, 0.175, 0.125))], COLL)]
     parts.append(blob("_crotch", (0.0, -0.012, 0.46), (0.07, 0.11, 0.05)))
+    # The seat: rounded glutes at the back.
+    for gs in (1, -1):
+        parts.append(blob(f"_glute{gs}", (gs * 0.075, 0.06, 0.49), (0.1, 0.085, 0.095)))
     for side, s in (("L", 1), ("R", -1)):
         secs = []
         for z, r, dx in ((0.52, 0.09, -0.03), (0.45, 0.092, -0.01), (0.33, 0.088, 0.0), (0.22, 0.085, 0.0), (ANKLE_Z, 0.086, 0.0), (ANKLE_Z - 0.03, 0.086, 0.0)):

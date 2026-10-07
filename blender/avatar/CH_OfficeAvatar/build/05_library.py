@@ -131,6 +131,16 @@ def hair_bun(mat):
     for i, (x0, x1) in enumerate(((-0.13, -0.05), (-0.06, -0.02), (0.02, 0.02), (0.09, 0.04), (0.15, 0.06))):
         # Starting just behind the hairline (not over it), so the forehead's edge stays a clean arc.
         parts.append(lock(f"_comb{i}", over_head(x0, 1.42, x1, 1.5, lift=0.012, a0=0.3), 0.026, mat))
+    # And up the back from the nape to the knot.
+    for i, x0 in enumerate((-0.13, -0.065, 0.0, 0.065, 0.13)):
+        pts = []
+        for k in range(10):
+            t = k / 9
+            z = 1.1 + (1.5 - 1.1) * t
+            x = x0 * (1 - 0.75 * t)
+            kk = max(0.05, 1 - (x / (HEAD_R[0] + 0.02)) ** 2 - ((z - cz) / (HEAD_R[2] + 0.02)) ** 2)
+            pts.append((x, cy + (HEAD_R[1] + 0.012) * math.sqrt(kk), z))
+        parts.append(lock(f"_nape{i}", pts, 0.026, mat))
     parts.append(blob("_knot", (0.0, cy + 0.05, 1.555), (0.085, 0.08, 0.075)))
     parts.append(blob("_knot_base", (0.0, cy + 0.04, 1.5), (0.06, 0.06, 0.03)))
     # Two loose strands in front of the ears.
@@ -157,7 +167,17 @@ def hair_bob(mat):
     for s in (1, -1):
         parts.append(blob(f"_curtain{s}", (s * 0.2, cy - 0.01, 1.18), (0.05, 0.15, 0.2)))
     parts.append(blob("_fringe", (-0.03, cy - 0.19, 1.385), (0.12, 0.045, 0.045), rot=(math.radians(-25), 0, math.radians(8))))
-    parts.append(blob("_back", (0.0, cy + 0.11, 1.2), (0.19, 0.085, 0.14)))  # cut level above the hood
+    parts.append(blob("_back", (0.0, cy + 0.1, 1.22), (0.18, 0.08, 0.13)))  # cut level above the hood
+    # Locks falling from the crown down the back to the cut, the outer ones curving in at the ends.
+    for i, x0 in enumerate((-0.16, -0.08, 0.0, 0.08, 0.16)):
+        pts = []
+        for k in range(10):
+            t = k / 9
+            z = 1.5 - (1.5 - (1.13 + 0.025 * abs(x0) / 0.16)) * t
+            x = x0 * (1 + 0.15 * t) - 0.02 * (x0 / 0.16) * t * t
+            kk = max(0.05, 1 - (x / (HEAD_R[0] + 0.03)) ** 2 - ((z - cz) / (HEAD_R[2] + 0.03)) ** 2)
+            pts.append((x, cy + (HEAD_R[1] + 0.03) * math.sqrt(kk) + 0.03 * t, z))
+        parts.append(lock(f"_bobback{i}", pts, 0.034, mat))
     return fuse("_bobm", parts, 0.005, mat, smooth=8)
 
 
@@ -238,7 +258,8 @@ def jacket(mat, trim):
     """A zipped jacket as one piece of cloth (like the hoodie: forms' garment()): the body, rounded
     shoulders, sleeves gathered into rib cuffs, a rib hem and a stand collar, 1.8 cm thick, open at the
     neck, cuffs and hem; the zip and its pull down the closed front."""
-    garment, cutter_box, cutter_tube, SLEEVE = F["garment"], F["cutter_box"], F["cutter_tube"], F["SLEEVE"]
+    garment, cutter_box, cutter_tube, sleeve = F["garment"], F["cutter_box"], F["cutter_tube"], F["sleeve"]
+    loose = []
     parts = [loft("_jbody", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in (
         (HEM_Z - 0.005, 0.208, 0.152), (0.66, 0.205, 0.154), (0.82, 0.205, 0.16), (0.885, 0.178, 0.143), (0.935, 0.13, 0.108), (0.958, 0.1, 0.087))], "HIGH")]
     parts.append(loft("_jcollar", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in ((0.94, 0.102, 0.092), (0.985, 0.09, 0.082))], "HIGH"))  # a stand collar below the chin
@@ -248,17 +269,11 @@ def jacket(mat, trim):
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for s in (1, -1):
         parts.append(blob(f"_jsh{s}", (s * 0.155, -0.002, 0.875), (0.072, 0.086, 0.068)))
-        sl = SLEEVE(s)
-        parts.append(sweep(f"_jsl{s}", sl, 0.075, mat, segments=24, radii=[0.066, 0.072, 0.076, 0.07, 0.054]))
-        end, axis = sl[-1], (sl[-1] - sl[-2]).normalized()
-        n = axis.cross(Vector((0, 1, 0))).normalized()
-        b2 = axis.cross(n).normalized()
-        parts.append(sweep(f"_jcuff{s}", [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * 0.05 for a in [i * math.tau / 24 for i in range(25)]], 0.016, mat, cap=False))
-        cutters.append(cutter_tube(f"_cut_cuff{s}", end - axis * 0.05, end + axis * 0.06, 0.035))
+        loose += list(sleeve(f"_jSleeve{s}", s, mat, [0.064, 0.072, 0.076, 0.07, 0.054], 0.05))
     shell = garment("_jacket", parts, mat, 0.018, cutters)
     zip_line = sweep("_zip", [(0, -0.168, z) for z in (0.98, 0.94, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
     pull = assign_r(blob("_pull", (0.0, -0.176, 0.94), (0.008, 0.004, 0.016)), trim)
-    return [shell, zip_line, pull]
+    return [shell, zip_line, pull] + loose
 
 
 def assign_r(ob, mat):
@@ -272,6 +287,10 @@ def joggers(mat, trim):
     parts = [loft("_jwaist", [[(rx * math.cos(a), ry * math.sin(a) - 0.012, z) for a in [i * math.tau / 36 for i in range(36)]] for z, rx, ry in (
         (0.44, 0.17, 0.125), (0.5, 0.19, 0.13), (0.6, 0.175, 0.125))], "HIGH"),
              blob("_jcrotch", (0.0, -0.012, 0.46), (0.07, 0.11, 0.05))]
+    # The seat: rounded glutes at the back.
+    for gs in (1, -1):
+        parts.append(blob(f"_glute{gs}", (gs * 0.075, 0.06, 0.49), (0.1, 0.085, 0.095)))
+
     for s in (1, -1):
         secs = []
         for z, r, dx in ((0.52, 0.09, -0.03), (0.45, 0.092, -0.01), (0.38, 0.09, 0.0), (0.3, 0.084, 0.0), (0.24, 0.074, 0.0), (0.215, 0.066, 0.0)):
@@ -341,7 +360,7 @@ def build(scene, args):
     piece("Beard_Full", beard_full(mats["M_Hair"]), "03_FACIAL_HAIR", 1200)
     piece("Glasses_Round", glasses("Round", round_rim(), 0.005, acc), "07_ACCESSORIES", 700)
     piece("Glasses_Square", glasses("Square", square_rim(), 0.0065, acc), "07_ACCESSORIES", 800)
-    piece("Top_Jacket", jacket(mats["M_PrimaryClothing"], mats["M_SecondaryClothing"]), "04_TOPS", 3600)
+    piece("Top_Jacket", jacket(mats["M_PrimaryClothing"], mats["M_SecondaryClothing"]), "04_TOPS", 3200)
     piece("Bottom_Joggers", joggers(mats["M_Pants"], mats["M_SecondaryClothing"]), "05_BOTTOMS", 1800)
     piece("Shoes_Runners", runners(mats["M_Shoes"], mats["M_ShoesAccent"]), "06_SHOES", 2400)
 

@@ -122,6 +122,10 @@ def build(scene, args):
     }
     clip(rig, "PoseTest", 6, tests, loop=False)
 
+    # TPose: arms straight out to the sides, for checking under the arms (the rest pose is the A-pose).
+    tpose = {"upperarm_L": (0, 0, 66), "upperarm_R": (0, 0, -66), "lowerarm_L": (0, 0, 6), "lowerarm_R": (0, 0, -6)}
+    clip(rig, "TPose", 1, {1: tpose}, loop=False)
+
     rig.animation_data.action = bpy.data.actions["Idle"]
     for pb in rig.pose.bones:
         pb.rotation_euler = (0, 0, 0)

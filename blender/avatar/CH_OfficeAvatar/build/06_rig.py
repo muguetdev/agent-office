@@ -125,6 +125,21 @@ def seg_dist(p, a, b):
 # raising an arm doesn't lift the hoodie's or the tee's side and open a gap at the waist).
 ARM_BONES = {"upperarm_L", "upperarm_R", "lowerarm_L", "lowerarm_R"}
 SLEEVE_X = 0.17
+# The tops' body (forms' hoodie stations: height, half-width, half-depth), centred 1 cm forward. A vertex
+# on or inside it is the garment's body and doesn't follow the arms; one well outside it is sleeve.
+TORSO = ((0.5, 0.208, 0.15), (0.66, 0.205, 0.152), (0.82, 0.205, 0.158), (0.885, 0.178, 0.142), (0.935, 0.13, 0.108), (0.97, 0.098, 0.085))
+
+
+def outside_torso(p):
+    """How far outside the tops' body `p` is, as a multiple of its radius there (1 on its surface)."""
+    z = min(max(p.z, TORSO[0][0]), TORSO[-1][0])
+    for (z0, x0, y0), (z1, x1, y1) in zip(TORSO, TORSO[1:]):
+        if z0 <= z <= z1:
+            t = (z - z0) / (z1 - z0)
+            rx, ry = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+            break
+    e = math.hypot(p.x / rx, (p.y + 0.01) / ry)
+    return e if p.z < 0.99 else 0.0
 
 
 def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
@@ -135,7 +150,9 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
     W = []
     for v in me.vertices:
         p = mw @ v.co
-        near = segs if not (body_only and abs(p.x) < SLEEVE_X) else {n: ab for n, ab in segs.items() if n not in ARM_BONES}
+        # The garment's body (on or inside the torso, the shoulders' tops above the arm's start) doesn't follow the arms.
+        body = body_only and (outside_torso(p) < 1.18 or abs(p.x) < SLEEVE_X - 0.03)
+        near = segs if not body else {n: ab for n, ab in segs.items() if n not in ARM_BONES}
         w = {n: 1.0 / (seg_dist(p, a, b) + 0.004) ** power for n, (a, b) in near.items()}
         t = sum(w.values())
         W.append({n: x / t for n, x in w.items()})
@@ -159,6 +176,31 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
             W2.append(acc)
         W = W2
     groups = {n: ob.vertex_groups.new(name=n) for n in allowed}
+    if body_only:
+        # A sleeve is a piece of its own (an island well out to the side): all of it follows the arm,
+        # none of the body's rule applies to it.
+        sleeve = set()
+        seen = [False] * len(me.vertices)
+        for i0 in range(len(me.vertices)):
+            if seen[i0]:
+                continue
+            stack, island = [i0], []
+            seen[i0] = True
+            while stack:
+                i = stack.pop()
+                island.append(i)
+                for j in nb[i]:
+                    if not seen[j]:
+                        seen[j] = True
+                        stack.append(j)
+            cx = sum((mw @ me.vertices[i].co).x for i in island) / len(island)
+            if abs(cx) > 0.2:
+                sleeve.update(island)
+        for i in sleeve:
+            p = mw @ me.vertices[i].co
+            w = {n: 1.0 / (seg_dist(p, a, b) + 0.004) ** power for n, (a, b) in segs.items()}
+            t = sum(w.values())
+            W[i] = {n: x / t for n, x in w.items()}
     for i, w in enumerate(W):
         top = sorted(w.items(), key=lambda kv: -kv[1])[:4]
         top = [(n, x) for n, x in top if x > 0.02] or top[:1]
