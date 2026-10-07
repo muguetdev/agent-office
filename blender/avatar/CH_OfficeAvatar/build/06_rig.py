@@ -74,7 +74,11 @@ ALLOWED = {
     "Bottom_Trousers": ["pelvis", "spine_01", "thigh_L", "thigh_R", "shin_L", "shin_R"],
     "Shoes_Sneakers": ["foot_L", "foot_R", "toe_L", "toe_R"],
 }
-RIGID = {"Body_Head": "head", "Hair_Wavy": "head", "Face_Eyes": "head", "Face_Brows": "head", "Face_Mouth": "head"}
+ALLOWED["Top_Jacket"] = ALLOWED["Top_HoodieOpen"]
+ALLOWED["Bottom_Joggers"] = ALLOWED["Bottom_Trousers"]
+ALLOWED["Shoes_Runners"] = ALLOWED["Shoes_Sneakers"]
+RIGID = {p: "head" for p in ("Body_Head", "Face_Eyes", "Face_Brows", "Face_Mouth", "Hair_Wavy", "Hair_Bun", "Hair_Bob",
+                             "Beard_Stubble", "Beard_Full", "Glasses_Round", "Glasses_Square")}
 
 
 def make_rig():
@@ -184,7 +188,7 @@ def build(scene, args):
         if part in RIGID:
             bind_rigid(ob, RIGID[part])
         elif part in ALLOWED:
-            weigh(ob, rig, ALLOWED[part], body_only=part in ("Top_HoodieOpen", "Top_Tee", "Body_Torso"))
+            weigh(ob, rig, ALLOWED[part], body_only=part in ("Top_HoodieOpen", "Top_Jacket", "Top_Tee", "Body_Torso"))
         else:
             raise SystemExit(f"no weighting rule for {ob.name}")
         attach(ob, rig)

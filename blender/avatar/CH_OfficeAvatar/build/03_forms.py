@@ -151,7 +151,7 @@ def hair(mat):
         p = m @ v.co
         front = p.y < cy - 0.05
         side = abs(p.x) > 0.11 and p.y < cy + 0.11
-        if (front and p.z < 1.335 and abs(p.x) < 0.17) or (side and p.z < 1.23) or (p.z < 1.2 and p.y < cy + 0.02) or p.z < 1.03:
+        if (front and p.z < 1.335 and abs(p.x) < 0.17) or (side and p.z < 1.23) or (p.z < 1.2 and p.y < cy + 0.02) or p.z < 1.05:
             kill.append(v)
     bmesh.ops.delete(bm, geom=kill, context="VERTS")
     bm.to_mesh(cap.data)
@@ -177,7 +177,7 @@ def hair(mat):
         # the back: rounded clumps down to the nape
         ((-0.09, cy + 0.15, 1.3), (0.09, 0.055, 0.1), (0, 0, math.radians(10))),
         ((0.09, cy + 0.15, 1.3), (0.09, 0.055, 0.1), (0, 0, math.radians(-10))),
-        ((0.0, cy + 0.14, 1.14), (0.12, 0.05, 0.08), (0, 0, 0)),
+        ((0.0, cy + 0.14, 1.16), (0.12, 0.05, 0.08), (0, 0, 0)),  # the nape, clear of the hood
     ]
     # The fringe: rounded locks hanging over the hairline at uneven heights, so its edge waves
     # (front view: the forehead shows between the brows and the locks, more of it on the right).
@@ -234,6 +234,9 @@ def tee(white):
     ob = loft("CH_OfficeAvatar_Tee_HIGH", collection=COLL, sections=[[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in (
         (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.93, 0.13, 0.1), (0.975, 0.07, 0.065))])
     assign(ob, white)
+    # Short sleeves to the middle of the upper arm (inside a top's sleeves when one's worn).
+    for side, s in (("L", 1), ("R", -1)):
+        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.13, 0.0, 0.915), (s * 0.175, -0.003, 0.86), (s * 0.205, -0.007, 0.79)], 0.055, white, segments=20, radii=[0.06, 0.056, 0.052])
     # The crew neck's rib.
     sweep("CH_OfficeAvatar_TeeCollar_HIGH", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.972) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)
     return ob
@@ -264,7 +267,7 @@ def hoodie(blue, white):
     hem = arc(HEM_Z + 0.012, 0.212, 0.157, GAP + 0.012)
     sweep("CH_OfficeAvatar_HoodieHem_HIGH", hem, 0.018, blue, radii=[0.012] + [0.018] * (len(hem) - 2) + [0.012])
     # The hood lying on the back, and its rim from the back of the neck down both front edges.
-    hood = blob("_hood", (0.0, 0.125, 0.945), (0.15, 0.075, 0.1), rot=(math.radians(-10), 0, 0))
+    hood = blob("_hood", (0.0, 0.125, 0.93), (0.15, 0.075, 0.095), rot=(math.radians(-10), 0, 0))
     hood_ob = fuse("CH_OfficeAvatar_Hood_HIGH", [hood], 0.006, blue, smooth=2)
     for side, s in (("L", 1), ("R", -1)):
         rim = [(s * (0.03 + 0.09 * t), 0.06 - 0.21 * t, 0.985 - 0.05 * t) for t in [i / 6 for i in range(7)]]
@@ -290,8 +293,9 @@ def trousers(navy):
     for side, s in (("L", 1), ("R", -1)):
         # A straight leg, a little fuller at the seat, resting on the shoe at the hem.
         secs = []
-        for z, r, dx in ((0.56, 0.098, 0.0), (0.45, 0.094, 0.0), (0.33, 0.088, 0.0), (0.22, 0.085, 0.0), (ANKLE_Z, 0.086, 0.0), (ANKLE_Z - 0.03, 0.086, 0.0)):
-            secs.append([(s * LEG_X + dx + r * math.cos(a), -0.015 + 1.12 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]])
+        # The waist drawn in under the top's hem (the hips 0.19 m out at most), straight from the thigh down.
+        for z, r, dx in ((0.56, 0.09, -0.03), (0.45, 0.092, -0.01), (0.33, 0.088, 0.0), (0.22, 0.085, 0.0), (ANKLE_Z, 0.086, 0.0), (ANKLE_Z - 0.03, 0.086, 0.0)):
+            secs.append([(s * (LEG_X + dx) + r * math.cos(a), -0.015 + 1.12 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]])
         leg = loft(f"CH_OfficeAvatar_TrouserLeg_{side}_HIGH", secs, COLL)
         assign(leg, navy)
     seat = blob("_seat", (0.0, -0.01, 0.5), (0.2, 0.125, 0.09))
