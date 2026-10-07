@@ -3214,6 +3214,13 @@ Opções:
     takeTheirs: 'Carregar o deles (perder o meu)',
     keepMine: 'Salvar o meu por cima',
   },
+  diorama: {
+    title: 'Visual',
+    classic: '🏢 Clássico',
+    diorama: '🧩 Maquete',
+    classicNote: 'O escritório como sempre foi: em primeira ou terceira pessoa, como escolhido acima.',
+    dioramaNote: 'O escritório como uma maquete vista do alto, com as paredes cortadas: arraste para girar, role para dar zoom, WASD para andar, e clique no chão para ir até lá ou em qualquer coisa para ir usar.',
+  },
   minimap: {
     title: 'Mapa do andar',
     open: 'O andar visto de cima (J abre grande)',
