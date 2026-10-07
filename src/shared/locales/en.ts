@@ -3225,6 +3225,13 @@ Options:
     takeTheirs: 'Load theirs (lose mine)',
     keepMine: 'Save mine over it',
   },
+  diorama: {
+    title: 'Look',
+    classic: '🏢 Classic',
+    diorama: '🧩 Scale model',
+    classicNote: 'The office as it always was: first or third person, as picked above.',
+    dioramaNote: 'The office as a scale model from high up, its walls cut away: drag to turn it, scroll to zoom, WASD to walk, and click the floor to walk there or anything to go and use it.',
+  },
   minimap: {
     title: 'Floor map',
     open: 'The floor from above (J opens it big)',

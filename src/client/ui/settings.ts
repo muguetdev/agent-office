@@ -12,6 +12,7 @@ import { agentFields, choiceLabel, officeChoice } from './provider';
 import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
 import { autoModelSetting } from './settings-automodel';
+import { lookSetting } from './settings-look';
 import { choiceRow } from './settings-rows';
 import { L } from '../i18n';
 import { languageSettings } from './settings-language';
@@ -456,6 +457,14 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
     you: [
       setting(L.settings.yourCharacter, null, character),
       setting(L.settings.camera, 'you', seg, note),
+      setting(
+        L.diorama.title,
+        'you',
+        ...lookSetting(
+          () => settings.look,
+          (look) => onChange((settings = { ...settings, look })),
+        ),
+      ),
       langs.yours,
       setting(L.settings.signedIn, null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? L.settings.asAccount(account.name, account.role) : L.settings.sharedPassword)),
     ],
