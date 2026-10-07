@@ -207,34 +207,30 @@ def square_rim():
 # ---- top, bottom, shoes -------------------------------------------------------------------------
 
 def jacket(mat, trim):
-    """A zipped jacket: a closed shell over the tee, a stand collar, a zip down the front, slimmer sleeves
-    with rib cuffs and a rib hem."""
-    parts = []
-    stations = ((HEM_Z + 0.01, 0.208, 0.152), (0.66, 0.205, 0.152), (0.82, 0.205, 0.158), (0.9, 0.17, 0.135), (0.955, 0.105, 0.09))
-    shell = loft("_jshell", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in stations], "HIGH", cap_ends=False)
-    solidify(shell, 0.02, offset=1.0)
-    apply_all_modifiers(shell)
-    assign(shell, mat)
-    parts.append(shell)
-    # Stand collar.
-    collar = loft("_collar", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in ((0.95, 0.1, 0.088), (1.0, 0.085, 0.077))], "HIGH", cap_ends=False)
-    solidify(collar, 0.014, offset=1.0)
-    apply_all_modifiers(collar)
-    assign(collar, mat)
-    parts.append(collar)
-    # Zip and its pull.
-    parts.append(sweep("_zip", [(0, -0.168, z) for z in (1.0, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim))
-    parts.append(assign_r(blob("_pull", (0.0, -0.176, 0.955), (0.008, 0.004, 0.016)), trim))
+    """A zipped jacket as one piece of cloth (like the hoodie: forms' garment()): the body, rounded
+    shoulders, sleeves gathered into rib cuffs, a rib hem and a stand collar, 1.8 cm thick, open at the
+    neck, cuffs and hem; the zip and its pull down the closed front."""
+    garment, cutter_box, cutter_tube, SLEEVE = F["garment"], F["cutter_box"], F["cutter_tube"], F["SLEEVE"]
+    parts = [loft("_jbody", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in (
+        (HEM_Z - 0.005, 0.208, 0.152), (0.66, 0.205, 0.154), (0.82, 0.205, 0.16), (0.885, 0.178, 0.143), (0.94, 0.13, 0.108), (0.975, 0.095, 0.085))], "HIGH")]
+    parts.append(loft("_jcollar", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in ((0.95, 0.1, 0.09), (1.005, 0.088, 0.08))], "HIGH"))
     hem = [(0.212 * math.cos(a), 0.157 * math.sin(a) - 0.01, HEM_Z + 0.012) for a in [i * math.tau / 40 for i in range(41)]]
     parts.append(sweep("_jhem", hem, 0.016, mat, cap=False))
+    cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.12), 0.072),
+               cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for s in (1, -1):
-        sl = [Vector((s * 0.16, 0.0, 0.905)), Vector((s * 0.212, -0.005, 0.8)), Vector((s * 0.245, -0.012, 0.7)), Vector((s * 0.265, -0.02, 0.63))]
-        parts.append(sweep(f"_jsl{s}", sl, 0.07, mat, segments=20, radii=[0.062, 0.07, 0.074, 0.07]))
-        parts.append(assign_r(blob(f"_jsh{s}", (s * 0.158, 0.0, 0.885), (0.06, 0.075, 0.058)), mat))
-        cuff_c = Vector((s * 0.268, -0.024, 0.615))
-        ring = [cuff_c + Vector((0.06 * math.cos(a), 0.062 * math.sin(a), 0)) for a in [i * math.tau / 24 for i in range(25)]]
-        parts.append(sweep(f"_jcuff{s}", ring, 0.018, mat, cap=False))
-    return parts
+        parts.append(blob(f"_jsh{s}", (s * 0.155, -0.002, 0.875), (0.072, 0.086, 0.068)))
+        sl = SLEEVE(s)
+        parts.append(sweep(f"_jsl{s}", sl, 0.075, mat, segments=24, radii=[0.066, 0.072, 0.076, 0.07, 0.054]))
+        end, axis = sl[-1], (sl[-1] - sl[-2]).normalized()
+        n = axis.cross(Vector((0, 1, 0))).normalized()
+        b2 = axis.cross(n).normalized()
+        parts.append(sweep(f"_jcuff{s}", [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * 0.05 for a in [i * math.tau / 24 for i in range(25)]], 0.016, mat, cap=False))
+        cutters.append(cutter_tube(f"_cut_cuff{s}", end - axis * 0.05, end + axis * 0.06, 0.035))
+    shell = garment("_jacket", parts, mat, 0.018, cutters)
+    zip_line = sweep("_zip", [(0, -0.168, z) for z in (1.0, 0.95, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
+    pull = assign_r(blob("_pull", (0.0, -0.176, 0.955), (0.008, 0.004, 0.016)), trim)
+    return [shell, zip_line, pull]
 
 
 def assign_r(ob, mat):
@@ -243,23 +239,20 @@ def assign_r(ob, mat):
 
 
 def joggers(mat, trim):
-    parts = []
+    """Joggers as one piece (like the trousers): the waist running into two legs that taper to rib cuffs
+    gathered at the ankle, above the shoe; the drawstring's ends at the waist."""
+    parts = [loft("_jwaist", [[(rx * math.cos(a), ry * math.sin(a) - 0.012, z) for a in [i * math.tau / 36 for i in range(36)]] for z, rx, ry in (
+        (0.44, 0.17, 0.125), (0.5, 0.19, 0.13), (0.6, 0.175, 0.125))], "HIGH"),
+             blob("_jcrotch", (0.0, -0.012, 0.46), (0.07, 0.11, 0.05))]
     for s in (1, -1):
         secs = []
-        for z, r, dx in ((0.56, 0.09, -0.03), (0.45, 0.092, -0.01), (0.38, 0.09, 0.0), (0.3, 0.084, 0.0), (0.24, 0.077, 0.0), (0.21, 0.072, 0.0)):
+        for z, r, dx in ((0.52, 0.09, -0.03), (0.45, 0.092, -0.01), (0.38, 0.09, 0.0), (0.3, 0.084, 0.0), (0.24, 0.074, 0.0), (0.215, 0.066, 0.0)):
             secs.append([(s * (LEG_X + dx) + r * math.cos(a), -0.015 + 1.1 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]])
-        leg = loft(f"_jleg{s}", secs, "HIGH")
-        assign(leg, mat)
-        parts.append(leg)
-        # The rib cuff gathered at the ankle, above the shoe.
-        cuff = loft(f"_jcuff{s}", [[(s * LEG_X + r * math.cos(a), -0.015 + 1.08 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]] for z, r in ((0.215, 0.074), (0.19, 0.072), (0.17, 0.07))], "HIGH")
-        assign(cuff, mat)
-        parts.append(cuff)
-    parts.append(assign_r(blob("_jseat", (0.0, -0.01, 0.5), (0.2, 0.125, 0.09)), mat))
-    # Drawstring ends at the waist, peeking under the top.
-    for s in (1, -1):
-        parts.append(sweep(f"_jstr{s}", [(s * 0.02, -0.13, 0.56), (s * 0.025, -0.135, 0.52), (s * 0.022, -0.137, 0.49)], 0.0045, trim))
-    return parts
+        parts.append(loft(f"_jleg{s}", secs, "HIGH"))
+        parts.append(loft(f"_jcuffs{s}", [[(s * LEG_X + r * math.cos(a), -0.015 + 1.08 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]] for z, r in ((0.215, 0.072), (0.19, 0.072), (0.17, 0.068))], "HIGH"))
+    legs = fuse("_joggers", parts, 0.006, mat, smooth=6)
+    strings = [sweep(f"_jstr{s}", [(s * 0.02, -0.13, 0.56), (s * 0.025, -0.135, 0.52), (s * 0.022, -0.137, 0.49)], 0.0045, trim) for s in (1, -1)]
+    return [legs] + strings
 
 
 def runners(white, accent):

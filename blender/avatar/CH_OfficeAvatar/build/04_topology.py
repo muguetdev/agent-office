@@ -39,7 +39,7 @@ A = "CH_OfficeAvatar"
 TRIS = {
     "Head": 1600, "Hair": 1850, "Hand": 470, "Hood": 500, "ShoulderCap": 160, "Seat": 300,
     "Eye": 160, "Highlight": 40, "Aglet": 60, "ShoeMark": 80, "Ring": 220,
-    "Brow": 80, "Cuff": 150, "Mouth": 100, "Rim": 200, "Upper": 520, "Sole": 300, "Strap": 110,
+    "Brow": 80, "Cuff": 150, "Hoodie": 3400, "Trousers": 1400, "Mouth": 100, "Rim": 200, "Upper": 520, "Sole": 300, "Strap": 110,
 }
 SHOE_PARTS = {"Sole": "Sole", "SoleStripe": None, "Upper": "Upper", "Strap0": "Strap", "Strap1": "Strap"}
 
@@ -126,9 +126,9 @@ def body_pieces(skin):
     chain = skin_chain(
         "_body_low",
         {
-            "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.105), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
-            "arm_L": [(0, 0, 0.9, 0.105), (0.16, 0, 0.9, 0.05), (0.195, -0.005, 0.815, 0.046), (0.23, -0.01, 0.73, 0.042), (0.246, -0.02, 0.66, 0.037), (0.262, -0.03, 0.59, 0.033)],
-            "arm_R": [(0, 0, 0.9, 0.105), (-0.16, 0, 0.9, 0.05), (-0.195, -0.005, 0.815, 0.046), (-0.23, -0.01, 0.73, 0.042), (-0.246, -0.02, 0.66, 0.037), (-0.262, -0.03, 0.59, 0.033)],
+            "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.095), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
+            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.042), (0.195, -0.005, 0.815, 0.046), (0.23, -0.01, 0.73, 0.042), (0.246, -0.02, 0.66, 0.037), (0.262, -0.03, 0.59, 0.033)],
+            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.042), (-0.195, -0.005, 0.815, 0.046), (-0.23, -0.01, 0.73, 0.042), (-0.246, -0.02, 0.66, 0.037), (-0.262, -0.03, 0.59, 0.033)],
             "leg_L": [(0, 0, CROTCH_Z + 0.02, 0.115), (0.09, -0.01, 0.47, 0.075), (0.11, -0.012, 0.385, 0.068), (LEG_X, -0.015, 0.3, 0.06), (LEG_X, -0.015, 0.22, 0.052), (LEG_X, -0.015, ANKLE_Z, 0.045), (FOOT_X, -0.06, 0.06, 0.045), (FOOT_X, -0.16, 0.05, 0.04)],
             "leg_R": [(0, 0, CROTCH_Z + 0.02, 0.115), (-0.09, -0.01, 0.47, 0.075), (-0.11, -0.012, 0.385, 0.068), (-LEG_X, -0.015, 0.3, 0.06), (-LEG_X, -0.015, 0.22, 0.052), (-LEG_X, -0.015, ANKLE_Z, 0.045), (-FOOT_X, -0.06, 0.06, 0.045), (-FOOT_X, -0.16, 0.05, 0.04)],
         },
@@ -192,22 +192,14 @@ def build(scene, args):
     tee += [cut_along(copy_high(f"{A}_TeeSleeve_{s}_HIGH", f"_teesleeve{s}", "04_TOPS"), 1) for s in "LR"]
     merge(f"{A}_Top_Tee_LOD0", tee, "04_TOPS")
 
-    hoodie = [copy_high(f"{A}_Hoodie_HIGH", "_shell", "04_TOPS"),
-              reduce_to(copy_high(f"{A}_Hood_HIGH", "_hood", "04_TOPS"), TRIS["Hood"]),
-              reduce_to(copy_high(f"{A}_HoodieHem_HIGH", "_hem", "04_TOPS"), TRIS["Ring"])]
+    hoodie = [reduce_to(copy_high(f"{A}_Hoodie_HIGH", "_shell", "04_TOPS"), TRIS["Hoodie"])]
     for s in "LR":
-        hoodie.append(cut_along(copy_high(f"{A}_Sleeve_{s}_HIGH", f"_sleeve{s}", "04_TOPS"), 2))
-        hoodie.append(reduce_to(copy_high(f"{A}_ShoulderCap_{s}_HIGH", f"_cap{s}", "04_TOPS"), TRIS["ShoulderCap"]))
-        hoodie.append(reduce_to(copy_high(f"{A}_Cuff_{s}_HIGH", f"_cuff{s}", "04_TOPS"), TRIS["Cuff"]))
-        hoodie.append(reduce_to(copy_high(f"{A}_HoodRim_{s}_HIGH", f"_rim{s}", "04_TOPS"), TRIS["Rim"]))
         hoodie.append(copy_high(f"{A}_Piping_{s}_HIGH", f"_pipe{s}", "04_TOPS"))
         hoodie.append(copy_high(f"{A}_Drawstring_{s}_HIGH", f"_string{s}", "04_TOPS"))
         hoodie.append(reduce_to(copy_high(f"{A}_Aglet_{s}_HIGH", f"_aglet{s}", "04_TOPS"), TRIS["Aglet"]))
     merge(f"{A}_Top_HoodieOpen_LOD0", hoodie, "04_TOPS")
 
-    legs = [cut_along(copy_high(f"{A}_TrouserLeg_{s}_HIGH", f"_leg{s}", "05_BOTTOMS"), 1) for s in "LR"]
-    legs.append(reduce_to(copy_high(f"{A}_TrouserSeat_HIGH", "_seat", "05_BOTTOMS"), TRIS["Seat"]))
-    merge(f"{A}_Bottom_Trousers_LOD0", legs, "05_BOTTOMS")
+    merge(f"{A}_Bottom_Trousers_LOD0", [reduce_to(copy_high(f"{A}_Trousers_HIGH", "_trousers", "05_BOTTOMS"), TRIS["Trousers"])], "05_BOTTOMS")
 
     shoes = []
     for s in "LR":

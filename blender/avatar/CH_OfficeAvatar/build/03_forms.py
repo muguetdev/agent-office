@@ -62,10 +62,18 @@ def sweep(name, points, radius, mat, segments=12, radii=None, cap=True):
     pts = [Vector(p) for p in points]
     bm = bmesh.new()
     rings = []
+    # Each ring's frame carried along from the last one (parallel transport), so the tube never twists
+    # where it turns steep (choosing a fresh reference axis per ring flipped a sleeve's rings over).
+    n = None
+    prev_t = None
     for i, p in enumerate(pts):
         t = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
-        a = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
-        n = t.cross(a).normalized()
+        if n is None:
+            a = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+            n = t.cross(a).normalized()
+        else:
+            n = (prev_t.rotation_difference(t) @ n).normalized()
+        prev_t = t
         b = t.cross(n).normalized()
         r = radii[i] if radii else radius
         rings.append([bm.verts.new(p + (n * math.cos(k * math.tau / segments) + b * math.sin(k * math.tau / segments)) * r) for k in range(segments)])
@@ -175,10 +183,21 @@ def hair(mat):
         ((-0.195, cy + 0.0, 1.29), (0.05, 0.09, 0.085), (0, 0, 0)),
         ((0.195, cy + 0.0, 1.29), (0.05, 0.09, 0.085), (0, 0, 0)),
         # the back: rounded clumps down to the nape
-        ((-0.09, cy + 0.15, 1.3), (0.09, 0.055, 0.1), (0, 0, math.radians(10))),
-        ((0.09, cy + 0.15, 1.3), (0.09, 0.055, 0.1), (0, 0, math.radians(-10))),
         ((0.0, cy + 0.14, 1.16), (0.12, 0.05, 0.08), (0, 0, 0)),  # the nape, clear of the hood
     ]
+    # The back: rows of rounded curls down to the nape (the back view's swirl of locks).
+    # The back: chunky locks that start at the crown and sweep down and round to the nape, alternately to
+    # either side (the back view's swirl), each a tapering tube lying on the scalp, fuller in the middle.
+    def on_scalp(phi, z, off):
+        k = math.sqrt(max(0.02, 1 - ((z - cz) / (HEAD_R[2] + off)) ** 2))
+        return (cx + (HEAD_R[0] + off) * math.sin(phi) * k, cy + (HEAD_R[1] + off) * math.cos(phi) * k, z)
+    curls = []
+    for phi0, dphi, z1 in ((-0.95, -0.35, 1.13), (-0.55, 0.3, 1.08), (-0.18, -0.3, 1.06), (0.18, 0.3, 1.06), (0.55, -0.3, 1.08), (0.95, 0.35, 1.13), (0.0, 0.25, 1.2)):
+        pts = []
+        for i in range(11):
+            t = i / 10
+            pts.append(on_scalp(phi0 + dphi * t * t, 1.47 - (1.47 - z1) * t, 0.012 + 0.02 * math.sin(math.pi * t)))
+        curls.append(sweep(f"_curl{len(curls)}", pts, 0.04, mat, segments=16, radii=[0.035 + 0.012 * math.sin(math.pi * min(1, i / 6)) - 0.03 * max(0, i - 6) / 4 for i in range(11)]))
     # The fringe: rounded locks hanging over the hairline at uneven heights, so its edge waves
     # (front view: the forehead shows between the brows and the locks, more of it on the right).
     for x, zb, tilt in ((-0.14, 1.33, 25), (-0.075, 1.315, 10), (-0.005, 1.325, -5), (0.065, 1.345, -20), (0.13, 1.36, -30)):
@@ -186,7 +205,8 @@ def hair(mat):
         locks.append(((x, fy, zb + 0.045), (0.05, 0.04, 0.05), (math.radians(-30), 0, math.radians(tilt))))
     for i, (c, r, rot) in enumerate(locks):
         parts.append(blob(f"_lock{i}", c, r, rot))
-    return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.005, mat, smooth=3)
+    parts += curls
+    return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.005, mat, smooth=6)
 
 
 def hand(side, s, skin):
@@ -214,9 +234,9 @@ def body(skin):
     ob = skin_chain(
         "_body",
         {
-            "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.105), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
-            "arm_L": [(0, 0, 0.9, 0.105), (0.16, 0, 0.9, 0.05), (0.23, -0.01, 0.73, 0.042), (0.262, -0.03, 0.59, 0.033)],
-            "arm_R": [(0, 0, 0.9, 0.105), (-0.16, 0, 0.9, 0.05), (-0.23, -0.01, 0.73, 0.042), (-0.262, -0.03, 0.59, 0.033)],
+            "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.095), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
+            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.042), (0.23, -0.01, 0.73, 0.042), (0.262, -0.03, 0.59, 0.033)],
+            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.042), (-0.23, -0.01, 0.73, 0.042), (-0.262, -0.03, 0.59, 0.033)],
             "leg_L": [(0, 0, CROTCH_Z + 0.02, 0.115), (0.09, -0.01, 0.47, 0.075), (LEG_X, -0.015, 0.3, 0.06), (LEG_X, -0.015, ANKLE_Z, 0.045)],
             "leg_R": [(0, 0, CROTCH_Z + 0.02, 0.115), (-0.09, -0.01, 0.47, 0.075), (-LEG_X, -0.015, 0.3, 0.06), (-LEG_X, -0.015, ANKLE_Z, 0.045)],
         },
@@ -232,11 +252,11 @@ def body(skin):
 
 def tee(white):
     ob = loft("CH_OfficeAvatar_Tee_HIGH", collection=COLL, sections=[[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in (
-        (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.93, 0.13, 0.1), (0.975, 0.07, 0.065))])
+        (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.92, 0.112, 0.092), (0.97, 0.07, 0.065))])  # inside the top's shoulders
     assign(ob, white)
     # Short sleeves to the middle of the upper arm (inside a top's sleeves when one's worn).
     for side, s in (("L", 1), ("R", -1)):
-        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.13, 0.0, 0.915), (s * 0.175, -0.003, 0.86), (s * 0.205, -0.007, 0.79)], 0.055, white, segments=20, radii=[0.06, 0.056, 0.052])
+        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.14, 0.0, 0.868), (s * 0.18, -0.003, 0.83), (s * 0.205, -0.007, 0.77)], 0.05, white, segments=20, radii=[0.048, 0.048, 0.046])
     # The crew neck's rib.
     sweep("CH_OfficeAvatar_TeeCollar_HIGH", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.972) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)
     return ob
@@ -245,61 +265,102 @@ def tee(white):
 GAP = 0.07  # half the hoodie's open front at the chest (front view: the tee shows 44 px wide)
 
 
+def garment(name, parts, mat, thickness, cutters, voxel=0.006, smooth=6, outer_tris=1700):
+    """One piece of clothing as a single continuous surface: the parts fused into one smooth volume,
+    hollowed to the fabric's thickness, then opened where the cutters are (the front, the neck, the
+    cuffs, the hem): every face inside one goes (an exact test, where a boolean on a mesh this dense
+    can fail without a word). The rolled edges sit over the openings' edges. The outer surface is brought
+    down to `outer_tris` before it's given its thickness, so the cloth's two sides stay parallel (reducing
+    a thin double wall afterwards collapses one side into the other)."""
+    ob = fuse(name, parts, voxel, mat, smooth)
+    have = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+    if have > outer_tris:
+        d = ob.modifiers.new("Decimate", "DECIMATE")
+        d.ratio = outer_tris / have
+        apply_all_modifiers(ob)
+    solidify(ob, thickness, offset=-1.0)
+    apply_all_modifiers(ob)
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    gone = [f for f in bm.faces if any(c(f.calc_center_median()) for c in cutters)]
+    bmesh.ops.delete(bm, geom=gone, context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(ob.data)
+    bm.free()
+    assign(ob, mat)
+    shade_smooth(ob, math.radians(180))
+    return ob
+
+
+def cutter_box(name, lo, hi):
+    """A test for points inside the box lo..hi."""
+    return lambda p: all(l <= v <= h for l, v, h in zip(lo, p, hi))
+
+
+def cutter_tube(name, a, b, r):
+    """A test for points inside the round tube from a to b, radius r."""
+    a, b = Vector(a), Vector(b)
+    d = b - a
+    def inside(p):
+        t = (p - a).dot(d) / d.length_squared
+        return 0 <= t <= 1 and (p - (a + d * t)).length <= r
+    return inside
+
+
+SLEEVE = lambda s: [Vector((s * 0.13, 0.0, 0.9)), Vector((s * 0.215, -0.005, 0.8)), Vector((s * 0.248, -0.012, 0.7)), Vector((s * 0.262, -0.018, 0.64)), Vector((s * 0.27, -0.024, 0.6))]
+
+
 def hoodie(blue, white):
-    """The open hoodie: the body as an open shell, the hood on the back with its rim round the neck and
-    down the front edges, puffy sleeves with cuffs, the hem band, the white piping and the drawstrings."""
-    def arc(z, rx, ry, gap, dy=-0.01, n=40):
-        # From the left front edge round the back to the right front edge (the front stays open).
-        a0 = math.asin(min(0.99, gap / rx))
-        pts = []
-        for i in range(n + 1):
-            a = -math.pi / 2 + a0 + (math.tau - 2 * a0) * i / n
-            pts.append((rx * math.cos(a), ry * math.sin(a) + dy, z))
-        return pts
-    stations = ((HEM_Z, 0.21, 0.14, GAP), (0.66, 0.205, 0.15, GAP), (0.82, 0.205, 0.16, GAP + 0.005), (0.9, 0.17, 0.135, GAP + 0.01), (0.955, 0.11, 0.095, GAP - 0.005))
-    shell = loft("CH_OfficeAvatar_Hoodie_HIGH", [arc(z, rx, ry, g) for z, rx, ry, g in stations], COLL, close_sections=False, cap_ends=False)
-    solidify(shell, 0.022, offset=1.0)
-    apply_all_modifiers(shell)
-    assign(shell, blue)
-    shade_smooth(shell, math.radians(60))
-    # Hem band: a thicker rib round the bottom.
-    # Hem band: a soft roll along the bottom edge, ends tucked into the front edges.
-    hem = arc(HEM_Z + 0.012, 0.212, 0.157, GAP + 0.012)
-    sweep("CH_OfficeAvatar_HoodieHem_HIGH", hem, 0.018, blue, radii=[0.012] + [0.018] * (len(hem) - 2) + [0.012])
-    # The hood lying on the back, and its rim from the back of the neck down both front edges.
-    hood = blob("_hood", (0.0, 0.125, 0.93), (0.15, 0.075, 0.095), rot=(math.radians(-10), 0, 0))
-    hood_ob = fuse("CH_OfficeAvatar_Hood_HIGH", [hood], 0.006, blue, smooth=2)
+    """The open hoodie as one piece of cloth: the body, the rounded shoulders, puffy sleeves gathered into
+    rolled cuffs, the rolled hem, the hood on the back and its thick rim from behind the neck down both
+    front edges, all one surface, 2 cm thick; open at the front, the neck, the cuffs and the hem. The white
+    piping along the opening and the drawstrings are their own small pieces."""
+    parts = []
+    body = loft("_hbody", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in (
+        (HEM_Z - 0.005, 0.208, 0.15), (0.66, 0.205, 0.152), (0.82, 0.205, 0.158), (0.885, 0.178, 0.142), (0.94, 0.13, 0.108), (0.975, 0.095, 0.083))], COLL)
+    parts.append(body)
+    hem = [(0.212 * math.cos(a), 0.155 * math.sin(a) - 0.01, HEM_Z + 0.014) for a in [i * math.tau / 40 for i in range(41)]]
+    parts.append(sweep("_hhem", hem, 0.017, blue, cap=False))
+    parts.append(blob("_hood", (0.0, 0.125, 0.93), (0.155, 0.08, 0.1), rot=(math.radians(-10), 0, 0)))
+    cutters = [cutter_box("_cut_front", (-(GAP + 0.002), -0.4, HEM_Z - 0.1), (GAP + 0.002, -0.07, 1.02)),
+               cutter_tube("_cut_neck", (0, -0.005, 0.9), (0, -0.005, 1.12), 0.078),
+               cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for side, s in (("L", 1), ("R", -1)):
-        rim = [(s * (0.03 + 0.09 * t), 0.06 - 0.21 * t, 0.985 - 0.05 * t) for t in [i / 6 for i in range(7)]]
-        rim += [(s * (GAP + 0.016), -0.15, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.03)]
-        sweep(f"CH_OfficeAvatar_HoodRim_{side}_HIGH", rim, 0.021, blue)
-        # White piping just inside the open edge.
-        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", [(s * (GAP + 0.003), -0.157, z) for z in (0.93, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.006, white)
-        # Drawstrings out of the hood rim, with aglets.
-        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", [(s * 0.058, -0.15, 0.93), (s * 0.06, -0.162, 0.86), (s * 0.058, -0.166, 0.8)], 0.0055, white)
-        assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (s * 0.058, -0.167, 0.79), (0.008, 0.008, 0.016)), white)
-        # Puffy sleeve: rounded at the shoulder, widest at the elbow, gathered into a cuff.
-        sl = [Vector((s * 0.16, 0.0, 0.905)), Vector((s * 0.215, -0.005, 0.8)), Vector((s * 0.25, -0.012, 0.7)), Vector((s * 0.268, -0.02, 0.63))]
-        sweep(f"CH_OfficeAvatar_Sleeve_{side}_HIGH", sl, 0.08, blue, segments=20, radii=[0.064, 0.077, 0.084, 0.081])
-        cuff_c = Vector((s * 0.27, -0.024, 0.61))
-        ring = [cuff_c + Vector((0.064 * math.cos(a), 0.066 * math.sin(a), 0)) for a in [i * math.tau / 24 for i in range(25)]]
-        sweep(f"CH_OfficeAvatar_Cuff_{side}_HIGH", ring, 0.02, blue, cap=False)
-        shoulder = blob(f"_sh{side}", (s * 0.158, 0.0, 0.88), (0.062, 0.078, 0.06))
-        fuse(f"CH_OfficeAvatar_ShoulderCap_{side}_HIGH", [shoulder], 0.006, blue, smooth=2)
+        parts.append(blob(f"_sh{side}", (s * 0.155, -0.002, 0.875), (0.075, 0.09, 0.07)))
+        sl = SLEEVE(s)
+        # Puffy to the forearm, then gathered into the cuff (front view: the cuff narrower than the sleeve).
+        parts.append(sweep(f"_sl{side}", sl, 0.08, blue, segments=24, radii=[0.07, 0.08, 0.086, 0.078, 0.058]))
+        end = sl[-1]
+        axis = (sl[-1] - sl[-2]).normalized()
+        ring_c = end - axis * 0.004   # the rolled cuff right at the sleeve's edge
+        n = axis.cross(Vector((0, 1, 0))).normalized()
+        b2 = axis.cross(n).normalized()
+        parts.append(sweep(f"_cuff{side}", [ring_c + (n * math.cos(a) + b2 * math.sin(a)) * 0.052 for a in [i * math.tau / 24 for i in range(25)]], 0.017, blue, cap=False))
+        cutters.append(cutter_tube(f"_cut_cuff{side}", end - axis * 0.05, end + axis * 0.06, 0.036))
+        # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
+        rim = [(s * (0.075 + 0.045 * t), 0.07 - 0.22 * t, 0.985 - 0.05 * t) for t in [i / 6 for i in range(7)]]
+        rim += [(s * (GAP + 0.025), -0.152, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.02)]
+        parts.append(sweep(f"_rim{side}", rim, 0.022, blue))
+    shell = garment("CH_OfficeAvatar_Hoodie_HIGH", parts, blue, 0.018, cutters)
+    for side, s in (("L", 1), ("R", -1)):
+        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", [(s * (GAP + 0.006), -0.158, z) for z in (0.92, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.006, white)
+        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", [(s * 0.062, -0.165, 0.94), (s * 0.064, -0.176, 0.86), (s * 0.062, -0.18, 0.8)], 0.0055, white)
+        assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (s * 0.062, -0.181, 0.79), (0.008, 0.008, 0.016)), white)
     return shell
 
 
 def trousers(navy):
+    """The trousers as one piece: a waist and seat that run smoothly into two straight legs (no seam at
+    the crotch), resting on the shoes at the hem."""
+    parts = [loft("_waist", [[(rx * math.cos(a), ry * math.sin(a) - 0.012, z) for a in [i * math.tau / 36 for i in range(36)]] for z, rx, ry in (
+        (0.44, 0.17, 0.125), (0.5, 0.19, 0.13), (0.6, 0.175, 0.125))], COLL)]
+    parts.append(blob("_crotch", (0.0, -0.012, 0.46), (0.07, 0.11, 0.05)))
     for side, s in (("L", 1), ("R", -1)):
-        # A straight leg, a little fuller at the seat, resting on the shoe at the hem.
         secs = []
-        # The waist drawn in under the top's hem (the hips 0.19 m out at most), straight from the thigh down.
-        for z, r, dx in ((0.56, 0.09, -0.03), (0.45, 0.092, -0.01), (0.33, 0.088, 0.0), (0.22, 0.085, 0.0), (ANKLE_Z, 0.086, 0.0), (ANKLE_Z - 0.03, 0.086, 0.0)):
+        for z, r, dx in ((0.52, 0.09, -0.03), (0.45, 0.092, -0.01), (0.33, 0.088, 0.0), (0.22, 0.085, 0.0), (ANKLE_Z, 0.086, 0.0), (ANKLE_Z - 0.03, 0.086, 0.0)):
             secs.append([(s * (LEG_X + dx) + r * math.cos(a), -0.015 + 1.12 * r * math.sin(a), z) for a in [i * math.tau / 28 for i in range(28)]])
-        leg = loft(f"CH_OfficeAvatar_TrouserLeg_{side}_HIGH", secs, COLL)
-        assign(leg, navy)
-    seat = blob("_seat", (0.0, -0.01, 0.5), (0.2, 0.125, 0.09))
-    fuse("CH_OfficeAvatar_TrouserSeat_HIGH", [seat], 0.008, navy, smooth=2)
+        parts.append(loft(f"_leg{side}", secs, COLL))
+    return fuse("CH_OfficeAvatar_Trousers_HIGH", parts, 0.006, navy, smooth=6)
 
 
 def sneaker(side, s, white, blue):
