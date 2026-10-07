@@ -13,7 +13,7 @@ duplicated for a skin tone, a hair colour or a hoodie colour.
   M_Shoes                the shoes' uppers and soles                           shoe colour
   M_ShoesAccent          the shoes' stripes and side marks                     shoe accent colour
   M_Accessories          glasses                                               accessory colour
-  M_Eyes, M_EyeHighlight, M_Mouth                                              fixed
+  M_Eyes, M_EyeHighlight, M_Mouth, M_Teeth                                     fixed
 
 The roles, their defaults (the concept sheet's base outfit) and the palettes offered for each (the sheet's
 "Cores base") are written to avatar-palette.json. Every mesh is also unwrapped (Smart UV), so a print or
@@ -48,7 +48,7 @@ ROLES = {
     "M_ShoesAccent": {"default": "#2F7FF0", "roughness": 0.5, "palette": ["#2F7FF0", "#F4F4F4", "#2B2F37", "#2E8A84"]},
     "M_Accessories": {"default": "#22252B", "roughness": 0.35, "palette": ["#22252B", "#2F7FF0", "#B07A57", "#C9A227"]},
 }
-FIXED = {"M_Eyes": ("#17120F", 0.2), "M_EyeHighlight": ("#FFFFFF", 0.2), "M_Mouth": ("#7A2A1E", 0.4)}
+FIXED = {"M_Eyes": ("#17120F", 0.2), "M_EyeHighlight": ("#FFFFFF", 0.2), "M_Mouth": ("#8A2E22", 0.9), "M_Teeth": ("#FAFAF7", 0.7)}
 
 
 def build(scene, args):

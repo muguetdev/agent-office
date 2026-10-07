@@ -78,6 +78,7 @@
   "fixed": {
     "M_Eyes": "#17120F",
     "M_EyeHighlight": "#FFFFFF",
-    "M_Mouth": "#7A2A1E"
+    "M_Mouth": "#8A2E22",
+    "M_Teeth": "#FAFAF7"
   }
 }
