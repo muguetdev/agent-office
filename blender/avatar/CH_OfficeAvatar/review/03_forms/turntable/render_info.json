@@ -1,0 +1,101 @@
+{
+  "blend": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_master.blend",
+  "mode": "clay",
+  "engine": "workbench",
+  "bbox_min": [
+    -0.35616347193717957,
+    -0.2876342535018921,
+    0.0
+  ],
+  "bbox_max": [
+    0.35616347193717957,
+    0.21860410273075104,
+    1.5401496887207031
+  ],
+  "size_xyz": [
+    0.7123269438743591,
+    0.5062383413314819,
+    1.5401496887207031
+  ],
+  "objects": [
+    "CH_OfficeAvatar_Body_HIGH",
+    "CH_OfficeAvatar_Head_HIGH",
+    "CH_OfficeAvatar_Eye_L_HIGH",
+    "CH_OfficeAvatar_EyeHighlight_L_HIGH",
+    "CH_OfficeAvatar_Brow_L_HIGH",
+    "CH_OfficeAvatar_Eye_R_HIGH",
+    "CH_OfficeAvatar_EyeHighlight_R_HIGH",
+    "CH_OfficeAvatar_Brow_R_HIGH",
+    "CH_OfficeAvatar_Mouth_HIGH",
+    "CH_OfficeAvatar_Hair_HIGH",
+    "CH_OfficeAvatar_Hand_L_HIGH",
+    "CH_OfficeAvatar_Hand_R_HIGH",
+    "CH_OfficeAvatar_Tee_HIGH",
+    "CH_OfficeAvatar_TeeCollar_HIGH",
+    "CH_OfficeAvatar_Hoodie_HIGH",
+    "CH_OfficeAvatar_HoodieHem_HIGH",
+    "CH_OfficeAvatar_Hood_HIGH",
+    "CH_OfficeAvatar_HoodRim_L_HIGH",
+    "CH_OfficeAvatar_Piping_L_HIGH",
+    "CH_OfficeAvatar_Drawstring_L_HIGH",
+    "CH_OfficeAvatar_Aglet_L_HIGH",
+    "CH_OfficeAvatar_Sleeve_L_HIGH",
+    "CH_OfficeAvatar_Cuff_L_HIGH",
+    "CH_OfficeAvatar_ShoulderCap_L_HIGH",
+    "CH_OfficeAvatar_HoodRim_R_HIGH",
+    "CH_OfficeAvatar_Piping_R_HIGH",
+    "CH_OfficeAvatar_Drawstring_R_HIGH",
+    "CH_OfficeAvatar_Aglet_R_HIGH",
+    "CH_OfficeAvatar_Sleeve_R_HIGH",
+    "CH_OfficeAvatar_Cuff_R_HIGH",
+    "CH_OfficeAvatar_ShoulderCap_R_HIGH",
+    "CH_OfficeAvatar_TrouserLeg_L_HIGH",
+    "CH_OfficeAvatar_TrouserLeg_R_HIGH",
+    "CH_OfficeAvatar_TrouserSeat_HIGH",
+    "CH_OfficeAvatar_Sole_L_HIGH",
+    "CH_OfficeAvatar_SoleStripe_L_HIGH",
+    "CH_OfficeAvatar_Upper_L_HIGH",
+    "CH_OfficeAvatar_Strap0_L_HIGH",
+    "CH_OfficeAvatar_Strap1_L_HIGH",
+    "CH_OfficeAvatar_ShoeMark_L_HIGH",
+    "CH_OfficeAvatar_Sole_R_HIGH",
+    "CH_OfficeAvatar_SoleStripe_R_HIGH",
+    "CH_OfficeAvatar_Upper_R_HIGH",
+    "CH_OfficeAvatar_Strap0_R_HIGH",
+    "CH_OfficeAvatar_Strap1_R_HIGH",
+    "CH_OfficeAvatar_ShoeMark_R_HIGH"
+  ],
+  "renders": {
+    "front": {
+      "file": "review/03_forms/turntable/clay_front.png",
+      "az_el_lens": [
+        0,
+        0,
+        0
+      ],
+      "distance": 4.253119170665741
+    },
+    "side": {
+      "file": "review/03_forms/turntable/clay_side.png",
+      "az_el_lens": [
+        90,
+        0,
+        0
+      ],
+      "distance": 4.35616347193718
+    },
+    "threequarter": {
+      "file": "review/03_forms/turntable/clay_threequarter.png",
+      "az_el_lens": [
+        35,
+        15,
+        50
+      ],
+      "distance": 2.9147627805877057
+    },
+    "turntable": {
+      "frames": 8,
+      "pattern": "clay_turntable_NN.png"
+    }
+  }
+}
