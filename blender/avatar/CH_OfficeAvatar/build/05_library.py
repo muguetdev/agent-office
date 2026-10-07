@@ -212,8 +212,8 @@ def jacket(mat, trim):
     neck, cuffs and hem; the zip and its pull down the closed front."""
     garment, cutter_box, cutter_tube, SLEEVE = F["garment"], F["cutter_box"], F["cutter_tube"], F["SLEEVE"]
     parts = [loft("_jbody", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in (
-        (HEM_Z - 0.005, 0.208, 0.152), (0.66, 0.205, 0.154), (0.82, 0.205, 0.16), (0.885, 0.178, 0.143), (0.94, 0.13, 0.108), (0.975, 0.095, 0.085))], "HIGH")]
-    parts.append(loft("_jcollar", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in ((0.95, 0.1, 0.09), (1.005, 0.088, 0.08))], "HIGH"))
+        (HEM_Z - 0.005, 0.208, 0.152), (0.66, 0.205, 0.154), (0.82, 0.205, 0.16), (0.885, 0.178, 0.143), (0.935, 0.13, 0.108), (0.958, 0.1, 0.087))], "HIGH")]
+    parts.append(loft("_jcollar", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in ((0.94, 0.102, 0.092), (0.985, 0.09, 0.082))], "HIGH"))  # a stand collar below the chin
     hem = [(0.212 * math.cos(a), 0.157 * math.sin(a) - 0.01, HEM_Z + 0.012) for a in [i * math.tau / 40 for i in range(41)]]
     parts.append(sweep("_jhem", hem, 0.016, mat, cap=False))
     cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.12), 0.072),
@@ -228,8 +228,8 @@ def jacket(mat, trim):
         parts.append(sweep(f"_jcuff{s}", [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * 0.05 for a in [i * math.tau / 24 for i in range(25)]], 0.016, mat, cap=False))
         cutters.append(cutter_tube(f"_cut_cuff{s}", end - axis * 0.05, end + axis * 0.06, 0.035))
     shell = garment("_jacket", parts, mat, 0.018, cutters)
-    zip_line = sweep("_zip", [(0, -0.168, z) for z in (1.0, 0.95, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
-    pull = assign_r(blob("_pull", (0.0, -0.176, 0.955), (0.008, 0.004, 0.016)), trim)
+    zip_line = sweep("_zip", [(0, -0.168, z) for z in (0.98, 0.94, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
+    pull = assign_r(blob("_pull", (0.0, -0.176, 0.94), (0.008, 0.004, 0.016)), trim)
     return [shell, zip_line, pull]
 
 

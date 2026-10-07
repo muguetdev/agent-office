@@ -127,8 +127,9 @@ def body_pieces(skin):
         "_body_low",
         {
             "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.095), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
-            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.042), (0.195, -0.005, 0.815, 0.046), (0.23, -0.01, 0.73, 0.042), (0.246, -0.02, 0.66, 0.037), (0.262, -0.03, 0.59, 0.033)],
-            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.042), (-0.195, -0.005, 0.815, 0.046), (-0.23, -0.01, 0.73, 0.042), (-0.246, -0.02, 0.66, 0.037), (-0.262, -0.03, 0.59, 0.033)],
+            # Chubby arms (the sheet's), still inside every top's sleeves.
+            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.05), (0.195, -0.005, 0.815, 0.05), (0.23, -0.01, 0.73, 0.047), (0.246, -0.02, 0.66, 0.044), (0.262, -0.03, 0.59, 0.039)],
+            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.05), (-0.195, -0.005, 0.815, 0.05), (-0.23, -0.01, 0.73, 0.047), (-0.246, -0.02, 0.66, 0.044), (-0.262, -0.03, 0.59, 0.039)],
             "leg_L": [(0, 0, CROTCH_Z + 0.02, 0.115), (0.09, -0.01, 0.47, 0.075), (0.11, -0.012, 0.385, 0.068), (LEG_X, -0.015, 0.3, 0.06), (LEG_X, -0.015, 0.22, 0.052), (LEG_X, -0.015, ANKLE_Z, 0.045), (FOOT_X, -0.06, 0.06, 0.045), (FOOT_X, -0.16, 0.05, 0.04)],
             "leg_R": [(0, 0, CROTCH_Z + 0.02, 0.115), (-0.09, -0.01, 0.47, 0.075), (-0.11, -0.012, 0.385, 0.068), (-LEG_X, -0.015, 0.3, 0.06), (-LEG_X, -0.015, 0.22, 0.052), (-LEG_X, -0.015, ANKLE_Z, 0.045), (-FOOT_X, -0.06, 0.06, 0.045), (-FOOT_X, -0.16, 0.05, 0.04)],
         },
@@ -137,11 +138,12 @@ def body_pieces(skin):
     )
     apply_all_modifiers(chain)
     # Split by region: arms out past the shoulder, legs below the hips, the rest is the torso and neck.
-    region = lambda c: "Arms" if abs(c.x) > 0.15 and c.z > 0.55 else "Legs" if c.z < CROTCH_Z + 0.04 else "Torso"
+    # The neck is a piece of its own: no top ever covers it, so it shows whatever's worn.
+    region = lambda c: "Arms" if abs(c.x) > 0.15 and c.z > 0.55 else "Legs" if c.z < CROTCH_Z + 0.04 else "Neck" if c.z > 0.94 and abs(c.x) < 0.09 else "Torso"
     bm = bmesh.new()
     bm.from_mesh(chain.data)
     pieces = {}
-    for name in ("Torso", "Arms", "Legs"):
+    for name in ("Neck", "Torso", "Arms", "Legs"):
         part = bm.copy()
         part.faces.ensure_lookup_table()
         bmesh.ops.delete(part, geom=[f for f in part.faces if region(f.calc_center_median()) != name], context="FACES")

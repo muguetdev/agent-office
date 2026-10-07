@@ -235,8 +235,8 @@ def body(skin):
         "_body",
         {
             "spine": [(0, 0, CROTCH_Z + 0.02, 0.115), (0, 0, 0.65, 0.12), (0, 0, 0.82, 0.13), (0, 0, 0.9, 0.095), (0, 0, 0.97, 0.05), (0, 0, CHIN_Z + 0.03, 0.045)],
-            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.042), (0.23, -0.01, 0.73, 0.042), (0.262, -0.03, 0.59, 0.033)],
-            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.042), (-0.23, -0.01, 0.73, 0.042), (-0.262, -0.03, 0.59, 0.033)],
+            "arm_L": [(0, 0, 0.9, 0.095), (0.155, 0, 0.885, 0.05), (0.23, -0.01, 0.73, 0.047), (0.262, -0.03, 0.59, 0.039)],
+            "arm_R": [(0, 0, 0.9, 0.095), (-0.155, 0, 0.885, 0.05), (-0.23, -0.01, 0.73, 0.047), (-0.262, -0.03, 0.59, 0.039)],
             "leg_L": [(0, 0, CROTCH_Z + 0.02, 0.115), (0.09, -0.01, 0.47, 0.075), (LEG_X, -0.015, 0.3, 0.06), (LEG_X, -0.015, ANKLE_Z, 0.045)],
             "leg_R": [(0, 0, CROTCH_Z + 0.02, 0.115), (-0.09, -0.01, 0.47, 0.075), (-LEG_X, -0.015, 0.3, 0.06), (-LEG_X, -0.015, ANKLE_Z, 0.045)],
         },
@@ -252,13 +252,13 @@ def body(skin):
 
 def tee(white):
     ob = loft("CH_OfficeAvatar_Tee_HIGH", collection=COLL, sections=[[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 32 for i in range(32)]] for z, rx, ry in (
-        (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.92, 0.112, 0.092), (0.97, 0.07, 0.065))])  # inside the top's shoulders
+        (HEM_Z + 0.02, 0.18, 0.13), (0.7, 0.18, 0.13), (0.85, 0.175, 0.13), (0.91, 0.112, 0.092), (0.955, 0.07, 0.065))])  # the neck shows above it  # inside the top's shoulders
     assign(ob, white)
     # Short sleeves to the middle of the upper arm (inside a top's sleeves when one's worn).
     for side, s in (("L", 1), ("R", -1)):
-        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.14, 0.0, 0.868), (s * 0.18, -0.003, 0.83), (s * 0.205, -0.007, 0.77)], 0.05, white, segments=20, radii=[0.048, 0.048, 0.046])
+        sweep(f"CH_OfficeAvatar_TeeSleeve_{side}_HIGH", [(s * 0.14, 0.0, 0.868), (s * 0.18, -0.003, 0.83), (s * 0.205, -0.007, 0.77)], 0.06, white, segments=20, radii=[0.06, 0.06, 0.058])
     # The crew neck's rib.
-    sweep("CH_OfficeAvatar_TeeCollar_HIGH", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.972) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)
+    sweep("CH_OfficeAvatar_TeeCollar_HIGH", [(0.072 * math.cos(a), 0.067 * math.sin(a) - 0.01, 0.956) for a in [i * math.tau / 24 for i in range(25)]], 0.012, white, cap=False)
     return ob
 
 
@@ -317,7 +317,7 @@ def hoodie(blue, white):
     piping along the opening and the drawstrings are their own small pieces."""
     parts = []
     body = loft("_hbody", [[(rx * math.cos(a), ry * math.sin(a) - 0.01, z) for a in [i * math.tau / 40 for i in range(40)]] for z, rx, ry in (
-        (HEM_Z - 0.005, 0.208, 0.15), (0.66, 0.205, 0.152), (0.82, 0.205, 0.158), (0.885, 0.178, 0.142), (0.94, 0.13, 0.108), (0.975, 0.095, 0.083))], COLL)
+        (HEM_Z - 0.005, 0.208, 0.15), (0.66, 0.205, 0.152), (0.82, 0.205, 0.158), (0.885, 0.178, 0.142), (0.935, 0.13, 0.108), (0.96, 0.098, 0.085))], COLL)
     parts.append(body)
     hem = [(0.212 * math.cos(a), 0.155 * math.sin(a) - 0.01, HEM_Z + 0.014) for a in [i * math.tau / 40 for i in range(41)]]
     parts.append(sweep("_hhem", hem, 0.017, blue, cap=False))
@@ -338,13 +338,13 @@ def hoodie(blue, white):
         parts.append(sweep(f"_cuff{side}", [ring_c + (n * math.cos(a) + b2 * math.sin(a)) * 0.052 for a in [i * math.tau / 24 for i in range(25)]], 0.017, blue, cap=False))
         cutters.append(cutter_tube(f"_cut_cuff{side}", end - axis * 0.05, end + axis * 0.06, 0.036))
         # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
-        rim = [(s * (0.075 + 0.045 * t), 0.07 - 0.22 * t, 0.985 - 0.05 * t) for t in [i / 6 for i in range(7)]]
+        rim = [(s * (0.08 + 0.04 * t), 0.07 - 0.22 * t, 0.968 - 0.04 * t) for t in [i / 6 for i in range(7)]]
         rim += [(s * (GAP + 0.025), -0.152, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.02)]
         parts.append(sweep(f"_rim{side}", rim, 0.022, blue))
     shell = garment("CH_OfficeAvatar_Hoodie_HIGH", parts, blue, 0.018, cutters)
     for side, s in (("L", 1), ("R", -1)):
         sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", [(s * (GAP + 0.006), -0.158, z) for z in (0.92, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.006, white)
-        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", [(s * 0.062, -0.165, 0.94), (s * 0.064, -0.176, 0.86), (s * 0.062, -0.18, 0.8)], 0.0055, white)
+        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", [(s * 0.062, -0.165, 0.925), (s * 0.064, -0.176, 0.86), (s * 0.062, -0.18, 0.8)], 0.0055, white)
         assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (s * 0.062, -0.181, 0.79), (0.008, 0.008, 0.016)), white)
     return shell
 

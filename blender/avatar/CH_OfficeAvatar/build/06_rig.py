@@ -65,6 +65,7 @@ def bones():
 
 # Which bones may move each piece (by its name), and the pieces held rigidly by one bone.
 ALLOWED = {
+    "Body_Neck": ["chest", "neck", "head"],
     "Body_Torso": ["pelvis", "spine_01", "spine_02", "chest", "neck", "clavicle_L", "clavicle_R", "upperarm_L", "upperarm_R"],
     "Body_Arms": ["chest", "clavicle_L", "clavicle_R", "upperarm_L", "upperarm_R", "lowerarm_L", "lowerarm_R", "hand_L", "hand_R"],
     "Body_Hands": ["lowerarm_L", "lowerarm_R", "hand_L", "hand_R", "fingers_L", "fingers_R", "thumb_L", "thumb_R"],
