@@ -315,21 +315,39 @@ def cutter_tube(name, a, b, r):
     return inside
 
 
-def sleeve(name, s, mat, radii, cuff_r, thick=0.016):
+def sleeve(name, s, mat, radii, cuff_r, thick=0.016, shoulder=(0.075, 0.09, 0.07)):
     """A sleeve of its own (not fused to the garment's body: in the A-pose it hangs against the side, and
-    fused there it would stretch into a web when the arm's raised): a puffy tube from inside the
-    shoulder to the cuff, given its cloth's thickness, and its rolled cuff. Returns both."""
+    fused there it would stretch into a web when the arm's raised): the rounded shoulder and a puffy tube
+    from deep inside the body to the cuff, fused into one smooth surface (a shoulder that was the body's
+    and a sleeve pushed into it met in a ragged seam), hollowed to the cloth's thickness and open at the
+    cuff, and its rolled cuff. Returns both."""
     sl = SLEEVE(s)
-    tube = sweep(name, sl, 0.08, mat, segments=24, radii=radii, cap=False)
-    solidify(tube, thick, offset=-1.0)
-    apply_all_modifiers(tube)
-    shade_smooth(tube, math.radians(180))
+    tube = sweep("_tube", sl, 0.08, mat, segments=24, radii=radii)
+    cap = blob("_shoulder", (s * 0.155, -0.002, 0.875), shoulder)
     end, axis = sl[-1], (sl[-1] - sl[-2]).normalized()
+    cut = cutter_tube("_cut_cuff", end - axis * 0.03, end + axis * 0.06, cuff_r - 0.012)
+    body = garment(name, [tube, cap], mat, thick, [cut], voxel=0.005, outer_tris=900)
     n = axis.cross(Vector((0, 1, 0))).normalized()
     b2 = axis.cross(n).normalized()
     ring = [end - axis * 0.004 + (n * math.cos(a) + b2 * math.sin(a)) * cuff_r for a in [i * math.tau / 24 for i in range(25)]]
     cuff = sweep(name.replace("Sleeve", "Cuff"), ring, 0.017, mat, cap=False)
-    return tube, cuff
+    return body, cuff
+
+
+def onto(shell, pts, lift=0.004):
+    """Each point moved onto `shell`'s front surface (a ray from in front, straight back), `lift` off it."""
+    from mathutils.bvhtree import BVHTree
+    bpy.context.view_layer.update()
+    bm = bmesh.new()
+    bm.from_mesh(shell.data)
+    bmesh.ops.transform(bm, matrix=shell.matrix_world, verts=bm.verts)
+    tree = BVHTree.FromBMesh(bm)
+    bm.free()
+    out = []
+    for p in pts:
+        hit = tree.ray_cast(Vector((p[0], -1.0, p[2])), Vector((0, 1, 0)))[0]
+        out.append(tuple(hit - Vector((0, lift, 0))) if hit else tuple(p))
+    return out
 
 
 # Rooted deep inside the body (from 7 cm off the middle), so as the arm rises the sleeve stretches over the
@@ -353,7 +371,6 @@ def hoodie(blue, white):
                cutter_tube("_cut_neck", (0, -0.005, 0.9), (0, -0.005, 1.12), 0.078),
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for side, s in (("L", 1), ("R", -1)):
-        parts.append(blob(f"_sh{side}", (s * 0.155, -0.002, 0.875), (0.075, 0.09, 0.07)))
         # Puffy to the forearm, then gathered into the cuff (front view: the cuff narrower than the sleeve).
         sleeve(f"CH_OfficeAvatar_HoodieSleeve_{side}_HIGH", s, blue, [0.075, 0.072, 0.08, 0.086, 0.078, 0.058], 0.052)
         # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
@@ -362,9 +379,11 @@ def hoodie(blue, white):
         parts.append(sweep(f"_rim{side}", rim, 0.022, blue))
     shell = garment("CH_OfficeAvatar_Hoodie_HIGH", parts, blue, 0.018, cutters)
     for side, s in (("L", 1), ("R", -1)):
-        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", [(s * (GAP + 0.006), -0.158, z) for z in (0.92, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.006, white)
-        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", [(s * 0.062, -0.165, 0.925), (s * 0.064, -0.176, 0.86), (s * 0.062, -0.18, 0.8)], 0.0055, white)
-        assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (s * 0.062, -0.181, 0.79), (0.008, 0.008, 0.016)), white)
+        # The trims on the cloth itself (straight lines in space would stand off it where it curves).
+        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", onto(shell, [(s * (GAP + 0.006), 0, z) for z in (0.92, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.0), 0.006, white)
+        string = onto(shell, [(s * 0.062, 0, z) for z in (0.925, 0.86, 0.8)], 0.008)
+        sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", string, 0.0055, white)
+        assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (string[-1][0], string[-1][1], string[-1][2] - 0.01), (0.008, 0.008, 0.016)), white)
     return shell
 
 

@@ -268,11 +268,12 @@ def jacket(mat, trim):
     cutters = [cutter_tube("_cut_neck", (0, -0.01, 0.9), (0, -0.01, 1.12), 0.072),
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
     for s in (1, -1):
-        parts.append(blob(f"_jsh{s}", (s * 0.155, -0.002, 0.875), (0.072, 0.086, 0.068)))
-        loose += list(sleeve(f"_jSleeve{s}", s, mat, [0.07, 0.066, 0.072, 0.076, 0.07, 0.054], 0.05))
+        loose += list(sleeve(f"_jSleeve{s}", s, mat, [0.07, 0.066, 0.072, 0.076, 0.07, 0.054], 0.05, shoulder=(0.072, 0.086, 0.068)))
     shell = garment("_jacket", parts, mat, 0.018, cutters)
-    zip_line = sweep("_zip", [(0, -0.168, z) for z in (0.98, 0.94, 0.9, 0.8, 0.7, 0.6, HEM_Z + 0.02)], 0.005, trim)
-    pull = assign_r(blob("_pull", (0.0, -0.176, 0.94), (0.008, 0.004, 0.016)), trim)
+    # The zip on the cloth down the front (following it in where it narrows to the collar), its pull at the top.
+    zp = F["onto"](shell, [(0, 0, z) for z in (0.98, 0.95, 0.92, 0.88, 0.82, 0.74, 0.66, 0.6, HEM_Z + 0.02)], 0.002)
+    zip_line = sweep("_zip", zp, 0.005, trim)
+    pull = assign_r(blob("_pull", (zp[2][0], zp[2][1] - 0.004, zp[2][2]), (0.008, 0.004, 0.016)), trim)
     return [shell, zip_line, pull] + loose
 
 

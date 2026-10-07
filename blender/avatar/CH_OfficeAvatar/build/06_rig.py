@@ -181,6 +181,7 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
         # A sleeve is a piece of its own (an island well out to the side): all of it follows the arm,
         # none of the body's rule applies to it.
         sleeve = set()
+        root_of = [0] * len(me.vertices)
         seen = [False] * len(me.vertices)
         for i0 in range(len(me.vertices)):
             if seen[i0]:
@@ -194,6 +195,8 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
                     if not seen[j]:
                         seen[j] = True
                         stack.append(j)
+            for i in island:
+                root_of[i] = i0
             xs = [(mw @ me.vertices[i].co).x for i in island]
             # A sleeve (or its cuff) is all on one side, well out from the middle; the body crosses it,
             # and the front's trims (piping, drawstrings) sit near it.
@@ -204,6 +207,22 @@ def weigh(ob, rig, allowed, power=4.0, smooth=3, body_only=False):
             w = {n: 1.0 / (seg_dist(p, a, b) + 0.004) ** power for n, (a, b) in segs.items()}
             t = sum(w.values())
             W[i] = {n: x / t for n, x in w.items()}
+        # The trims (zip, piping, drawstrings: small pieces that aren't sleeves) move exactly as the cloth
+        # under them does: each vertex takes the weights of the nearest vertex of the biggest piece.
+        from mathutils.kdtree import KDTree
+        islands_of = {}
+        for i in range(len(me.vertices)):
+            islands_of.setdefault(root_of[i], []).append(i)
+        main = max(islands_of.values(), key=len)
+        kd = KDTree(len(main))
+        for i in main:
+            kd.insert(me.vertices[i].co, i)
+        kd.balance()
+        for isl in islands_of.values():
+            if isl is main or len(isl) > 0.15 * len(main) or isl[0] in sleeve:
+                continue
+            for i in isl:
+                W[i] = dict(W[kd.find(me.vertices[i].co)[1]])
     for i, w in enumerate(W):
         top = sorted(w.items(), key=lambda kv: -kv[1])[:4]
         top = [(n, x) for n, x in top if x > 0.02] or top[:1]

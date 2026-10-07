@@ -39,7 +39,7 @@ A = "CH_OfficeAvatar"
 TRIS = {
     "Head": 1600, "Hair": 1740, "Hand": 470, "Hood": 500, "ShoulderCap": 160, "Seat": 300,
     "Eye": 160, "Highlight": 40, "Aglet": 60, "ShoeMark": 80, "Ring": 220,
-    "Brow": 80, "Cuff": 150, "Hoodie": 1800, "Sleeve": 360, "Trousers": 1450, "Mouth": 100, "Rim": 200, "Upper": 450, "Sole": 220, "Strap": 100,
+    "Brow": 80, "Cuff": 150, "Hoodie": 1700, "Sleeve": 420, "Trousers": 1450, "Mouth": 100, "Rim": 200, "Upper": 450, "Sole": 220, "Strap": 100,
 }
 SHOE_PARTS = {"Sole": "Sole", "SoleStripe": None, "Upper": "Upper", "Strap0": "Strap", "Strap1": "Strap"}
 
