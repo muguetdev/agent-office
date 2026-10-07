@@ -75,24 +75,6 @@
       ],
       "distance": 4.253119170665741
     },
-    "side": {
-      "file": "review/03_forms/material_side.png",
-      "az_el_lens": [
-        90,
-        0,
-        0
-      ],
-      "distance": 4.35616347193718
-    },
-    "back": {
-      "file": "review/03_forms/material_back.png",
-      "az_el_lens": [
-        180,
-        0,
-        0
-      ],
-      "distance": 4.253119170665741
-    },
     "threequarter": {
       "file": "review/03_forms/material_threequarter.png",
       "az_el_lens": [
@@ -101,10 +83,6 @@
         50
       ],
       "distance": 2.9147627805877057
-    },
-    "gameplay": {
-      "file": "review/03_forms/material_gameplay_96px.png",
-      "subject_px": 96
     }
   }
 }

@@ -23,6 +23,7 @@ for _k in ("H", "CHIN_Z", "SKULL", "HEAD_C", "HEAD_R", "EYE_Z", "EYE_X", "EYE_SI
 # Forms refinements of the blockout's measurements (world gate, side and front views).
 HEAD_C = (HEAD_C[0], HEAD_C[1] - 0.01, HEAD_C[2])   # the face 1 cm further forward
 LEG_X = 0.125                                        # the gap between the legs 8 cm at the knee
+EYE_SIZE = (0.022, 0.012, 0.04)                      # a size up: the sheet's eyes read bigger than 22 px at the game camera
 
 PHASE = "03_forms"
 OWNER_TAG = "phase:" + PHASE
@@ -133,7 +134,7 @@ def face(ink, white, brow_mat, mouth_mat):
         sweep(f"CH_OfficeAvatar_Brow_{side}_HIGH", pts, 0.011, brow_mat, radii=[0.008 + 0.005 * math.sin(math.pi * i / 8) for i in range(9)])
     # A small closed smile.
     pts = [on_head(0.042 * (2 * t - 1), MOUTH_Z - 0.012 * math.sin(math.pi * t), -0.002) for t in [i / 10 for i in range(11)]]
-    sweep("CH_OfficeAvatar_Mouth_HIGH", pts, 0.0045, mouth_mat)
+    sweep("CH_OfficeAvatar_Mouth_HIGH", pts, 0.0065, mouth_mat)
 
 
 def hair(mat):
@@ -178,6 +179,11 @@ def hair(mat):
         ((0.09, cy + 0.15, 1.3), (0.09, 0.055, 0.1), (0, 0, math.radians(-10))),
         ((0.0, cy + 0.14, 1.14), (0.12, 0.05, 0.08), (0, 0, 0)),
     ]
+    # The fringe: rounded locks hanging over the hairline at uneven heights, so its edge waves
+    # (front view: the forehead shows between the brows and the locks, more of it on the right).
+    for x, zb, tilt in ((-0.14, 1.33, 25), (-0.075, 1.315, 10), (-0.005, 1.325, -5), (0.065, 1.345, -20), (0.13, 1.36, -30)):
+        fy = on_head(x, zb + 0.045)[1] - 0.022
+        locks.append(((x, fy, zb + 0.045), (0.05, 0.04, 0.05), (math.radians(-30), 0, math.radians(tilt))))
     for i, (c, r, rot) in enumerate(locks):
         parts.append(blob(f"_lock{i}", c, r, rot))
     return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.005, mat, smooth=3)
@@ -350,7 +356,7 @@ def build(scene, args):
     shoe_blue = material("M_ShoesAccent", SHOE_BLUE, 0.5)
     ink = material("M_Eyes", INK, 0.2)
     eye_white = material("M_EyeHighlight", (1, 1, 1, 1), 0.2)
-    mouth = material("M_Mouth", (0.62, 0.22, 0.18, 1), 0.4)
+    mouth = material("M_Mouth", (0.45, 0.13, 0.1, 1), 0.4)
 
     body(skin)
     head(skin)
