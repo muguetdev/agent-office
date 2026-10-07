@@ -138,8 +138,9 @@ def body_pieces(skin):
     )
     apply_all_modifiers(chain)
     # Split by region: arms out past the shoulder, legs below the hips, the rest is the torso and neck.
-    # The neck is a piece of its own: no top ever covers it, so it shows whatever's worn.
-    region = lambda c: "Arms" if abs(c.x) > 0.15 and c.z > 0.55 else "Legs" if c.z < CROTCH_Z + 0.04 else "Neck" if c.z > 0.94 and abs(c.x) < 0.09 else "Torso"
+    # The neck is a piece of its own: no top ever covers it, so it shows whatever's worn. It starts above
+    # the collars (lower down, where it widens into the shoulders, it poked out through them).
+    region = lambda c: "Arms" if abs(c.x) > 0.15 and c.z > 0.55 else "Legs" if c.z < CROTCH_Z + 0.04 else "Neck" if c.z > 0.965 and abs(c.x) < 0.07 else "Torso"
     bm = bmesh.new()
     bm.from_mesh(chain.data)
     pieces = {}

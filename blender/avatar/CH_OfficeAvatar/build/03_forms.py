@@ -294,6 +294,15 @@ def garment(name, parts, mat, thickness, cutters, voxel=0.006, smooth=6, outer_t
     gone = [f for f in bm.faces if any(c(f.calc_center_median()) for c in cutters)]
     bmesh.ops.delete(bm, geom=gone, context="FACES")
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    # The cut's edge, which follows the faces in steps, laid onto the cutter's own surface: a straight,
+    # clean edge (a hem, an opening's edge, a cuff), not a staircase.
+    for v in bm.verts:
+        if v.is_boundary:
+            for c in cutters:
+                q = c.snap(v.co)
+                if q is not None:
+                    v.co = q
+                    break
     bm.to_mesh(ob.data)
     bm.free()
     assign(ob, mat)
@@ -301,9 +310,30 @@ def garment(name, parts, mat, thickness, cutters, voxel=0.006, smooth=6, outer_t
     return ob
 
 
-def cutter_box(name, lo, hi):
-    """A test for points inside the box lo..hi."""
-    return lambda p: all(l <= v <= h for l, v, h in zip(lo, p, hi))
+class Cutter:
+    def __init__(self, inside, snap):
+        self.inside, self.snap = inside, snap
+
+    def __call__(self, p):
+        return self.inside(p)
+
+
+def cutter_box(name, lo, hi, reach=0.02):
+    """A test for points inside the box lo..hi, and a snap that lays a point within `reach` of one of its
+    faces (and over that face) onto it."""
+    def snap(p):
+        best = None
+        for k in range(3):
+            for plane in (lo[k], hi[k]):
+                d = abs(p[k] - plane)
+                if d < reach and all(lo[j] - reach <= p[j] <= hi[j] + reach for j in range(3) if j != k) and (best is None or d < best[0]):
+                    best = (d, k, plane)
+        if best is None:
+            return None
+        q = Vector(p)
+        q[best[1]] = best[2]
+        return q
+    return Cutter(lambda p: all(l <= v <= h for l, v, h in zip(lo, p, hi)), snap)
 
 
 def cutter_tube(name, a, b, r):
@@ -313,7 +343,14 @@ def cutter_tube(name, a, b, r):
     def inside(p):
         t = (p - a).dot(d) / d.length_squared
         return 0 <= t <= 1 and (p - (a + d * t)).length <= r
-    return inside
+    def snap(p, reach=0.02):
+        t = (p - a).dot(d) / d.length_squared
+        c = a + d * t
+        off = p - c
+        if -0.1 <= t <= 1.1 and abs(off.length - r) < reach and off.length > 1e-6:
+            return c + off.normalized() * r
+        return None
+    return Cutter(inside, snap)
 
 
 def sleeve(name, s, mat, radii, cuff_r, thick=0.016, shoulder=(0.075, 0.09, 0.07), path=None, cuff_thick=0.017, shoulder_at=(0.155, -0.002, 0.875)):
@@ -375,13 +412,15 @@ def hoodie(blue, white):
         # Puffy to the forearm, then gathered into the cuff (front view: the cuff narrower than the sleeve).
         sleeve(f"CH_OfficeAvatar_HoodieSleeve_{side}_HIGH", s, blue, [0.075, 0.072, 0.08, 0.086, 0.078, 0.058], 0.052)
         # The hood's rim: from behind the neck, over the shoulder and down the front edge to the hem.
-        rim = [(s * (0.08 + 0.04 * t), 0.07 - 0.22 * t, 0.968 - 0.04 * t) for t in [i / 6 for i in range(7)]]
+        # Over the shoulder it lies on the cloth, a flatter roll (seen from above, as the scale-model camera
+        # does, a round one stood up off the shoulder like a bar).
+        rim = [(s * (0.075 + 0.035 * t), 0.06 - 0.21 * t, 0.945 - 0.035 * t) for t in [i / 6 for i in range(7)]]
         rim += [(s * (GAP + 0.025), -0.152, z) for z in (0.9, 0.85, 0.8, 0.75, 0.7, 0.65, HEM_Z + 0.02)]
-        parts.append(sweep(f"_rim{side}", rim, 0.022, blue))
+        parts.append(sweep(f"_rim{side}", rim, 0.022, blue, radii=[0.014] * 7 + [0.018, 0.021] + [0.022] * 5))
     shell = garment("CH_OfficeAvatar_Hoodie_HIGH", parts, blue, 0.018, cutters)
     for side, s in (("L", 1), ("R", -1)):
         # The trims on the cloth itself (straight lines in space would stand off it where it curves).
-        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", onto(shell, [(s * (GAP + 0.006), 0, z) for z in (0.92, 0.85, 0.75, 0.65, HEM_Z + 0.01)], 0.0), 0.006, white)
+        sweep(f"CH_OfficeAvatar_Piping_{side}_HIGH", onto(shell, [(s * (GAP + 0.013), 0, z) for z in (0.92, 0.88, 0.84, 0.8, 0.76, 0.72, 0.68, 0.64, 0.6, HEM_Z + 0.01)], 0.006), 0.006, white)
         string = onto(shell, [(s * 0.062, 0, z) for z in (0.925, 0.86, 0.8)], 0.008)
         sweep(f"CH_OfficeAvatar_Drawstring_{side}_HIGH", string, 0.0055, white)
         assign(blob(f"CH_OfficeAvatar_Aglet_{side}_HIGH", (string[-1][0], string[-1][1], string[-1][2] - 0.01), (0.008, 0.008, 0.016)), white)
