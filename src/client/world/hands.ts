@@ -206,8 +206,7 @@ export class Hands {
    * for Christmas. Null gives you your own back.
    */
   setCostume(theme: Theme | null) {
-    this.holiday = theme;
-    this.dressUp(this.plain ? null : theme);
+    this.dressUp((this.holiday = theme) && this.plain ? null : theme);
   }
 
   /** Your own hands whatever the holiday (the office avatar's, which don't dress up), or the holiday's again. */
