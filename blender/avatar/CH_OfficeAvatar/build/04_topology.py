@@ -161,7 +161,26 @@ def body_pieces(skin):
     return pieces
 
 
+def clean_lod(ob):
+    """A decimated mesh made valid: doubles merged, slivers and loose bits gone, normals outward."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+    bmesh.ops.dissolve_degenerate(bm, edges=bm.edges, dist=1e-4)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.calc_area() < 1e-9], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+    ob.data.validate()
+    return ob
+
+
 def build(scene, args):
+    # The phases built on this one go too (they're rebuilt after it): left behind, their pieces' names
+    # would push this phase's new ones to ".001".
+    for later in ("phase:05_library", "phase:05b_face"):
+        clear_owned(later)
     for c in ("01_BODY", "02_HAIR", "03_FACIAL_HAIR", "04_TOPS", "05_BOTTOMS", "06_SHOES", "07_ACCESSORIES"):
         sub(c)
     sub("10_LOD")
@@ -242,6 +261,7 @@ def build(scene, args):
             d = lod.modifiers.new("Decimate", "DECIMATE")
             d.ratio = ratio
             apply_all_modifiers(lod)
+            clean_lod(lod)
     total = sum(tris(o) for o in lod0)
     for o in sorted(lod0, key=lambda o: o.name):
         log(f"{o.name:42s} {tris(o):6d} tris")

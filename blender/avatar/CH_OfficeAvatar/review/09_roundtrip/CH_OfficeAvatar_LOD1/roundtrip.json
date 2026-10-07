@@ -1,0 +1,387 @@
+{
+  "file": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/exports/CH_OfficeAvatar_LOD1.glb",
+  "errors": [],
+  "meshes": [
+    {
+      "name": "CH_OfficeAvatar_Beard_Full_LOD1",
+      "tris": 600,
+      "verts": 600,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Beard_Stubble_LOD1",
+      "tris": 300,
+      "verts": 293,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Arms_LOD1",
+      "tris": 136,
+      "verts": 141,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Hands_LOD1",
+      "tris": 470,
+      "verts": 512,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Head_LOD1",
+      "tris": 800,
+      "verts": 602,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Legs_LOD1",
+      "tris": 276,
+      "verts": 256,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Neck_LOD1",
+      "tris": 28,
+      "verts": 30,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Body_Torso_LOD1",
+      "tris": 113,
+      "verts": 139,
+      "uv": true,
+      "materials": [
+        "M_Skin"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Bottom_Joggers_LOD1",
+      "tris": 900,
+      "verts": 728,
+      "uv": true,
+      "materials": [
+        "M_Pants",
+        "M_SecondaryClothing"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Bottom_Trousers_LOD1",
+      "tris": 724,
+      "verts": 573,
+      "uv": true,
+      "materials": [
+        "M_Pants"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Brows_LOD1",
+      "tris": 160,
+      "verts": 169,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 6
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Eyes_LOD1",
+      "tris": 400,
+      "verts": 370,
+      "uv": true,
+      "materials": [
+        "M_Eyes",
+        "M_EyeHighlight"
+      ],
+      "skinned": true,
+      "shape_keys": 7
+    },
+    {
+      "name": "CH_OfficeAvatar_Face_Mouth_LOD1",
+      "tris": 76,
+      "verts": 152,
+      "uv": true,
+      "materials": [
+        "M_Mouth",
+        "M_Teeth"
+      ],
+      "skinned": true,
+      "shape_keys": 11
+    },
+    {
+      "name": "CH_OfficeAvatar_Glasses_Round_LOD1",
+      "tris": 350,
+      "verts": 445,
+      "uv": true,
+      "materials": [
+        "M_Accessories"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Glasses_Square_LOD1",
+      "tris": 400,
+      "verts": 464,
+      "uv": true,
+      "materials": [
+        "M_Accessories"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Bob_LOD1",
+      "tris": 1000,
+      "verts": 1013,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Bun_LOD1",
+      "tris": 898,
+      "verts": 960,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Hair_Wavy_LOD1",
+      "tris": 869,
+      "verts": 1079,
+      "uv": true,
+      "materials": [
+        "M_Hair"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Shoes_Runners_LOD1",
+      "tris": 1200,
+      "verts": 967,
+      "uv": true,
+      "materials": [
+        "M_ShoesAccent",
+        "M_Shoes"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Shoes_Sneakers_LOD1",
+      "tris": 1516,
+      "verts": 1494,
+      "uv": true,
+      "materials": [
+        "M_Shoes",
+        "M_ShoesAccent"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_HoodieOpen_LOD1",
+      "tris": 2740,
+      "verts": 3096,
+      "uv": true,
+      "materials": [
+        "M_PrimaryClothing",
+        "M_SecondaryClothing"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_Jacket_LOD1",
+      "tris": 1599,
+      "verts": 1737,
+      "uv": true,
+      "materials": [
+        "M_PrimaryClothing",
+        "M_SecondaryClothing"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    },
+    {
+      "name": "CH_OfficeAvatar_Top_Tee_LOD1",
+      "tris": 1520,
+      "verts": 1528,
+      "uv": true,
+      "materials": [
+        "M_PrimaryClothing"
+      ],
+      "skinned": true,
+      "shape_keys": 0
+    }
+  ],
+  "armatures": [
+    {
+      "name": "CH_OfficeAvatar_Rig",
+      "bones": [
+        "root",
+        "pelvis",
+        "spine_01",
+        "spine_02",
+        "chest",
+        "clavicle_L",
+        "upperarm_L",
+        "lowerarm_L",
+        "hand_L",
+        "fingers_L",
+        "thumb_L",
+        "clavicle_R",
+        "upperarm_R",
+        "lowerarm_R",
+        "hand_R",
+        "fingers_R",
+        "thumb_R",
+        "neck",
+        "head",
+        "thigh_L",
+        "shin_L",
+        "foot_L",
+        "toe_L",
+        "thigh_R",
+        "shin_R",
+        "foot_R",
+        "toe_R"
+      ],
+      "roots": [
+        "root"
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "name": "Idle",
+      "frames": [
+        0,
+        48
+      ],
+      "length_s": 2.0
+    },
+    {
+      "name": "Sit",
+      "frames": [
+        0,
+        24
+      ],
+      "length_s": 1.0
+    },
+    {
+      "name": "TPose",
+      "frames": [
+        0,
+        0
+      ],
+      "length_s": 0.0
+    },
+    {
+      "name": "Typing",
+      "frames": [
+        0,
+        24
+      ],
+      "length_s": 1.0
+    },
+    {
+      "name": "Walk",
+      "frames": [
+        0,
+        20
+      ],
+      "length_s": 0.8
+    },
+    {
+      "name": "Wave",
+      "frames": [
+        0,
+        24
+      ],
+      "length_s": 1.0
+    }
+  ],
+  "materials": [
+    "M_Accessories",
+    "M_EyeHighlight",
+    "M_Eyes",
+    "M_Hair",
+    "M_Mouth",
+    "M_Pants",
+    "M_PrimaryClothing",
+    "M_SecondaryClothing",
+    "M_Shoes",
+    "M_ShoesAccent",
+    "M_Skin",
+    "M_Teeth"
+  ],
+  "images": [],
+  "bounds_m": {
+    "min": [
+      -0.3032,
+      -0.2878,
+      -0.0001
+    ],
+    "max": [
+      0.3048,
+      0.2401,
+      1.6303
+    ],
+    "size": [
+      0.608,
+      0.5279,
+      1.6303
+    ]
+  },
+  "height_m": 1.6303,
+  "render": "review/09_roundtrip/CH_OfficeAvatar_LOD1/roundtrip_clay_threequarter.png"
+}

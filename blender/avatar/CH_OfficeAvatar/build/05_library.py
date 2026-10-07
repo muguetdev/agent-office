@@ -72,6 +72,7 @@ def piece(name, parts, collection, budget=None):
         d = lod.modifiers.new("Decimate", "DECIMATE")
         d.ratio = ratio
         apply_all_modifiers(lod)
+        clean_lod(lod)
     return ob
 
 
