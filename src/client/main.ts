@@ -120,7 +120,7 @@ parts.rooftop = installRooftop(ctx, { ambient: parts.stage.ambient, hemi: parts.
 parts.net = new Net(() => store.profile, () => parts.arrival.whereNow());
 parts.voice = new Voice(parts.net);
 // Before anyone's made (you, just below): every Person is dressed as it's made.
-installAvatars(ctx, { on: () => parts.settings?.characters !== 'classic', classic: (p) => p === parts.me && ctx.player?.view === 'first' && parts.settings?.look !== 'diorama' });
+installAvatars(ctx, { on: () => parts.settings?.characters !== 'classic', firstPerson: (p) => p === parts.me && ctx.player?.view === 'first' && parts.settings?.look !== 'diorama' });
 parts.me = makeMe(ctx);
 parts.settings = loadSettings();
 parts.player = new PlayerController(ctx.camera, canvas, ctx.office.colliders);

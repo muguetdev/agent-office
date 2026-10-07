@@ -8,8 +8,71 @@ export const HAIR_STYLES = ['Short', 'Long', 'Bun', 'Spiky', 'Curly', 'Ponytail'
 export interface Look {
   skin: number;
   hair: number;
+  /** The classic cartoon's hair style (HAIR_STYLES); the avatar's is in `outfit`. */
   style: number;
+  /** What the office avatar wears, once it's been picked (else it's chosen from the name). */
+  outfit?: Outfit;
 }
+
+/** The office avatar's choices (see client/features/avatars), each an index into its list below. */
+export interface Outfit {
+  cut: number;
+  top: number;
+  bottom: number;
+  shoes: number;
+  glasses: number;
+  beard: number;
+  pants: number;
+  shoeColor: number;
+}
+
+/** The avatar's hair cuts, and the classic HAIR_STYLES each one is closest to (for the cartoon people). */
+export const AVATAR_CUTS = ['Wavy', 'Bun', 'Bob', 'Bald'] as const;
+export const CUT_STYLE = [0, 2, 1, 6];
+export const AVATAR_TOPS = ['HoodieOpen', 'Jacket', 'Tee'] as const;
+export const AVATAR_BOTTOMS = ['Trousers', 'Joggers'] as const;
+export const AVATAR_SHOES = ['Sneakers', 'Runners'] as const;
+export const AVATAR_GLASSES = ['None', 'Round', 'Square'] as const;
+export const AVATAR_BEARDS = ['None', 'Stubble', 'Full'] as const;
+export const PANTS_COLORS = ['#2A3044', '#3B4256', '#7F858F', '#B8A486'];
+export const SHOE_COLORS = ['#F4F4F4', '#2F7FF0', '#2B2F37', '#B9BCC2'];
+const OUTFIT_SIZES: Record<keyof Outfit, number> = {
+  cut: AVATAR_CUTS.length, top: AVATAR_TOPS.length, bottom: AVATAR_BOTTOMS.length, shoes: AVATAR_SHOES.length,
+  glasses: AVATAR_GLASSES.length, beard: AVATAR_BEARDS.length, pants: PANTS_COLORS.length, shoeColor: SHOE_COLORS.length,
+};
+const OUTFIT_KEYS = Object.keys(OUTFIT_SIZES) as (keyof Outfit)[];
+
+/** An outfit from anything (a message, the browser's storage), or undefined if it isn't a whole, valid one. */
+export function sanitizeOutfit(x: unknown): Outfit | undefined {
+  if (!x || typeof x !== 'object') return undefined;
+  const o = x as Record<string, unknown>;
+  const out = {} as Outfit;
+  for (const k of OUTFIT_KEYS) {
+    const v = o[k];
+    if (!Number.isInteger(v) || (v as number) < 0 || (v as number) >= OUTFIT_SIZES[k]) return undefined;
+    out[k] = v as number;
+  }
+  return out;
+}
+
+/** An outfit as it goes in the URL ("0,2,1,…"), and back. */
+export const outfitParam = (o: Outfit) => OUTFIT_KEYS.map((k) => o[k]).join(',');
+export function parseOutfit(s: string | null | undefined): Outfit | undefined {
+  const n = (s ?? '').split(',').map(Number);
+  return n.length === OUTFIT_KEYS.length ? sanitizeOutfit(Object.fromEntries(OUTFIT_KEYS.map((k, i) => [k, n[i]]))) : undefined;
+}
+
+/** A whole outfit from a seed (the name), for someone who hasn't picked one: what they're seen in till they do. */
+export function outfitFromSeed(seed: string, style: number): Outfit {
+  const h = hash(seed || 'someone');
+  const cut = [0, 2, 1, 0, 0, 1, 3][style] ?? 0;
+  const g = (h >>> 7) % 8;
+  const b = (h >>> 11) % 10;
+  return { cut, top: h % 3, bottom: (h >>> 3) % 2, shoes: (h >>> 5) % 2, glasses: g === 0 ? 1 : g === 1 ? 2 : 0, beard: b === 0 ? 1 : b === 1 ? 2 : 0, pants: (h >>> 13) % 4, shoeColor: (h >>> 15) % 4 };
+}
+
+/** The outfit someone called `name` wears with `look`: theirs, or the one from their name. */
+export const outfitOf = (name: string, look: Look): Outfit => look.outfit ?? outfitFromSeed(name, look.style);
 
 function hash(s: string): number {
   let h = 2166136261;
@@ -25,7 +88,11 @@ export function lookFromSeed(seed: string): Look {
 
 export function randomLook(): Look {
   const pick = (n: number) => Math.floor(Math.random() * n);
-  return { skin: pick(SKIN_TONES.length), hair: pick(HAIR_COLORS.length), style: pick(HAIR_STYLES.length) };
+  const outfit = Object.fromEntries(OUTFIT_KEYS.map((k) => [k, pick(OUTFIT_SIZES[k])])) as unknown as Outfit;
+  // A beard or glasses now and then, not on most.
+  if (pick(3)) outfit.beard = 0;
+  if (pick(3)) outfit.glasses = 0;
+  return { skin: pick(SKIN_TONES.length), hair: pick(HAIR_COLORS.length), style: CUT_STYLE[outfit.cut], outfit };
 }
 
 const NAME_ADJECTIVES = ['Sunny', 'Cosmic', 'Quiet', 'Speedy', 'Clever', 'Brave', 'Jolly', 'Mellow', 'Nimble', 'Plucky', 'Snappy', 'Witty', 'Zesty', 'Cozy', 'Lucky', 'Breezy', 'Chipper', 'Dapper', 'Fuzzy', 'Gentle', 'Groovy', 'Humble', 'Keen', 'Lively', 'Merry', 'Nifty', 'Peppy', 'Spry', 'Swift', 'Tidy', 'Zippy', 'Bold'];
@@ -41,13 +108,15 @@ export function randomName(): string {
 export function sanitizeLook(x: unknown, fallback: Look): Look {
   const o = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
   const idx = (v: unknown, n: number, d: number) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < n ? (v as number) : d);
+  const outfit = o.outfit === undefined ? fallback.outfit : sanitizeOutfit(o.outfit);
   return {
     skin: idx(o.skin, SKIN_TONES.length, fallback.skin),
     hair: idx(o.hair, HAIR_COLORS.length, fallback.hair),
     style: idx(o.style, HAIR_STYLES.length, fallback.style),
+    ...(outfit ? { outfit } : {}),
   };
 }
 
 export function sameLook(a: Look, b: Look): boolean {
-  return a.skin === b.skin && a.hair === b.hair && a.style === b.style;
+  return a.skin === b.skin && a.hair === b.hair && a.style === b.style && JSON.stringify(a.outfit ?? null) === JSON.stringify(b.outfit ?? null);
 }

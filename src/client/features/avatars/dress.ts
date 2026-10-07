@@ -4,12 +4,15 @@
  * swing, a throw…) but is drawn no more; the avatar's bones copy its limbs and head every frame. Whatever
  * the Person holds or wears (a mug, a card, a hat) is still on its own body, so it shows as before.
  *
- * What each person wears comes from what they already chose (skin, hair colour and style, shirt colour)
- * and, for what they couldn't choose yet (the top, trousers, shoes, glasses, a beard, their colours),
- * from their name, so everyone sees the same outfit on them.
+ * What each person wears is their look: skin, hair colour, the shirt colour and the outfit they picked in the
+ * character editor (the cut, the top, trousers, shoes, glasses, a beard); someone who hasn't picked one yet
+ * gets one from their name, so everyone sees the same on them.
  */
 import * as THREE from 'three';
-import { HAIR_COLORS, HAIR_STYLES, SKIN_TONES, type Look } from '../../../shared/avatar';
+import {
+  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, HAIR_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
+  outfitOf, type Look,
+} from '../../../shared/avatar';
 import type { Person } from '../../world/character/person';
 import { HIPS } from '../../world/character/rig';
 import { model } from '../../world/models';
@@ -22,43 +25,24 @@ const SCALE = 1.1;
 /** The avatar's hips over its feet, scaled (thigh joints at 0.49 m), against the Person's (HIPS). */
 const AVATAR_HIPS = 0.49 * SCALE;
 
-/** What the pieces are, by slot (blender/avatar/CH_OfficeAvatar/avatar-palette.json has the colours). */
-const HAIR: Record<string, string | null> = { Short: 'Hair_Wavy', Long: 'Hair_Bob', Bun: 'Hair_Bun', Spiky: 'Hair_Wavy', Curly: 'Hair_Wavy', Ponytail: 'Hair_Bun', Bald: null };
-const TOPS = ['Top_HoodieOpen', 'Top_Jacket', 'Top_Tee'];
-const BOTTOMS = ['Bottom_Trousers', 'Bottom_Joggers'];
-const SHOES = ['Shoes_Sneakers', 'Shoes_Runners'];
 /** What a top hides of the body under it (the pieces' `covers`). */
-const COVERS: Record<string, string[]> = { Top_HoodieOpen: ['Body_Torso', 'Body_Arms'], Top_Jacket: ['Body_Torso', 'Body_Arms'], Top_Tee: ['Body_Torso'] };
-const PANTS = ['#2A3044', '#3B4256', '#7F858F', '#B8A486'];
-const SHOE_COLORS = ['#F4F4F4', '#2F7FF0', '#2B2F37', '#B9BCC2'];
-const ACCENTS = ['#2F7FF0', '#F4F4F4', '#2B2F37', '#2E8A84'];
+const COVERS: Record<string, string[]> = { HoodieOpen: ['Body_Torso', 'Body_Arms'], Jacket: ['Body_Torso', 'Body_Arms'], Tee: ['Body_Torso'] };
 const FIXED: Record<string, string> = { M_Eyes: '#17120F', M_EyeHighlight: '#FFFFFF', M_Mouth: '#8A2E22', M_Teeth: '#FAFAF7', M_Accessories: '#22252B', M_SecondaryClothing: '#F4F4F2' };
 
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-export interface Outfit {
+export interface Dress {
   pieces: string[];
   colors: Record<string, string>;
 }
 
-/** What someone called `name`, in `shirt` and with `look`, wears. */
-export function outfitFor(name: string, shirt: string, look: Look): Outfit {
-  const h = hash(name || 'someone');
-  const top = TOPS[h % TOPS.length];
-  const pieces = ['Body_Head', 'Body_Neck', 'Body_Hands', 'Body_Legs', 'Face_Eyes', 'Face_Brows', 'Face_Mouth', top, BOTTOMS[(h >>> 3) % BOTTOMS.length], SHOES[(h >>> 5) % SHOES.length]];
+/** The pieces and role colours for someone called `name`, in `shirt` and with `look`. */
+export function outfitFor(name: string, shirt: string, look: Look): Dress {
+  const o = outfitOf(name, look);
+  const top = AVATAR_TOPS[o.top];
+  const pieces = ['Body_Head', 'Body_Neck', 'Body_Hands', 'Body_Legs', 'Face_Eyes', 'Face_Brows', 'Face_Mouth', `Top_${top}`, `Bottom_${AVATAR_BOTTOMS[o.bottom]}`, `Shoes_${AVATAR_SHOES[o.shoes]}`];
   for (const part of ['Body_Torso', 'Body_Arms']) if (!COVERS[top].includes(part)) pieces.push(part);
-  const hair = HAIR[HAIR_STYLES[look.style]] ?? null;
-  if (hair) pieces.push(hair);
-  const g = (h >>> 7) % 8;
-  if (g === 0) pieces.push('Glasses_Round');
-  else if (g === 1) pieces.push('Glasses_Square');
-  const b = (h >>> 11) % 10;
-  if (b === 0) pieces.push('Beard_Stubble');
-  else if (b === 1) pieces.push('Beard_Full');
+  if (AVATAR_CUTS[o.cut] !== 'Bald') pieces.push(`Hair_${AVATAR_CUTS[o.cut]}`);
+  if (o.glasses) pieces.push(`Glasses_${AVATAR_GLASSES[o.glasses]}`);
+  if (o.beard) pieces.push(`Beard_${AVATAR_BEARDS[o.beard]}`);
   return {
     pieces,
     colors: {
@@ -66,9 +50,10 @@ export function outfitFor(name: string, shirt: string, look: Look): Outfit {
       M_Skin: SKIN_TONES[look.skin],
       M_Hair: HAIR_COLORS[look.hair],
       M_PrimaryClothing: shirt,
-      M_Pants: PANTS[(h >>> 13) % PANTS.length],
-      M_Shoes: SHOE_COLORS[(h >>> 15) % SHOE_COLORS.length],
-      M_ShoesAccent: ACCENTS[(h >>> 17) % ACCENTS.length],
+      M_Pants: PANTS_COLORS[o.pants],
+      M_Shoes: SHOE_COLORS[o.shoeColor],
+      // The stripes blue, or white on blue shoes.
+      M_ShoesAccent: SHOE_COLORS[o.shoeColor === 1 ? 0 : 1],
     },
   };
 }
@@ -117,6 +102,7 @@ export class Avatar {
   constructor(readonly person: Person) {
     const m = model('avatar')!;
     this.root = m.scene;
+    person.root.userData.avatar = this;
     this.root.scale.setScalar(SCALE);
     const rig = person.rig;
     rig.body.add(this.root);
@@ -146,7 +132,7 @@ export class Avatar {
   dress() {
     const p = this.person;
     const shirt = `#${p.shirt.color.getHexString()}`;
-    const key = `${p.name}|${shirt}|${p.look.skin},${p.look.hair},${p.look.style}`;
+    const key = `${p.name}|${shirt}|${JSON.stringify(p.look)}`;
     if (key === this.key) return;
     this.key = key;
     const outfit = outfitFor(p.name, shirt, p.look);
@@ -168,6 +154,13 @@ export class Avatar {
       mesh.material = Array.isArray(mesh.material) ? painted : painted[0];
       if (mesh.visible && mesh.morphTargetDictionary && piece.startsWith(A + 'Face_')) this.faces.push(mesh);
     });
+  }
+
+  /** You in first person: no head or arms (your hands are drawn on their own), and kept when the rest of you is hidden (world/character/person-first.ts). */
+  firstPerson(on: boolean) {
+    if (on === !!this.root.userData.firstPerson) return;
+    this.root.userData.firstPerson = on;
+    for (const n of ['neck', 'upperarm_L', 'upperarm_R']) this.root.getObjectByName(n)?.scale.setScalar(on ? 0.001 : 1);
   }
 
   /** Turns the avatar on (the cartoon body hidden) or off (the cartoon back). */

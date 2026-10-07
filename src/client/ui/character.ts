@@ -1,9 +1,13 @@
 import './character.css';
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
-import { HAIR_COLORS, HAIR_STYLES, SKIN_TONES, randomLook, randomName, type Look } from '../../shared/avatar';
+import {
+  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, CUT_STYLE, HAIR_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
+  outfitFromSeed, randomLook, randomName, type Look, type Outfit,
+} from '../../shared/avatar';
 import { AVATAR_COLORS, saveProfile, store, type Profile } from '../state';
 import { Person } from '../world/character';
+import { skyShading } from '../world/sky';
 import { toonUnique } from '../world/toon';
 import { h, openModal } from './dom';
 import { L } from '../i18n';
@@ -114,7 +118,12 @@ class Preview {
     }
     this.person.root.position.y = y;
     this.person.update(dt, t, false, y > 0.01);
+    // The avatar (features/avatars) dressed and posed now, whether or not the office is drawing frames.
+    (this.person.root.userData.avatar as { update(dt: number): void } | undefined)?.update(dt);
+    // In its own light, not the office's (where the preview's spot, the origin, would be indoors).
+    skyShading(false);
     this.effect.render(this.scene, this.camera);
+    skyShading(true);
   }
 
   dispose() {
@@ -134,6 +143,8 @@ class Preview {
  */
 export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   const pick: Profile = { ...store.profile, look: { ...store.profile.look } };
+  // Someone who hasn't picked an outfit starts from the one they've been seen in (from their name).
+  pick.look.outfit ??= outfitFromSeed(pick.name, pick.look.style);
   const canvas = h('canvas', { 'aria-label': L.character.preview }) as HTMLCanvasElement;
   const preview = new Preview(canvas, pick);
 
@@ -157,15 +168,29 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   }
 
   const skinRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.character.skinTone });
-  const styleRow = h('div.seg', { role: 'radiogroup', 'aria-label': L.character.hairStyle });
   const hairRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.character.hairColor });
-  const shirtRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.character.shirtColor });
+  const shirtRow = h('div.swatches', { role: 'radiogroup', 'aria-label': L.character.topColor });
+  const C = L.character;
+  // The avatar's pieces: a row of choices each, and a colour row for the trousers and shoes.
+  const kinds: [keyof Outfit, string, readonly string[], readonly string[]][] = [
+    ['cut', C.hairStyle, AVATAR_CUTS, C.cuts],
+    ['beard', C.beard, AVATAR_BEARDS, C.beards],
+    ['glasses', C.glasses, AVATAR_GLASSES, C.glassesKinds],
+    ['top', C.top, AVATAR_TOPS, C.tops],
+    ['bottom', C.pants, AVATAR_BOTTOMS, C.bottoms],
+    ['shoes', C.shoes, AVATAR_SHOES, C.shoeKinds],
+  ];
+  const rows = Object.fromEntries(kinds.map(([k, label]) => [k, h('div.seg', { role: 'radiogroup', 'aria-label': label })])) as Record<string, HTMLElement>;
+  const pantsRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.pantsColor });
+  const shoeRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.shoesColor });
 
   const swatch = (color: string, label: string, on: boolean, choose: () => void) =>
     h('button.swatch', { type: 'button', role: 'radio', 'aria-checked': String(on), style: `background:${color}`, class: on ? 'sel' : '', 'aria-label': label, title: label, onclick: choose });
 
   const change = (look: Partial<Look>, color?: string) => {
     Object.assign(pick.look, look);
+    // The classic cartoon's hair follows the avatar's cut, for whoever sees the classic people.
+    if (pick.look.outfit) pick.look.style = CUT_STYLE[pick.look.outfit.cut];
     if (color) pick.color = color;
     preview.person.setLook(pick.look);
     preview.person.setColor(pick.color);
@@ -174,13 +199,16 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   };
 
   const paint = () => {
-    const { skin, hair, style } = pick.look;
+    const { skin, hair } = pick.look;
+    const o = pick.look.outfit!;
+    const wear = (part: Partial<Outfit>) => change({ outfit: { ...o, ...part } });
     skinRow.replaceChildren(...SKIN_TONES.map((c, i) => swatch(c, L.character.skinToneN(i + 1, SKIN_TONES.length), i === skin, () => change({ skin: i }))));
-    styleRow.replaceChildren(
-      ...HAIR_STYLES.map((name, i) =>
-        h('button.btn', { type: 'button', role: 'radio', 'aria-checked': String(i === style), class: i === style ? 'on' : '', onclick: () => change({ style: i }) }, L.character.hairStyles[i] ?? name),
-      ),
-    );
+    for (const [k, , names, labels] of kinds)
+      rows[k].replaceChildren(
+        ...names.map((name, i) => h('button.btn', { type: 'button', role: 'radio', 'aria-checked': String(i === o[k]), class: i === o[k] ? 'on' : '', onclick: () => wear({ [k]: i }) }, labels[i] ?? name)),
+      );
+    pantsRow.replaceChildren(...PANTS_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, PANTS_COLORS.length), i === o.pants, () => wear({ pants: i }))));
+    shoeRow.replaceChildren(...SHOE_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, SHOE_COLORS.length), i === o.shoeColor, () => wear({ shoeColor: i }))));
     hairRow.replaceChildren(...HAIR_COLORS.map((c, i) => swatch(c, L.character.hairColors[i], i === hair, () => change({ hair: i }))));
     shirtRow.replaceChildren(...AVATAR_COLORS.map((c) => swatch(c, L.character.shirtN(c), c === pick.color, () => change({}, c))));
   };
@@ -208,11 +236,13 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
         h('label', {}, L.character.skinTone),
         skinRow,
         h('label', {}, L.character.hair),
-        styleRow,
-        h('label', {}, L.character.hairColor),
+        rows.cut,
         hairRow,
-        h('label', {}, L.character.shirt),
+        h('div.charsel-pair', {}, h('div', {}, h('label', {}, C.beard), rows.beard), h('div', {}, h('label', {}, C.glasses), rows.glasses)),
+        h('label', {}, C.top),
+        rows.top,
         shirtRow,
+        h('div.charsel-pair', {}, h('div', {}, h('label', {}, C.pants), rows.bottom, pantsRow), h('div', {}, h('label', {}, C.shoes), rows.shoes, shoeRow)),
       ),
     ),
     h('footer', {}, surprise, h('span.grow'), save),

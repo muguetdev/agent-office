@@ -41,6 +41,10 @@ export function hazeReach(above: number, far: number): number {
   return Math.min(HAZE_MAX, far * (1 + Math.max(0, above - HAZE_CLEAR) / HAZE_ABOVE));
 }
 /** The building, walls included: the office upstairs and the garage under it. */
+/** The lamps, the office's light and the weather on everything drawn (off for a scene of its own: your hands, the character preview). */
+export function skyShading(on: boolean) {
+  uniforms.skyOn.value = on ? 1 : 0;
+}
 const B = { minX: FLOOR.minX - WALL_T, maxX: FLOOR.maxX + WALL_T, minZ: FLOOR.minZ - WALL_T, maxZ: FLOOR.maxZ + WALL_T } as const;
 
 const uniforms = {
@@ -612,10 +616,6 @@ export class Sky {
     return this.indoors || (!this.roof && sheltered(x, z));
   }
 
-  /** Whether the lamps' light (and wet and snow) apply: off while your hands are drawn. */
-  shading(on: boolean) {
-    uniforms.skyOn.value = on ? 1 : 0;
-  }
 
   /** How lit it is at `p`, 0–1 (1 is a clear day, or a room with its lights on), for your hands. */
   lightAt(p: THREE.Vector3): number {

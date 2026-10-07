@@ -10,8 +10,8 @@ import { Avatar } from './dress';
 export interface AvatarsDeps {
   /** Whether the avatars are on (else the classic cartoon people). */
   on(): boolean;
-  /** Someone shown as the classic cartoon anyway: you in first person, where your own torso and legs are drawn below you. */
-  classic(p: Person): boolean;
+  /** Whether `p` is you in first person, whose body is drawn below the camera without its head and arms. */
+  firstPerson(p: Person): boolean;
 }
 
 export function installAvatars(ctx: Ctx, deps: AvatarsDeps) {
@@ -19,7 +19,7 @@ export function installAvatars(ctx: Ctx, deps: AvatarsDeps) {
   Person.made = (p) => {
     try {
       const a = new Avatar(p);
-      a.show(deps.on() && !deps.classic(p));
+      a.show(deps.on());
       avatars.add(a);
     } catch (err) {
       // The model didn't load: the classic cartoon stays.
@@ -28,15 +28,15 @@ export function installAvatars(ctx: Ctx, deps: AvatarsDeps) {
   };
   // After everyone's moved and posed (the 'me', 'others' and 'world' ticks), before the frame's drawn.
   ctx.ticks.add('hud', ({ dt }) => {
-    const all = deps.on();
+    const on = deps.on();
     for (const a of avatars) {
-      const on = all && !deps.classic(a.person);
       // One whose Person has gone (someone left) is let go of.
       if (!a.person.root.parent) {
         avatars.delete(a);
         continue;
       }
       if (a.root.visible !== on) a.show(on);
+      a.firstPerson(on && deps.firstPerson(a.person));
       a.update(dt);
     }
   });

@@ -10,8 +10,10 @@
 .charsel-stage .tip { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 12px; font-weight: 800; color: var(--muted); pointer-events: none; }
 /* The options' labels are spaced in styles/base.css, after the frame's label rule. */
 .charsel-opts label:first-child { margin-top: 0; }
-.charsel .swatches { margin-top: 0; }
-.charsel .seg { gap: 6px; }
+.charsel .swatches { margin-top: 0; margin-bottom: 6px; }
+.charsel .seg { gap: 6px; margin-bottom: 6px; }
+.charsel-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.charsel-opts { max-height: min(62vh, 560px); overflow-y: auto; padding-right: 4px; }
 .charsel .seg .btn { padding: 4px 10px; font-size: 13px; }
 @media (max-width: 640px) {
   .charsel .body { grid-template-columns: 1fr; }

@@ -3,7 +3,7 @@ import type { WebSocket } from 'ws';
 import type { Session } from '../auth.js';
 import type { ClientMsg } from '../../shared/protocol.js';
 import { elevatorSpot } from '../../shared/layout.js';
-import { lookFromSeed, sanitizeLook } from '../../shared/avatar.js';
+import { lookFromSeed, parseOutfit, sanitizeLook } from '../../shared/avatar.js';
 import { ROOF } from '../../shared/rooftop.js';
 import type { Ctx } from '../office/context.js';
 import { newClient } from '../office/client.js';
@@ -48,7 +48,7 @@ export function onConnection(ctx: Ctx, ws: WebSocket, url: URL, session: Session
     id,
     name,
     color: COLOR_RE.test(colorParam) ? colorParam : '#4f86f7',
-    look: sanitizeLook({ skin: intParam('skin'), hair: intParam('hair'), style: intParam('style') }, lookFromSeed(id)),
+    look: sanitizeLook({ skin: intParam('skin'), hair: intParam('hair'), style: intParam('style'), outfit: parseOutfit(url.searchParams.get('outfit')) }, lookFromSeed(id)),
     x: spot.x,
     y: spot.y,
     z: spot.z,

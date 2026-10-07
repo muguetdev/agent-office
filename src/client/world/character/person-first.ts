@@ -39,14 +39,15 @@ export class FirstPersonBody {
   }
 
   /**
-   * For one drawing of the scene: hides all but the torso and legs (and whatever's hung on them),
+   * For one drawing of the scene: hides all but the torso and legs (and whatever's hung on them, or is
+   * marked `userData.firstPerson`, like the office avatar dressing the body),
    * whatever the game's shown since (the mic as you talk, a bubble, a card), and keeps what's left from
    * casting a shadow, which would have no head. Returns what puts it all back as it was.
    */
   hideExtras(): () => void {
     if (!this.on) return () => {};
     const { root, body, torso, legL, legR } = this.rig;
-    const keep = new Set<THREE.Object3D>([torso, legL, legR]);
+    const keep = new Set<THREE.Object3D>([torso, legL, legR, ...body.children.filter((c) => c.userData.firstPerson)]);
     const hidden: THREE.Object3D[] = [];
     const shadows: THREE.Object3D[] = [];
     for (const o of [...body.children.filter((c) => !keep.has(c)), ...root.children.filter((c) => c !== body)]) {

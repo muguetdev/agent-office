@@ -6,6 +6,7 @@ import { OpenBook } from '../features/bookshelf/book';
 import { HeldCard } from '../features/carrying/card';
 import { REACH_TIME, SMOKE_CYCLE, cigarette, coffeeMug, dragCurve, drinkGlass, emoteEnvelope, putDownGlass, reachCurve } from './character';
 import { UNDEAD_SKIN, raggedCuff, warlockHand, witchFire } from './costumes';
+import { avatarArm, type AvatarArm } from './hands-avatar';
 import { mesh, toon, toonUnique } from './toon';
 import { ballMesh } from '../features/basketball/world';
 
@@ -34,8 +35,10 @@ interface Arm {
   side: 1 | -1;
   /** The white cuff at the wrist. */
   cuff: THREE.Mesh;
-  /** The hand: a round one like your character's, and on the right a pointing finger, out only to point. */
+  /** The hand (see hands-avatar.ts), and on the right a pointing finger, out only to point. */
   mitten: THREE.Mesh[];
+  /** The sleeve, or the bare forearm in a tee. */
+  dress: AvatarArm;
   finger: THREE.Mesh | null;
   /** A holiday hand in place of the mitten (see setCostume), and the witch-fire round it. */
   dressed: THREE.Group | null;
@@ -96,6 +99,7 @@ export class Hands {
   /** Your shirt and skin, under whatever costume the hands wear. */
   private shirt: string;
   private skinTone: string;
+  private bare = false;
   /** An undead warlock's hands for Halloween, mittens for Christmas (see setCostume). */
   private costume: Theme | null = null;
   private rags = toonUnique('#24123a');
@@ -188,6 +192,12 @@ export class Hands {
     this.paint();
   }
 
+  /** Bare forearms (a tee) or sleeves (a hoodie, a jacket), as your avatar wears. */
+  setBare(bare: boolean) {
+    this.bare = bare;
+    this.paint();
+  }
+
   /**
    * Dresses your hands up for a holiday: an undead warlock's for Halloween (grey-green and bony, with
    * black claws, ragged purple sleeves and green witch-fire round them), red sleeves and green mittens
@@ -225,6 +235,10 @@ export class Hands {
     this.sleeve.color.set(c === 'halloween' ? '#3b1d5a' : c === 'christmas' ? '#d62828' : this.shirt);
     this.skin.color.set(c === 'christmas' ? '#2e9e48' : this.skinTone);
     if (c === 'halloween') this.skin.color.lerp(UNDEAD_SKIN, 0.8);
+    for (const { dress } of [this.right, this.left]) {
+      for (const m of dress.sleeve) m.visible = !this.bare || !!c;
+      dress.forearm.visible = this.bare && !c;
+    }
   }
 
   /** How lit it is where you stand, 0–1 (see Sky.lightAt): your hands go dark out on a night street. */
@@ -314,17 +328,12 @@ export class Hands {
 
   private arm(side: 1 | -1): Arm {
     const group = new THREE.Group();
-    // Sleeve runs from the wrist back past the camera, so its far end is always off screen.
-    group.add(mesh(new THREE.CapsuleGeometry(0.058, 0.42, 6, 14).rotateX(Math.PI / 2), this.sleeve, 0, 0, 0.29, false));
+    const dress = avatarArm(group, side, this.sleeve, this.skin);
     // A mitten's fluffy cuff, only at Christmas (see setCostume).
     const cuff = mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.045, 18).rotateX(Math.PI / 2), toon('#fffaf3'), 0, 0, 0.075, false);
     cuff.visible = false;
     group.add(cuff);
-    // A round hand at the end of the sleeve, as your character has (see character/person.ts), a little
-    // bigger round than the sleeve; the right one points a finger only to point (see emote).
-    const palm = mesh(new THREE.SphereGeometry(0.056, 20, 16), this.skin, 0, 0, -0.012, false);
-    palm.scale.set(1, 0.94, 1.04);
-    group.add(palm);
+    // The right hand points a finger only to point (see emote).
     const finger = side === 1 ? mesh(new THREE.CapsuleGeometry(0.017, 0.045, 4, 10).rotateX(Math.PI / 2), this.skin, -0.01, 0.01, -0.08, false) : null;
     if (finger) {
       finger.visible = false;
@@ -336,7 +345,7 @@ export class Hands {
     group.position.copy(base);
     group.rotation.copy(baseRot);
     this.scene.add(group);
-    return { group, base, baseRot, side, cuff, mitten: [palm], finger, dressed: null, fire: null };
+    return { group, base, baseRot, side, cuff, mitten: [dress.hand], dress, finger, dressed: null, fire: null };
   }
 
   /** Witch-fire curling up round your fingers, and flickering. */
