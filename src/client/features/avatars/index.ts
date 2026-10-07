@@ -29,6 +29,8 @@ export function installAvatars(ctx: Ctx, deps: AvatarsDeps) {
   // After everyone's moved and posed (the 'me', 'others' and 'world' ticks), before the frame's drawn.
   ctx.ticks.add('hud', ({ dt }) => {
     const on = deps.on();
+    // Your first-person hands are the avatar's, which don't dress up for a holiday.
+    ctx.hands.setPlain(on);
     for (const a of avatars) {
       // One whose Person has gone (someone left) is let go of.
       if (!a.person.root.parent) {

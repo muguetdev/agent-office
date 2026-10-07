@@ -9,7 +9,7 @@ import { L } from '../../i18n';
 export function avatar(name: string) {
   let x = 0;
   for (const ch of name) x = (x * 31 + ch.charCodeAt(0)) | 0;
-  return h('span.gh-avatar', { style: `background:${AVATAR_COLORS[Math.abs(x) % AVATAR_COLORS.length]}`, 'aria-hidden': 'true' }, (name[0] ?? '?').toUpperCase());
+  return h('span.gh-avatar', { style: `background:${AVATAR_COLORS[Math.abs(x) % 8]}`, 'aria-hidden': 'true' }, (name[0] ?? '?').toUpperCase());
 }
 
 export function when(iso: string, url?: string) {

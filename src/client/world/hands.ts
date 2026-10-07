@@ -102,6 +102,8 @@ export class Hands {
   private bare = false;
   /** An undead warlock's hands for Halloween, mittens for Christmas (see setCostume). */
   private costume: Theme | null = null;
+  private holiday: Theme | null = null;
+  private plain = false;
   private rags = toonUnique('#24123a');
 
   constructor(shirt: string, skin: string) {
@@ -204,6 +206,18 @@ export class Hands {
    * for Christmas. Null gives you your own back.
    */
   setCostume(theme: Theme | null) {
+    this.holiday = theme;
+    this.dressUp(this.plain ? null : theme);
+  }
+
+  /** Your own hands whatever the holiday (the office avatar's, which don't dress up), or the holiday's again. */
+  setPlain(plain: boolean) {
+    if (plain === this.plain) return;
+    this.plain = plain;
+    this.dressUp(plain ? null : this.holiday);
+  }
+
+  private dressUp(theme: Theme | null) {
     if (theme === this.costume) return;
     this.costume = theme;
     const warlock = theme === 'halloween';

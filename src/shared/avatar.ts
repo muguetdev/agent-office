@@ -34,8 +34,8 @@ export const AVATAR_BOTTOMS = ['Trousers', 'Joggers'] as const;
 export const AVATAR_SHOES = ['Sneakers', 'Runners'] as const;
 export const AVATAR_GLASSES = ['None', 'Round', 'Square'] as const;
 export const AVATAR_BEARDS = ['None', 'Stubble', 'Full'] as const;
-export const PANTS_COLORS = ['#2A3044', '#3B4256', '#7F858F', '#B8A486'];
-export const SHOE_COLORS = ['#F4F4F4', '#2F7FF0', '#2B2F37', '#B9BCC2'];
+export const PANTS_COLORS = ['#2A3044', '#3B4256', '#7F858F', '#B8A486', '#1E1E22', '#4A6FA5', '#5B4636', '#556B3A', '#8C2F39', '#E9E4D8', '#C9A227', '#6D597A'];
+export const SHOE_COLORS = ['#F4F4F4', '#2F7FF0', '#2B2F37', '#B9BCC2', '#E63946', '#06D6A0', '#FFD166', '#F77F00', '#9D4EDD', '#FF8FAB', '#8B5A2B', '#264653'];
 const OUTFIT_SIZES: Record<keyof Outfit, number> = {
   cut: AVATAR_CUTS.length, top: AVATAR_TOPS.length, bottom: AVATAR_BOTTOMS.length, shoes: AVATAR_SHOES.length,
   glasses: AVATAR_GLASSES.length, beard: AVATAR_BEARDS.length, pants: PANTS_COLORS.length, shoeColor: SHOE_COLORS.length,
