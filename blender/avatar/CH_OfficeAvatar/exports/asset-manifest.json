@@ -1,9 +1,9 @@
 {
   "asset": "CH_OfficeAvatar",
-  "generated": "2026-10-07T18:01:33",
+  "generated": "2026-10-07T21:39:37",
   "blender": "5.2.2 LTS",
   "source": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_delivery.blend",
-  "target_engine": "three.js (agent-office)",
+  "target_engine": "three.js",
   "units": {
     "system": "METRIC",
     "scale_length": 1.0,
@@ -16,26 +16,23 @@
   "target_height_m": 1.55,
   "bounds_m": {
     "min": [
-      -0.337,
-      -0.2885,
+      -0.348,
+      -0.2892,
       -0.0
     ],
     "max": [
-      0.3378,
+      0.3481,
       0.2428,
       1.6307
     ],
     "size": [
-      0.6749,
-      0.5313,
+      0.6961,
+      0.5321,
       1.6308
     ]
   },
   "files": {
-    "all": "exports/CH_OfficeAvatar.glb",
-    "LOD0": "exports/CH_OfficeAvatar_LOD0.glb",
-    "LOD1": "exports/CH_OfficeAvatar_LOD1.glb",
-    "LOD2": "exports/CH_OfficeAvatar_LOD2.glb"
+    "all": "exports/CH_OfficeAvatar.glb"
   },
   "lods": [
     {
@@ -65,65 +62,7 @@
         "CH_OfficeAvatar_Glasses_Round_LOD0",
         "CH_OfficeAvatar_Glasses_Square_LOD0"
       ],
-      "tris": 33529
-    },
-    {
-      "level": 1,
-      "objects": [
-        "CH_OfficeAvatar_Body_Neck_LOD1",
-        "CH_OfficeAvatar_Body_Torso_LOD1",
-        "CH_OfficeAvatar_Body_Arms_LOD1",
-        "CH_OfficeAvatar_Body_Legs_LOD1",
-        "CH_OfficeAvatar_Body_Head_LOD1",
-        "CH_OfficeAvatar_Body_Hands_LOD1",
-        "CH_OfficeAvatar_Hair_Wavy_LOD1",
-        "CH_OfficeAvatar_Top_Tee_LOD1",
-        "CH_OfficeAvatar_Top_HoodieOpen_LOD1",
-        "CH_OfficeAvatar_Bottom_Trousers_LOD1",
-        "CH_OfficeAvatar_Shoes_Sneakers_LOD1",
-        "CH_OfficeAvatar_Hair_Bun_LOD1",
-        "CH_OfficeAvatar_Hair_Bob_LOD1",
-        "CH_OfficeAvatar_Beard_Stubble_LOD1",
-        "CH_OfficeAvatar_Beard_Full_LOD1",
-        "CH_OfficeAvatar_Glasses_Round_LOD1",
-        "CH_OfficeAvatar_Glasses_Square_LOD1",
-        "CH_OfficeAvatar_Top_Jacket_LOD1",
-        "CH_OfficeAvatar_Bottom_Joggers_LOD1",
-        "CH_OfficeAvatar_Shoes_Runners_LOD1",
-        "CH_OfficeAvatar_Face_Mouth_LOD1",
-        "CH_OfficeAvatar_Face_Eyes_LOD1",
-        "CH_OfficeAvatar_Face_Brows_LOD1"
-      ],
-      "tris": 17075
-    },
-    {
-      "level": 2,
-      "objects": [
-        "CH_OfficeAvatar_Body_Neck_LOD2",
-        "CH_OfficeAvatar_Body_Torso_LOD2",
-        "CH_OfficeAvatar_Body_Arms_LOD2",
-        "CH_OfficeAvatar_Body_Legs_LOD2",
-        "CH_OfficeAvatar_Body_Head_LOD2",
-        "CH_OfficeAvatar_Body_Hands_LOD2",
-        "CH_OfficeAvatar_Hair_Wavy_LOD2",
-        "CH_OfficeAvatar_Top_Tee_LOD2",
-        "CH_OfficeAvatar_Top_HoodieOpen_LOD2",
-        "CH_OfficeAvatar_Bottom_Trousers_LOD2",
-        "CH_OfficeAvatar_Shoes_Sneakers_LOD2",
-        "CH_OfficeAvatar_Hair_Bun_LOD2",
-        "CH_OfficeAvatar_Hair_Bob_LOD2",
-        "CH_OfficeAvatar_Beard_Stubble_LOD2",
-        "CH_OfficeAvatar_Beard_Full_LOD2",
-        "CH_OfficeAvatar_Glasses_Round_LOD2",
-        "CH_OfficeAvatar_Glasses_Square_LOD2",
-        "CH_OfficeAvatar_Top_Jacket_LOD2",
-        "CH_OfficeAvatar_Bottom_Joggers_LOD2",
-        "CH_OfficeAvatar_Shoes_Runners_LOD2",
-        "CH_OfficeAvatar_Face_Mouth_LOD2",
-        "CH_OfficeAvatar_Face_Eyes_LOD2",
-        "CH_OfficeAvatar_Face_Brows_LOD2"
-      ],
-      "tris": 7854
+      "tris": 33781
     }
   ],
   "materials": [
@@ -287,12 +226,6 @@
   ],
   "colliders": [],
   "animation_contract": "animation-contract.json",
-  "inferred_from_no_reference": [
-    "real height 1.55 m from the game's metrics",
-    "left side by symmetry",
-    "top of the head and shoe soles",
-    "the body under the clothing",
-    "open hand shape"
-  ],
+  "inferred_from_no_reference": [],
   "dependencies": []
 }

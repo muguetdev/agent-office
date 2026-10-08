@@ -1,0 +1,92 @@
+{
+  "blend": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_master.blend",
+  "mode": "material",
+  "engine": "cycles",
+  "bbox_min": [
+    -0.3478103280067444,
+    -0.2879191040992737,
+    0.0
+  ],
+  "bbox_max": [
+    0.3478103280067444,
+    0.231947124004364,
+    1.5396466255187988
+  ],
+  "size_xyz": [
+    0.6956206560134888,
+    0.5198662281036377,
+    1.5396466255187988
+  ],
+  "objects": [
+    "CH_OfficeAvatar_Body_HIGH",
+    "CH_OfficeAvatar_Head_HIGH",
+    "CH_OfficeAvatar_Eye_L_HIGH",
+    "CH_OfficeAvatar_EyeHighlight_L_HIGH",
+    "CH_OfficeAvatar_Brow_L_HIGH",
+    "CH_OfficeAvatar_Eye_R_HIGH",
+    "CH_OfficeAvatar_EyeHighlight_R_HIGH",
+    "CH_OfficeAvatar_Brow_R_HIGH",
+    "CH_OfficeAvatar_Mouth_HIGH",
+    "CH_OfficeAvatar_Hair_HIGH",
+    "CH_OfficeAvatar_Hand_L_HIGH",
+    "CH_OfficeAvatar_Hand_R_HIGH",
+    "CH_OfficeAvatar_TeeSleeve_L_HIGH",
+    "CH_OfficeAvatar_TeeCuff_L_HIGH",
+    "CH_OfficeAvatar_TeeSleeve_R_HIGH",
+    "CH_OfficeAvatar_TeeCuff_R_HIGH",
+    "CH_OfficeAvatar_Tee_HIGH",
+    "CH_OfficeAvatar_HoodieSleeve_L_HIGH",
+    "CH_OfficeAvatar_HoodieCuff_L_HIGH",
+    "CH_OfficeAvatar_HoodieSleeve_R_HIGH",
+    "CH_OfficeAvatar_HoodieCuff_R_HIGH",
+    "CH_OfficeAvatar_Hoodie_HIGH",
+    "CH_OfficeAvatar_Piping_L_HIGH",
+    "CH_OfficeAvatar_Drawstring_L_HIGH",
+    "CH_OfficeAvatar_Aglet_L_HIGH",
+    "CH_OfficeAvatar_Piping_R_HIGH",
+    "CH_OfficeAvatar_Drawstring_R_HIGH",
+    "CH_OfficeAvatar_Aglet_R_HIGH",
+    "CH_OfficeAvatar_Trousers_HIGH",
+    "CH_OfficeAvatar_Sole_L_HIGH",
+    "CH_OfficeAvatar_SoleStripe_L_HIGH",
+    "CH_OfficeAvatar_Upper_L_HIGH",
+    "CH_OfficeAvatar_Strap0_L_HIGH",
+    "CH_OfficeAvatar_Strap1_L_HIGH",
+    "CH_OfficeAvatar_ShoeMark_L_HIGH",
+    "CH_OfficeAvatar_Sole_R_HIGH",
+    "CH_OfficeAvatar_SoleStripe_R_HIGH",
+    "CH_OfficeAvatar_Upper_R_HIGH",
+    "CH_OfficeAvatar_Strap0_R_HIGH",
+    "CH_OfficeAvatar_Strap1_R_HIGH",
+    "CH_OfficeAvatar_ShoeMark_R_HIGH"
+  ],
+  "renders": {
+    "front": {
+      "file": "review/sheet1/material_front.png",
+      "az_el_lens": [
+        0,
+        0,
+        0
+      ],
+      "distance": 4.259933114051819
+    },
+    "threequarter": {
+      "file": "review/sheet1/material_threequarter.png",
+      "az_el_lens": [
+        35,
+        15,
+        50
+      ],
+      "distance": 2.9154689242649408
+    },
+    "side": {
+      "file": "review/sheet1/material_side.png",
+      "az_el_lens": [
+        90,
+        0,
+        0
+      ],
+      "distance": 4.347810328006744
+    }
+  }
+}

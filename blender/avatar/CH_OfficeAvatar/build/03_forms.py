@@ -25,7 +25,8 @@ HEAD_C = (HEAD_C[0], HEAD_C[1] - 0.01, HEAD_C[2])   # the face 1 cm further forw
 LEG_X = 0.13                                         # the legs a little apart (a 9 cm gap at the knee)
 FOOT_X = 0.14                                        # each shoe under its leg, not splayed out as the sheet draws them
 SHOE_W = 0.23                                        # so the two shoes keep a 5 cm gap between them
-EYE_SIZE = (0.022, 0.012, 0.04)                      # a size up: the sheet's eyes read bigger than 22 px at the game camera
+EYE_SIZE = (0.027, 0.013, 0.05)                      # two sizes up: the sheet's eyes are its face's biggest feature
+EYE_X = 0.079                                        # a little further apart, as they've grown
 
 PHASE = "03_forms"
 OWNER_TAG = "phase:" + PHASE
@@ -118,17 +119,19 @@ def head(skin):
     cx, cy, cz = HEAD_C
     for s in (1, -1):
         push(hd, (cx + s * 0.15, cy - 0.1, CHIN_Z + 0.07), 0.14, 0.024)       # full cheeks (front view: the face widest at the mouth)
-    push(hd, (cx, cy - 0.16, CHIN_Z + 0.03), 0.12, 0.012, direction=(0, -0.6, -0.8))  # round chin, a little forward and down
+    for s in (1, -1):
+        push(hd, (cx + s * 0.12, cy - 0.06, CHIN_Z + 0.04), 0.12, 0.018, direction=(s, -0.3, -0.5))  # a wide, soft jaw (the sheet's face is nearly as wide at the mouth as at the eyes)
+    push(hd, (cx, cy - 0.16, CHIN_Z + 0.03), 0.14, 0.008, direction=(0, -0.6, -0.8))  # round chin, a little forward and down, broad
     push(hd, (cx, cy - 0.21, EYE_Z), 0.16, 0.012, direction=(0, 1, 0))       # a flatter face
-    push(hd, (cx, cy - 0.205, 1.15), 0.035, 0.012, direction=(0, -1, 0))     # nose (side view: a small bump)
+    push(hd, (cx, cy - 0.205, 1.15), 0.035, 0.006, direction=(0, -1, 0))     # nose: barely a bump (the sheet draws none from the front)
     parts = [hd]
     for side, s in (("L", 1), ("R", -1)):
-        ear = blob(f"_ear{side}", (s * (HEAD_R[0] + 0.016), cy + 0.03, EAR_Z), (0.04, 0.028, 0.072), rot=(0, 0, s * math.radians(-15)), u=20, v=12)
+        ear = blob(f"_ear{side}", (s * (HEAD_R[0] + 0.004), cy + 0.03, EAR_Z), (0.03, 0.022, 0.054), rot=(0, 0, s * math.radians(-12)), u=20, v=12)  # small ears, close in (the sheet's half hidden by the hair)
         parts.append(ear)
     ob = fuse("CH_OfficeAvatar_Head_HIGH", parts, 0.004, skin, smooth=4)
     # The ear bowls, pressed in after the fuse.
     for s in (1, -1):
-        push(ob, (s * (HEAD_R[0] + 0.035), cy + 0.025, EAR_Z), 0.03, 0.012, direction=(-s, 0, 0))
+        push(ob, (s * (HEAD_R[0] + 0.022), cy + 0.025, EAR_Z), 0.022, 0.008, direction=(-s, 0, 0))
     return ob
 
 
@@ -137,11 +140,12 @@ def face(ink, white, brow_mat, mouth_mat):
         eye = blob(f"CH_OfficeAvatar_Eye_{side}_HIGH", on_head(s * EYE_X, EYE_Z, 0.006), EYE_SIZE, u=24, v=16)
         assign(eye, ink)
         shade_smooth(eye, math.radians(180))
-        hl = blob(f"CH_OfficeAvatar_EyeHighlight_{side}_HIGH", on_head(s * EYE_X + 0.006, EYE_Z + 0.014, -0.006), (0.006, 0.004, 0.007), u=12, v=8)
+        hl = blob(f"CH_OfficeAvatar_EyeHighlight_{side}_HIGH", on_head(s * EYE_X + 0.008, EYE_Z + 0.018, -0.007), (0.008, 0.005, 0.009), u=12, v=8)
         assign(hl, white)
         # A thick rounded brow, a gentle arch tilted down to the outside.
-        pts = [on_head(s * (0.045 + 0.06 * t), BROW_Z + 0.012 * math.sin(math.pi * t) - 0.008 * t, -0.002) for t in [i / 8 for i in range(9)]]
-        sweep(f"CH_OfficeAvatar_Brow_{side}_HIGH", pts, 0.011, brow_mat, radii=[0.008 + 0.005 * math.sin(math.pi * i / 8) for i in range(9)])
+        # Thick and dark, as on the sheet: nearly straight, a soft arch, the inner end the fullest.
+        pts = [on_head(s * (0.042 + 0.075 * t), BROW_Z - 0.012 + 0.01 * math.sin(math.pi * t) - 0.006 * t, -0.002) for t in [i / 8 for i in range(9)]]
+        sweep(f"CH_OfficeAvatar_Brow_{side}_HIGH", pts, 0.015, brow_mat, radii=[0.011 + 0.007 * math.sin(math.pi * (0.35 + 0.65 * i / 8)) for i in range(9)])
     # A small closed smile.
     pts = [on_head(0.042 * (2 * t - 1), MOUTH_Z - 0.012 * math.sin(math.pi * t), -0.002) for t in [i / 10 for i in range(11)]]
     sweep("CH_OfficeAvatar_Mouth_HIGH", pts, 0.0065, mouth_mat)
@@ -172,18 +176,18 @@ def hair(mat):
     # Locks: (centre, radii, rotation), read off the front, side and back views.
     locks = [
         # the front swoop: two big rolls sweeping from the parting over the forehead, out to either side
-        ((-0.07, cy - 0.18, 1.42), (0.11, 0.065, 0.06), (math.radians(-20), 0, math.radians(15))),
-        ((0.08, cy - 0.17, 1.44), (0.11, 0.065, 0.06), (math.radians(-20), 0, math.radians(-20))),
-        ((-0.17, cy - 0.11, 1.36), (0.065, 0.075, 0.075), (0, 0, 0)),
-        ((0.17, cy - 0.1, 1.37), (0.065, 0.075, 0.075), (0, 0, 0)),
+        ((-0.06, cy - 0.17, 1.43), (0.13, 0.075, 0.066), (math.radians(-20), 0, math.radians(15))),
+        ((0.085, cy - 0.16, 1.45), (0.13, 0.075, 0.066), (math.radians(-20), 0, math.radians(-20))),
+        ((-0.155, cy - 0.1, 1.37), (0.055, 0.07, 0.07), (0, 0, 0)),
+        ((0.155, cy - 0.09, 1.38), (0.055, 0.07, 0.07), (0, 0, 0)),
         # the crown: piled-up waves (the side view's tallest point a little ahead of the middle)
         ((-0.03, cy - 0.08, 1.485), (0.09, 0.07, 0.055), (math.radians(10), 0, math.radians(25))),
         ((0.06, cy - 0.01, 1.48), (0.09, 0.075, 0.055), (math.radians(-10), 0, math.radians(-30))),
         ((-0.08, cy + 0.05, 1.46), (0.09, 0.07, 0.055), (0, math.radians(20), 0)),
         ((0.03, cy + 0.09, 1.44), (0.1, 0.08, 0.06), (math.radians(30), 0, 0)),
         # the sides over the temples, down to the ears
-        ((-0.195, cy + 0.0, 1.29), (0.05, 0.09, 0.085), (0, 0, 0)),
-        ((0.195, cy + 0.0, 1.29), (0.05, 0.09, 0.085), (0, 0, 0)),
+        ((-0.19, cy + 0.0, 1.29), (0.04, 0.09, 0.085), (0, 0, 0)),
+        ((0.19, cy + 0.0, 1.29), (0.04, 0.09, 0.085), (0, 0, 0)),
         # the back: rounded clumps down to the nape
         ((0.0, cy + 0.14, 1.16), (0.12, 0.05, 0.08), (0, 0, 0)),  # the nape, clear of the hood
     ]
@@ -202,13 +206,14 @@ def hair(mat):
         curls.append(sweep(f"_curl{len(curls)}", pts, 0.04, mat, segments=16, radii=[0.035 + 0.012 * math.sin(math.pi * min(1, i / 6)) - 0.03 * max(0, i - 6) / 4 for i in range(11)]))
     # The fringe: rounded locks hanging over the hairline at uneven heights, so its edge waves
     # (front view: the forehead shows between the brows and the locks, more of it on the right).
-    for x, zb, tilt in ((-0.14, 1.33, 25), (-0.075, 1.315, 10), (-0.005, 1.325, -5), (0.065, 1.345, -20), (0.13, 1.36, -30)):
-        fy = on_head(x, zb + 0.045)[1] - 0.022
-        locks.append(((x, fy, zb + 0.045), (0.05, 0.04, 0.05), (math.radians(-30), 0, math.radians(tilt))))
+    # Three big smooth locks (the sheet's fringe is a few broad swept waves, not many small curls).
+    for x, zb, tilt in ((-0.11, 1.35, 20), (-0.005, 1.345, -8), (0.105, 1.37, -28)):
+        fy = on_head(x, zb + 0.05)[1] - 0.026
+        locks.append(((x, fy, zb + 0.05), (0.075, 0.045, 0.058), (math.radians(-30), 0, math.radians(tilt))))
     for i, (c, r, rot) in enumerate(locks):
         parts.append(blob(f"_lock{i}", c, r, rot))
     parts += curls
-    return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.005, mat, smooth=6)
+    return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.006, mat, smooth=12)
 
 
 def hand(side, s, skin):
@@ -225,9 +230,9 @@ def hand(side, s, skin):
         parts.append(blob(f"_f{i}", W + Vector((-0.004, fy - 0.006, -0.108 + 0.004 * abs(fy) / 0.04)), (0.026, 0.018, 0.026)))
     parts.append(blob("_thumb", W + Vector((-0.028, -0.052, -0.068)), (0.019, 0.021, 0.034), rot=(math.radians(20), 0, math.radians(-15))))
     bpy.context.view_layer.update()
-    for p in parts:   # a size up (front view: the fist about 0.16 m across), about the wrist
-        p.location = W + (p.location - W) * 1.1
-        p.scale = p.scale * 1.1
+    for p in parts:   # two sizes up (the sheet's fists are nearly as wide as its face is tall), about the wrist
+        p.location = W + (p.location - W) * 1.3
+        p.scale = p.scale * 1.3
     return fuse("CH_OfficeAvatar_Hand_L_HIGH", parts, 0.0035, skin, smooth=12)
 
 
@@ -405,6 +410,9 @@ def hoodie(blue, white):
     hem = [(0.212 * math.cos(a), 0.155 * math.sin(a) - 0.01, HEM_Z + 0.014) for a in [i * math.tau / 40 for i in range(41)]]
     parts.append(sweep("_hhem", hem, 0.017, blue, cap=False))
     parts.append(blob("_hood", (0.0, 0.125, 0.93), (0.155, 0.08, 0.1), rot=(math.radians(-10), 0, 0)))
+    # The hood bunched round the back and sides of the neck, up to the chin (the sheet shows no neck).
+    collar = [(0.108 * math.sin(a), -0.005 + 0.1 * math.cos(a), 0.975 + 0.012 * math.cos(a)) for a in [math.radians(d) for d in range(-120, 121, 15)]]
+    parts.append(sweep("_hcollar", collar, 0.032, blue, radii=[0.022, 0.026] + [0.032] * 13 + [0.026, 0.022]))
     cutters = [cutter_box("_cut_front", (-(GAP + 0.002), -0.4, HEM_Z - 0.1), (GAP + 0.002, -0.07, 1.02)),
                cutter_tube("_cut_neck", (0, -0.005, 0.9), (0, -0.005, 1.12), 0.078),
                cutter_box("_cut_hem", (-0.6, -0.6, -0.5), (0.6, 0.6, HEM_Z - 0.002))]
@@ -432,7 +440,7 @@ def trousers(navy):
     the crotch), resting on the shoes at the hem."""
     parts = [loft("_waist", [[(rx * math.cos(a), ry * math.sin(a) - 0.012, z) for a in [i * math.tau / 36 for i in range(36)]] for z, rx, ry in (
         (0.44, 0.17, 0.125), (0.5, 0.19, 0.13), (0.6, 0.175, 0.125))], COLL)]
-    parts.append(blob("_crotch", (0.0, -0.012, 0.46), (0.07, 0.11, 0.05)))
+    parts.append(blob("_crotch", (0.0, -0.012, 0.45), (0.085, 0.115, 0.065)))
     # The seat: rounded glutes at the back.
     for gs in (1, -1):
         parts.append(blob(f"_glute{gs}", (gs * 0.075, 0.06, 0.49), (0.1, 0.085, 0.095)))
@@ -503,8 +511,25 @@ def sneaker(side, s, white, blue):
         ribbon(f"CH_OfficeAvatar_Strap{k}_{side}_HIGH", arch, 0.038, 0.012, white, lambda p, y=y: (Vector(p) - Vector((x0, y, SOLE - 0.01))).normalized())
     # The blue mark: a soft zigzag sweeping back along the outer side.
     side_x = x0 + s * (0.5 * 0.213 + 0.002)
-    mark = [(side_x, y_toe + L * f, z) for f, z in ((0.34, 0.085), (0.46, 0.125), (0.56, 0.088), (0.7, 0.13))]
-    sweep(f"CH_OfficeAvatar_ShoeMark_{side}_HIGH", mark, 0.018, blue, segments=10, radii=[0.016, 0.021, 0.02, 0.012])
+    # A flat band lying on the upper (not a tube stood off it): the sheet's zigzag, seen from the front too.
+    from mathutils.bvhtree import BVHTree
+    bpy.context.view_layer.update()
+    bm = bmesh.new()
+    bm.from_mesh(up.data)
+    bmesh.ops.transform(bm, matrix=up.matrix_world, verts=bm.verts)
+    tree = BVHTree.FromBMesh(bm)
+    bm.free()
+    mark, normals = [], {}
+    keys = ((0.26, 0.078), (0.38, 0.082), (0.46, 0.128), (0.56, 0.088), (0.66, 0.132), (0.74, 0.138))
+    # Each leg of the zigzag straight, in short steps (so the band follows the upper's curve without twisting).
+    path = [(f0 + (f1 - f0) * k / 4, z0 + (z1 - z0) * k / 4) for (f0, z0), (f1, z1) in zip(keys, keys[1:]) for k in range(4)] + [keys[-1]]
+    for f, z in path:
+        # Onto the upper's outer side, a ray in from beside the shoe.
+        hit, n, _, _ = tree.ray_cast(Vector((x0 + s * 0.4, y_toe + L * f, z)), Vector((-s, 0, 0)))
+        p = (hit + n * 0.005) if hit else Vector((side_x, y_toe + L * f, z))
+        mark.append(tuple(p))
+        normals[tuple(p)] = n if hit else Vector((s, 0, 0))
+    ribbon(f"CH_OfficeAvatar_ShoeMark_{side}_HIGH", mark, 0.034, 0.006, blue, lambda p: min(normals.items(), key=lambda kv: (Vector(kv[0]) - Vector(p)).length)[1])
 
 
 def build(scene, args):
