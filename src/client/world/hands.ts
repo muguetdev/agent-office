@@ -6,7 +6,7 @@ import { OpenBook } from '../features/bookshelf/book';
 import { HeldCard } from '../features/carrying/card';
 import { REACH_TIME, SMOKE_CYCLE, cigarette, coffeeMug, dragCurve, drinkGlass, emoteEnvelope, putDownGlass, reachCurve } from './character';
 import { UNDEAD_SKIN, raggedCuff, warlockHand, witchFire } from './costumes';
-import { GESTURES, avatarArm, showPose, type AvatarArm } from './hands-avatar';
+import { GESTURES, avatarArm, onLap, showPose, type AvatarArm } from './hands-avatar';
 import { mesh, toon, toonUnique } from './toon';
 import { ballMesh } from '../features/basketball/world';
 
@@ -18,6 +18,8 @@ export interface HandsInput {
   airborne: boolean;
   /** 0 (steady) to 1: one coffee too many. */
   jitter: number;
+  /** Sitting down: the hands rest in your lap. */
+  seated?: boolean;
   /** Holding on to the ladder (hand over hand, in time with walkPhase) or a fire pole (both hands on it, off to the left). */
   grip?: 'ladder' | 'pole' | null;
 }
@@ -85,6 +87,7 @@ export class Hands {
   private last: { yaw: number; pitch: number } | null = null;
   private air = 0;
   private walk = 0;
+  private seatK = 0;
   private ladderK = 0;
   private poleK = 0;
   private cig: THREE.Group;
@@ -345,8 +348,8 @@ export class Hands {
     cuff.visible = false;
     group.add(cuff);
     // Out from the bottom corners of the view, the sleeves angled in toward the hands.
-    const base = new THREE.Vector3(side * 0.18, -0.17, -0.5);
-    const baseRot = new THREE.Euler(0.45, side * 0.55, side * -0.2);
+    const base = new THREE.Vector3(side * 0.2, -0.21, -0.48);
+    const baseRot = new THREE.Euler(0.3, side * 0.38, side * -0.1);
     group.position.copy(base);
     group.rotation.copy(baseRot);
     this.scene.add(group);
@@ -387,6 +390,7 @@ export class Hands {
     this.ladderK += ((s.grip === 'ladder' ? 1 : 0) - this.ladderK) * Math.min(1, dt * 10);
     this.poleK += ((s.grip === 'pole' ? 1 : 0) - this.poleK) * Math.min(1, dt * 10);
     this.walk += ((s.walking ? 1 : 0) - this.walk) * Math.min(1, dt * 8);
+    this.seatK += ((s.seated ? 1 : 0) - this.seatK) * Math.min(1, dt * 6);
 
     const breathe = Math.sin(t * 1.7) * 0.004;
     const step = Math.sin(s.walkPhase) * this.walk;
@@ -442,6 +446,7 @@ export class Hands {
       p.z -= 0.16 * throwK;
       arm.group.rotation.x += 0.9 * throwK;
       this.classic(arm, Math.max(carry, held, throwK));
+      onLap(arm, this.seatK * (1 - Math.max(carry, held, throwK)) * (this.wantsMug || this.smokeT >= 0 ? 0 : 1));
     }
     // Up the ladder, hand over hand; round a pole, both hands on it, one over the other.
     const climb = Math.sin(s.walkPhase);

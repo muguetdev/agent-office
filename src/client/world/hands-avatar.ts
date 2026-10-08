@@ -85,6 +85,20 @@ function avatarHand(side: 1 | -1, pose: HandPose): THREE.BufferGeometry | null {
   return geo;
 }
 
+/**
+ * Seated (`k` 0–1) with nothing in hand: the drawn hands go down out of view, as your avatar's own arms
+ * rest in your lap instead (features/avatars/dress.ts), where you see them looking down.
+ */
+export function onLap(arm: { group: THREE.Group; side: 1 | -1 }, k: number) {
+  if (k <= 0.001) return;
+  const g = arm.group;
+  g.position.x += (arm.side * 0.13 - g.position.x) * k;
+  g.position.y += (-0.36 - g.position.y) * k;
+  g.position.z += (-0.4 - g.position.z) * k;
+  g.rotation.x += -0.55 * k;
+  g.rotation.y += -arm.side * 0.25 * k;
+}
+
 export interface AvatarArm {
   /** The sleeve and its cuff, or (in a tee) the bare forearm. */
   sleeve: THREE.Mesh[];

@@ -107,6 +107,8 @@ const q = new THREE.Quaternion();
 const qa = new THREE.Quaternion();
 const down = new THREE.Vector3();
 const off = new THREE.Vector3();
+/** How far a seated knee bends, of the way down to the shin hanging straight. */
+const KNEE = 0.55;
 const X = new THREE.Vector3(1, 0, 0);
 
 /** One person's avatar: the model's pieces they wear, posed after their cartoon body. */
@@ -120,6 +122,8 @@ export class Avatar {
   private key = '';
   private hands: AvatarHands;
   private fp = false;
+  /** In first person, the arms are folded away (your hands are drawn on their own), except seated. */
+  private armsAway = false;
   /** The thighs' rest places on the pelvis, and the right hand with the axis along it (to its fingers). */
   private thighs: { bone: THREE.Bone; rest: THREE.Vector3 }[] = [];
   private handR: { bone: THREE.Bone; rest: THREE.Quaternion; axis: THREE.Vector3 } | null = null;
@@ -200,7 +204,6 @@ export class Avatar {
   firstPerson(on: boolean) {
     if (on === this.fp) return;
     this.fp = this.root.userData.firstPerson = on;
-    for (const n of ['upperarm_L', 'upperarm_R']) this.root.getObjectByName(n)?.scale.setScalar(on ? 0.001 : 1);
     this.key = '';
     if (!on) for (const t of this.thighs) t.bone.position.copy(t.rest);
   }
@@ -242,9 +245,18 @@ export class Avatar {
       const forward = Math.atan2(down.z, -down.y);
       const bend = THREE.MathUtils.clamp((forward - 0.5) / 0.8, 0, 1);
       sit = Math.max(sit, bend);
-      k.shin.quaternion.copy(q.setFromAxisAngle(k.axis, forward * bend)).multiply(k.rest);
+      // Only part of the way: the feet out in front of the seat (the avatar's thighs are shorter than the
+      // cartoon's, so shins hanging straight down would go into a sofa's cushion).
+      k.shin.quaternion.copy(q.setFromAxisAngle(k.axis, forward * bend * KNEE)).multiply(k.rest);
     }
     this.root.position.y = (HIPS - AVATAR_HIPS) * sit;
+    // In first person your own arms show only sat still, hands in your lap (your drawn hands go away
+    // then, see world/hands-avatar.ts onLap); an emote or anything else, and the drawn hands do it.
+    const away = this.fp && !(sit > 0.5 && !emote);
+    if (away !== this.armsAway) {
+      this.armsAway = away;
+      for (const n of ['upperarm_L', 'upperarm_R']) this.root.getObjectByName(n)?.scale.setScalar(away ? 0.001 : 1);
+    }
     // In first person your body stands back from the camera (see person-first.ts), which would sit your
     // legs back in the seat, under its cushion: seated, the thighs come forward again, out over it.
     if (this.fp) {

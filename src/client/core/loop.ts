@@ -95,7 +95,7 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
     // In a car, it's the car that's seen, not you in it.
     me.root.visible = !player.riding && (ownBody || ctx.activities.any('takesCamera') || (!firstPerson && camera.position.distanceTo(headPos.set(player.pos.x, player.pos.y + 1.3, player.pos.z)) > 1.5));
     // In a car, your hands are on the wheel, out of sight.
-    if (firstPerson && !ctx.activities.any('hidesHands')) hands.update(dt, t, { yaw: player.camYaw, pitch: player.lookPitch, walkPhase: player.walkPhase, walking: player.moving && player.grounded, airborne: !player.grounded, jitter: player.effects.jitter, grip });
+    if (firstPerson && !ctx.activities.any('hidesHands')) hands.update(dt, t, { yaw: player.camYaw, pitch: player.lookPitch, walkPhase: player.walkPhase, walking: player.moving && player.grounded, airborne: !player.grounded, jitter: player.effects.jitter, grip, seated: !!player.seat });
     // What you're doing widens the view (down a pole) or narrows it (at the oche or the line), and once
     // it's set, may take it over (the telescope) or streak its edges (down a pole): see ctx.view.
     const fov = ctx.view.fov(FOV);
