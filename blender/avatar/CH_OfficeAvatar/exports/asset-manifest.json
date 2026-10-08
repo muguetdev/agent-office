@@ -2,7 +2,7 @@
   "asset": "CH_OfficeAvatar",
   "generated": "2026-10-07T21:57:04",
   "blender": "5.2.2 LTS",
-  "source": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_delivery.blend",
+  "source": "CH_OfficeAvatar_delivery.blend",
   "target_engine": "three.js",
   "units": {
     "system": "METRIC",

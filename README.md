@@ -1,34 +1,35 @@
-> [!WARNING]
-> **Work in progress.** Agent Office is built for one person's workflow — mine — and it changes fast as I iterate on it.
-> Expect breaking changes between releases: keys that move, screens that get redrawn, features that come and go
-> without notice. If it's close to what you want, fork or clone it and bend it into what you need it to be.
-
 <div align="center">
 
-*"Whatever you do, work heartily, as for the Lord and not for men."* — Colossians 3:23 (ESV)
+# 🚀 Command Express
 
-# 🏢 Agent Office
+### The AI agent office, in a living 3D city
 
-**A 3D office your team shares with its coding agents.**
+**Hire Claude Code, Codex, OpenCode, Grok, Cursor and more as coworkers at desks, watch their terminals live, and run your whole team of coding agents from a cartoon office you walk around in.** Every GitHub repo is a floor of the building, and the city goes on outside.
 
-Sit **Claude Code**, **Codex**, **OpenCode**, **Grok**, **Muse**, **DeepSeek Harness** and **Cursor** workers at desks, watch each one's terminal on the laptop in front of it,
-and jump into any of them together. Every GitHub repo is a floor of the building.
-
-[![Release](https://img.shields.io/github/v/release/AgentSystemLabs/agent-office?style=flat-square&color=e8c547&label=release)](https://github.com/AgentSystemLabs/agent-office/releases)
-[![Build](https://img.shields.io/github/actions/workflow/status/AgentSystemLabs/agent-office/release.yml?style=flat-square&label=build)](https://github.com/AgentSystemLabs/agent-office/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square)](#run-locally)
 [![Built with TypeScript](https://img.shields.io/badge/built%20with-TypeScript-3178c6?style=flat-square)](https://www.typescriptlang.org)
+[![three.js](https://img.shields.io/badge/3D-three.js-black?style=flat-square)](https://threejs.org)
+[![Português](https://img.shields.io/badge/lang-pt--BR-009c3b?style=flat-square)](README.pt-BR.md)
 
-[**Run locally**](#run-locally) · [**Deploy to AWS**](#deploy-to-aws-ec2) · [**Azure**](#deploy-to-azure) · [**Railway**](#deploy-to-railway) · [**Fly.io**](#deploy-to-flyio) · [**Dokploy**](#deploy-to-dokploy) · [**Coolify**](#deploy-to-coolify) · [**Any server**](#deploy-to-any-ubuntu-or-debian-server) · [**Add users**](#add-users) · [**Controls**](#controls) · [**Features**](docs/features.md) · [**How it works**](docs/how-it-works.md)
+[**Run locally**](#run-locally) · [**Highlights**](#highlights) · [**Features**](docs/features.md) · [**Controls**](#controls) · [**Leia em português**](README.pt-BR.md)
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/install.sh | bash
-```
+![Command Express: running up the avenue into the city, the map, and the character editor](docs/media/tour.gif)
 
 </div>
 
 ---
+
+## Highlights
+
+| | |
+| --- | --- |
+| ![The city round the office](docs/media/city.png) | **A city to walk and drive in.** Past the office the city goes on, in the street's own style: avenues with zebra crossings and rounded sidewalks, pastel blocks with shops under striped awnings, downtown towers on the skyline, taxis and police cars driving round the blocks, and people walking the sidewalks. Drive in from the street out front. |
+| ![The character editor](docs/media/editor.png) | **Office avatars, made in Blender.** A chibi office worker with a full rig and facial expressions (blinks, talking mouth), and a character editor: 7 haircuts, beards, glasses (sunglasses too), hoodies, jackets, sweaters, printed tees, an ID badge on a lanyard, every colour your own. Everyone sees you as you picked. Hands that gesture (wave, thumbs up, point, clap) in first and third person. |
+| ![The map](docs/media/map.png) | **A map like GTA's.** The minimap turns as you do; **J** opens the big map: the floor plan indoors, the whole world out on the street. Drag it, zoom with the wheel or a pinch, ⌖ back to you. |
+| ![Inside the office](docs/media/office.png) | **And more.** A jukebox that plays YouTube (links, playlists, mixes, search) with ambient sound across the floor; a scale-model (diorama) view; soft toon lighting that's consistent indoors and out; real car models with rolling wheels; a clearer view across town; the whole interface in **Brazilian Portuguese** (`AGENT_OFFICE_LANG=pt-BR`). |
+
+Everything you'd want from an AI agent office is here too: floors per repo, workers at desks, live shared terminals, voice and chat, GitHub issues and PRs on the walls, agents that manage agents, the 2D phone view, the castle and space-station maps, the rooftop bar…
 
 ## What it is
 
@@ -58,13 +59,13 @@ On the machine that runs the office:
 Install the latest release and start the office:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/install.sh | bash
 ```
 
 On Windows, in PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/muguetdev/command-express/main/install.ps1 | iex
 ```
 
 This puts an `agent-office` command on your PATH, so next time just run `agent-office`. Run the install line again to update. The installer's settings (a particular release, install without starting) are listed at the top of [`install.sh`](install.sh) and [`install.ps1`](install.ps1).
@@ -95,7 +96,7 @@ Every option is in [docs/configuration.md](docs/configuration.md). Choosing mode
 To run it from a clone instead:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 npm install          # also builds the client and server
 npm install -g .     # puts `agent-office` on your PATH
 agent-office
@@ -108,7 +109,7 @@ agent-office
 One script, using only the AWS CLI. You need the **AWS CLI signed in** (`aws configure` or `aws sso login`), `ssh`, `curl` and a clone of this repo:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 deploy/aws.sh up --project your-org/your-repo --claude-token "$(claude setup-token)"
 ```
 
@@ -163,7 +164,7 @@ It works with every way of running the office on a server, and needs the `agent-
 The same thing on an Azure VM, using only the Azure CLI. You need the **Azure CLI signed in** (`az login`), `ssh`, `curl` and a clone of this repo:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 deploy/azure.sh up --project your-org/your-repo --claude-token "$(claude setup-token)"
 ```
 
@@ -176,7 +177,7 @@ Every command from the AWS script works the same, with `deploy/azure.sh` in its 
 No machine to look after: one script, using the Railway CLI. You need the **Railway CLI 5 or newer, logged in** (`railway login`), `ssh`, `curl`, Node.js and a clone of this repo:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 deploy/railway.sh up --claude-token "$(claude setup-token)"
 ```
 
@@ -205,7 +206,7 @@ The details, and what's on the volume, are in [docs/railway.md](docs/railway.md)
 The same container on a [Fly.io](https://fly.io) machine, using flyctl. You need **flyctl logged in** (`fly auth login`), `ssh`, `curl`, Node.js and a clone of this repo:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 deploy/fly.sh up --claude-token "$(claude setup-token)"
 ```
 
@@ -236,7 +237,7 @@ deploy/fly.sh destroy                 # delete the app and its volume (asks firs
 Already run a [Dokploy](https://dokploy.com) server? One script puts the office on it, through Dokploy's API. You need an **API key** (Dokploy: **Settings → Profile → API/CLI Keys**, with rate limiting off), `ssh`, `curl`, `git`, Node.js and a clone of this repo:
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 export DOKPLOY_API_KEY=<your key>
 deploy/dokploy.sh up --url https://dokploy.example.com --claude-token "$(claude setup-token)"
 ```
@@ -266,7 +267,7 @@ The details, and what's on the volume, are in [docs/dokploy.md](docs/dokploy.md)
 Already run a [Coolify](https://coolify.io) server? One script puts the office on it, through Coolify's API. You need **API Access** turned on (Coolify: **Settings → Configuration → Advanced**), an **API token** with read, write and deploy (**Keys & Tokens → API tokens**), `ssh`, `curl`, `git`, Node.js and a clone of this repo. Coolify builds from git, so the commit you deploy has to be pushed to a public repository: by default, the upstream of your branch.
 
 ```bash
-git clone https://github.com/AgentSystemLabs/agent-office && cd agent-office
+git clone https://github.com/muguetdev/command-express && cd command-express
 export COOLIFY_API_TOKEN=<your token>
 deploy/coolify.sh up --url https://coolify.example.com --claude-token "$(claude setup-token)"
 ```
@@ -297,7 +298,7 @@ The details, what's on the volume, and troubleshooting are in [docs/coolify.md](
 Another cloud, or your own machine? Run one line on the server, as root or as a user with sudo:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/deploy/provision.sh | bash
+curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/deploy/provision.sh | bash
 ```
 
 It installs Node 22, git, the GitHub CLI, Claude Code and the office as a systemd service. Run as root, it creates an `agentoffice` user to run the office, so workers never run as root. The office listens on `127.0.0.1:4600` only, and the script ends by printing the SSH tunnel command and a link that shows the office password once. Run the same line again to update.
@@ -377,7 +378,7 @@ deploy/coolify.sh ssh 'node /opt/agent-office/bin/agent-office.js accounts invit
 | N | Go to the next worker that's waiting on you |
 | X | Send a worker home |
 | Z | Send a finished worker on a break, or back to its desk |
-| J | The floor map, big |
+| J | The big map (the floor indoors, the whole world outside): drag to move, wheel or + − to zoom |
 | L | Hang a sign over a desk ("Operations", "Code cleanup") |
 | T / Enter | Chat |
 | V | Join voice; then hold V to talk |
@@ -423,6 +424,10 @@ Every change to the app that lands on `main` is published as a GitHub release by
 - [How it works](docs/how-it-works.md): the architecture, and security notes
 - [Code layout](docs/code-layout.md): where the code lives, adding a feature or an agent provider, and the size guard
 
+## Credits
+
+Command Express is built on [Agent Office](https://github.com/AgentSystemLabs/agent-office) by AgentSystemLabs and its contributors. The cars are Quaternius's CC0 low-poly models; the office avatar (`blender/avatar`) was made for Command Express.
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE).

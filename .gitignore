@@ -5,3 +5,5 @@ dist
 .DS_Store
 pw.txt
 __pycache__/
+# The avatar pipeline's working renders (blender/avatar/*/review), made again by its scripts
+blender/avatar/*/review/

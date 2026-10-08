@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Install the latest Agent Office release and start it, no clone needed:
 #
-#   curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/install.sh | bash
 #
 # Anything after `bash -s --` goes to the office, e.g. a port:
 #
-#   curl -fsSL https://raw.githubusercontent.com/AgentSystemLabs/agent-office/main/install.sh | bash -s -- --port 4700
+#   curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/install.sh | bash -s -- --port 4700
 #
 # The first time the office starts in a terminal it asks where to clone your projects, signs the
 # GitHub CLI in if it isn't, and lets you pick your first repository to clone as a floor.
@@ -21,7 +21,7 @@
 #   AGENT_OFFICE_TARBALL       install this release tarball (a local file) instead of downloading one
 set -euo pipefail
 
-REPO="AgentSystemLabs/agent-office"
+REPO="muguetdev/command-express"
 MARKER="agent-office launcher, written by install.sh"
 INSTALL_DIR="${AGENT_OFFICE_INSTALL_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/agent-office}"
 VERSIONS="$INSTALL_DIR/versions"
