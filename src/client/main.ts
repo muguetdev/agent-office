@@ -37,6 +37,7 @@ import { installCabinet } from './features/cabinet';
 import { installCarrying } from './features/carrying';
 import { installCars } from './features/cars';
 import { installTraffic } from './features/traffic';
+import { installDowntown } from './features/downtown';
 import { installChat } from './features/chat';
 import { installClimbing } from './features/climbing';
 import { installCoffee } from './features/coffee';
@@ -150,6 +151,7 @@ parts.hanging = installHanging(ctx, { gallery: parts.gallery, reach });
 parts.climbing = installClimbing(ctx, { travel: (floorId, how, at) => parts.travel.travel(floorId, how, at), standUp, stopWalking });
 parts.cars = installCars(ctx, { standUp, stopWalking });
 installTraffic(ctx, { myCar: () => parts.cars.driver.pose });
+installDowntown(ctx);
 
 parts.travel = installTravel(ctx, core, parts);
 parts.arrival = installArrival(ctx, core, parts);

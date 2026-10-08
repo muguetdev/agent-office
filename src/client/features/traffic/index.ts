@@ -21,8 +21,8 @@ export interface TrafficDeps {
 }
 
 /** traffic.glb's cars (see blender/scripts/build_traffic.py), and the colors of their parts. */
-const KINDS = ['police', 'taxi', 'suv', 'car', 'hatch'] as const;
-const PAINT = palette({
+export const KINDS = ['police', 'taxi', 'suv', 'car', 'hatch'] as const;
+export const PAINT = palette({
   TBlack: '#1d1f24',
   TWhite: '#f1f3f5',
   TGrey: '#8d939b',
