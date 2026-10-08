@@ -3250,9 +3250,12 @@ Opções:
   minimap: {
     title: 'Mapa do andar',
     cityTitle: 'Mapa',
-    cityTip: 'O escritório, a cidade em volta e o circuito · Esc fecha',
+    zoomIn: 'Aproximar (+)',
+    zoomOut: 'Afastar (−)',
+    onMe: 'Voltar para você',
+    cityTip: 'Arraste para mover, roda ou + − para zoom · ⌖ volta para você · Esc fecha',
     open: 'O andar visto de cima (J abre grande)',
-    tip: 'Clique em alguém para ir até lá, ou no chão para andar até ali · Esc fecha',
+    tip: 'Arraste para mover, roda ou + − para zoom · clique em alguém para ir até lá, ou no chão para andar até ali · Esc fecha',
     there: 'ali',
   },
   termTabs: {

@@ -77,8 +77,29 @@
 .minimap-big-canvas {
   display: block;
   border-radius: 10px;
-  cursor: pointer;
+  cursor: grab;
   max-width: 100%;
+  touch-action: none;
+}
+.minimap-big-canvas.dragging {
+  cursor: grabbing;
+}
+/* − + ⌖, between the title and the ✕. */
+.modal.minimap-big header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.minimap-zoom {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.minimap-zoom .btn {
+  min-width: 36px;
+  padding: 4px 10px;
+  font-size: 18px;
+  font-weight: 900;
 }
 .minimap-tip {
   margin: 0;

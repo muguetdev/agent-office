@@ -20,6 +20,7 @@ import type { Parts } from '../../core/parts';
 import { store } from '../../state';
 import { BUZZ_SECONDS } from '../coffee/caffeine';
 import { $, h, openModal } from '../../ui/dom';
+import { MapWindow } from './pan';
 import { L } from '../../i18n';
 
 /** Where the model's cut off indoors, over your feet: under the ceiling and the lamps, over the furniture. */
@@ -123,7 +124,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   const camera = new THREE.PerspectiveCamera(38, 1.5, 0.5, 140);
   const clip = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
   let dist: number = DIST.stand;
-  let big: { canvas: HTMLCanvasElement; view: TopView; bounds: Bounds; outside: boolean; close: () => void } | null = null;
+  let big: { canvas: HTMLCanvasElement; view: TopView; win: MapWindow; outside: boolean; close: () => void } | null = null;
   let bigAt = 0;
   const last = new THREE.Vector3();
   let speed = 0;
@@ -176,6 +177,8 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     const hidden: THREE.Object3D[] = [];
     scene.traverseVisible((o) => {
       if ((o as THREE.Sprite).isSprite || (o as THREE.Points).isPoints) hidden.push(o);
+      // From high over the whole map, the clouds (the only meshes the fog never touches) would be in the way.
+      else if (whole && (o as THREE.Mesh).isMesh && ((o as THREE.Mesh).material as THREE.MeshToonMaterial).fog === false) hidden.push(o);
     });
     if (me.root.visible) hidden.push(me.root);
     for (const o of hidden) o.visible = false;
@@ -351,42 +354,60 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     g.restore();
   }
 
-  /** The whole floor big in the middle of the screen, north up: click someone to walk over to them, or the floor to walk there. */
+  /**
+   * The map big in the middle of the screen, north up: the whole floor, or out on the street the whole
+   * map, opening on you. Drag it about, zoom in and out (the wheel, a pinch, + and −), ⌖ back to you;
+   * click someone to walk over to them, or the floor to walk there.
+   */
   function openBig() {
     if (big) return;
     const outside = outdoors();
-    const bounds = outside ? WORLD : floorBounds();
-    const aspect = (bounds.maxZ - bounds.minZ) / (bounds.maxX - bounds.minX);
+    const full = outside ? WORLD : floorBounds();
+    // As big as fits: the floor's own shape, or out of doors as much of the screen as there is.
+    const aspect = outside ? Math.min(1.1, Math.max(0.6, (window.innerHeight - 190) / Math.min(window.innerWidth - 80, 1000))) : (full.maxZ - full.minZ) / (full.maxX - full.minX);
     const width = Math.round(Math.min(window.innerWidth - 80, 1000, (window.innerHeight - 190) / aspect));
     const tv = new TopView(width, Math.round(width * aspect));
+    const p = ctx.player.pos;
+    const win = new MapWindow(full, tv.h / tv.w, outside ? { x: p.x, z: p.z, span: 260 } : undefined);
     const c = h('canvas.minimap-big-canvas', { width: tv.w, height: tv.h }) as HTMLCanvasElement;
     const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
-    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${outside ? L.minimap.cityTitle : L.minimap.title}`), close), c, h('p.minimap-tip', {}, outside ? L.minimap.cityTip : L.minimap.tip));
+    const button = (label: string, title: string, run: () => void) => h('button.btn', { type: 'button', title, 'aria-label': title, onclick: () => (run(), (bigAt = 0)) }, label);
+    const zoom = h(
+      'div.minimap-zoom',
+      {},
+      button('−', L.minimap.zoomOut, () => win.zoom(1 / 1.25)),
+      button('+', L.minimap.zoomIn, () => win.zoom(1.25)),
+      button('⌖', L.minimap.onMe, () => win.centre(ctx.player.pos.x, ctx.player.pos.z)),
+    );
+    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${outside ? L.minimap.cityTitle : L.minimap.title}`), zoom, close), c, h('p.minimap-tip', {}, outside ? L.minimap.cityTip : L.minimap.tip));
+    let letGo = () => {};
     const modal = openModal(el, {
       onClose: () => {
+        letGo();
         tv.dispose();
         big = null;
       },
     });
     close.addEventListener('click', () => modal.close());
-    c.addEventListener('click', (e) => {
-      const r = c.getBoundingClientRect();
-      const k = (bounds.maxX - bounds.minX) / r.width;
-      const x = bounds.minX + (e.clientX - r.left) * k;
-      const z = bounds.minZ + (e.clientY - r.top) * k;
-      // Someone near where you clicked, the nearest first; else the floor there, if you can stand on it.
-      const near = blips()
-        .filter((b) => b.go)
-        .sort((a, b) => Math.hypot(a.at.x - x, a.at.z - z) - Math.hypot(b.at.x - x, b.at.z - z))[0];
-      if (near && Math.hypot(near.at.x - x, near.at.z - z) < 1.2) {
-        modal.close();
-        near.go!();
-      } else if (ctx.world().nav.walkable(x, z)) {
-        modal.close();
-        parts.walking.walkThen({ x, z }, L.minimap.there, () => {});
-      }
-    });
-    big = { canvas: c, view: tv, bounds, outside, close: () => modal.close() };
+    letGo = win.attach(
+      c,
+      (x, z) => {
+        // Someone near where you clicked, the nearest first; else the floor there, if you can stand on it.
+        const near = blips()
+          .filter((b) => b.go)
+          .sort((a, b) => Math.hypot(a.at.x - x, a.at.z - z) - Math.hypot(b.at.x - x, b.at.z - z))[0];
+        const reach = Math.max(1.2, win.span / 60);
+        if (near && Math.hypot(near.at.x - x, near.at.z - z) < reach) {
+          modal.close();
+          near.go!();
+        } else if (ctx.world().nav.walkable(x, z)) {
+          modal.close();
+          parts.walking.walkThen({ x, z }, L.minimap.there, () => {});
+        }
+      },
+      () => (bigAt = 0),
+    );
+    big = { canvas: c, view: tv, win, outside, close: () => modal.close() };
   }
 
   panel.addEventListener('click', openBig);
@@ -413,11 +434,14 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // The big map, ten times a second, whether the corner one's showing or not.
     if (big && now - bigAt > 100) {
       bigAt = now;
-      big.view.frame(big.bounds, floorY, big.outside ? 400 : 20);
+      const bounds = big.win.bounds();
+      big.view.frame(bounds, floorY, big.outside ? 400 : 20);
       const bg = big.canvas.getContext('2d')!;
       const whole = big.outside;
+      // Out of doors, the scenic loop drawn round what's in view, not just round you (the next frame puts it back).
+      if (whole) ctx.office.scenic.cull(v.set(big.win.cx, floorY + 400, big.win.cz), floorY, 1e4);
       big.view.draw((cam) => renderModel(cam, whole), renderer, bg);
-      drawBigBlips(bg, big.bounds, big.view.w / (big.bounds.maxX - big.bounds.minX), (now / 900) % 1);
+      drawBigBlips(bg, bounds, big.view.w / (bounds.maxX - bounds.minX), (now / 900) % 1);
     }
     if (!shown) return;
 

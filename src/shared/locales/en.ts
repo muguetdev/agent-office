@@ -3261,9 +3261,12 @@ Options:
   minimap: {
     title: 'Floor map',
     cityTitle: 'Map',
-    cityTip: 'The office, the city round it and the scenic loop · Esc closes it',
+    zoomIn: 'Zoom in (+)',
+    zoomOut: 'Zoom out (−)',
+    onMe: 'Back to you',
+    cityTip: 'Drag to move, wheel or + − to zoom · ⌖ back to you · Esc closes it',
     open: 'The floor from above (J opens it big)',
-    tip: 'Click someone to walk over to them, or the floor to walk there · Esc closes it',
+    tip: 'Drag to move, wheel or + − to zoom · click someone to walk over to them, or the floor to walk there · Esc closes it',
     there: 'there',
   },
   termTabs: {
