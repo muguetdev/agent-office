@@ -1,5 +1,6 @@
 import { FLOOR, ROAD, WALL_T } from './layout.js';
 import { STREET_END, onLoop } from './scenic.js';
+import { onCityRoad } from './city.js';
 
 // The Lambos and Ferraris in the garage, which anyone can drive: where they're parked, where you can
 // take them (the garage, the lots round it, the street and the scenic loop off either end of it), and
@@ -164,9 +165,9 @@ export function carPoint(p: { x: number; z: number; rotY: number }, lx: number, 
   return { x: p.x + lx * c + lz * s, z: p.z - lx * s + lz * c };
 }
 
-/** Whether (x, z) is somewhere a car can be: the garage, the lots, the street or the loop. */
+/** Whether (x, z) is somewhere a car can be: the garage, the lots, the street, the loop or the city's roads. */
 export function paved(x: number, z: number): boolean {
-  return PAVEMENT.some((b) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) || onLoop(x, z);
+  return PAVEMENT.some((b) => x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ) || onLoop(x, z) || onCityRoad(x, z);
 }
 
 /** Whether the whole car is on the pavement: its corners, and halfway along each side. */

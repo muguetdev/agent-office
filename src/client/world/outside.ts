@@ -5,6 +5,7 @@ import { STREET_END, shoreX } from '../../shared/scenic';
 import type { Collider } from './types';
 import type { Fixture, StreetSite } from './office/fixture';
 import { canvasTexture } from './texture';
+import { CITY_LINKS } from '../../shared/city';
 import { mergeByMaterial, mesh, textPlane, toon, toonUnique } from './toon';
 import { L } from '../i18n';
 
@@ -330,11 +331,16 @@ export function buildStreet(group: THREE.Group, colliders: Collider[], night: Ni
   const road = roadTexture();
   road.repeat.set((STREET_END * 2) / 8, 1);
   group.add(groundPlane(STREET_END * 2, ROAD.maxZ - ROAD.minZ, 0, G - 0.008, (ROAD.minZ + ROAD.maxZ) / 2, road));
-  for (const [z0, z1] of [
-    [21, ROAD.minZ],
-    [ROAD.maxZ, ROAD.maxZ + 2],
-  ]) {
-    group.add(mesh(box(STREET_END * 2 - 4, 0.08, z1 - z0), toon('#e3ddd0'), 0, G, (z0 + z1) / 2));
+  // The sidewalk along the far side is open where the avenue up into the city (shared/city.ts) meets the street.
+  const gap = CITY_LINKS[0].x;
+  for (const [z0, z1, open] of [
+    [21, ROAD.minZ, true],
+    [ROAD.maxZ, ROAD.maxZ + 2, false],
+  ] as const) {
+    const x0 = -(STREET_END - 2);
+    const x1 = STREET_END - 2;
+    const spans = open ? [[x0, gap - 6], [gap + 6, x1]] : [[x0, x1]];
+    for (const [a, b] of spans) group.add(mesh(box(b - a, 0.08, z1 - z0), toon('#e3ddd0'), (a + b) / 2, G, (z0 + z1) / 2));
   }
   const forest = new THREE.Group();
 

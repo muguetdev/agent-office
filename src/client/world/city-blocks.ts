@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CITY_ROAD as ROAD, CITY_WALK as WALK, PERIOD, STREET_X, STREET_Z, blockAt } from '../../shared/city';
 import { roofDrop } from '../../shared/layout';
 import { mulberry32 } from '../../shared/rng';
 import type { NightParts } from './outside';
@@ -10,13 +11,8 @@ import { mergeByMaterial, mesh, toon } from './toon';
 // now and then a park), the buildings' painted walls with their windows lit at night, and what stands
 // on their roofs. All from a handful of shared materials, merged into a few meshes.
 
-/** A block and the street beside it; streets run down x = 28 + 56k and z = 27 + 56k. */
-export const PERIOD = 56;
-export const STREET_X = 28;
-export const STREET_Z = 27;
-/** The road, and a sidewalk either side. */
-export const ROAD = 8;
-export const WALK = 2;
+/** The city grid's (shared/city.ts), for the roof's city and the street's. */
+export { PERIOD, ROAD, STREET_X, STREET_Z, WALK, blockAt };
 /** One storey, and one bay of windows, in meters. */
 export const STOREY = 3.3;
 export const BAY = 2.8;
@@ -230,8 +226,6 @@ export interface Blocks {
   parks: THREE.Group;
 }
 
-/** The middle of block (i, j). */
-export const blockAt = (i: number, j: number) => ({ x: STREET_X - PERIOD / 2 + i * PERIOD, z: STREET_Z - PERIOD / 2 + j * PERIOD });
 /** A block's own ground inside its sidewalks. */
 export const INNER = PERIOD - ROAD - WALK * 2;
 

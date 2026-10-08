@@ -1,4 +1,5 @@
 import { FARM, LAKE, LOOP_PAVED, MOUNTAINS, shoreX } from '../../../shared/scenic';
+import { inCity } from '../../../shared/city';
 import { neighbourBoxes } from '../outside';
 import { AUTUMN, LEAVES, PINES, boulder, leafy, palm, pine } from './flora';
 import { G, beside, inBox, indexAt, insideLoop, nearest, stretch, type ScenicKit } from './kit';
@@ -8,7 +9,8 @@ export function plantTrees(kit: ScenicKit) {
   const { rand, parts, colliders, trunk, taken, free } = kit;
   const neighbours = neighbourBoxes();
   const town = (x: number, z: number) => (Math.abs(x) < 64 && z > -64 && z < 40) || (x > -24 && x < 14 && z > 30 && z < 72) || neighbours.some((b) => inBox(b, x, z, 5));
-  const ok = (x: number, z: number, r: number) => free(x, z, r) && !town(x, z) && x > shoreX(z) + 26 && !MOUNTAINS.some(([mx, mz, mr]) => Math.hypot(mx - x, mz - z) < mr * 0.95);
+  // Never in the city round the office (shared/city.ts), its streets or the avenues out of it.
+  const ok = (x: number, z: number, r: number) => free(x, z, r) && !town(x, z) && !inCity(x, z, r + 1) && x > shoreX(z) + 26 && !MOUNTAINS.some(([mx, mz, mr]) => Math.hypot(mx - x, mz - z) < mr * 0.95);
   // The pines: thick right up to the road, thinning out further off, with a leafy tree here and there.
   for (let x = 110; x < 320; x += 5.5) {
     for (let z = 50; z < 340; z += 5.5) {

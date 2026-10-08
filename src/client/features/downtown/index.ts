@@ -10,11 +10,12 @@ import { randomLook } from '../../../shared/avatar';
 import type { Ctx } from '../../core/context';
 import { Person } from '../../world/character/person';
 import { loadModel, piece } from '../../world/models';
-import { DOWNTOWN, isCityBlock } from '../../world/skyline';
+import { blockAt, isCityBlock } from '../../../shared/city';
+import { DOWNTOWN } from '../../world/skyline';
 import type { Collider } from '../../world/types';
 import { KINDS, PAINT } from '../traffic';
 
-const { blockAt, CURB } = DOWNTOWN;
+const { CURB } = DOWNTOWN;
 const PERIOD = 56;
 /** Each way round: the lane's middle, a quarter of the road in from its middle. */
 const LANE = (ROAD.maxZ - ROAD.minZ) / 4;

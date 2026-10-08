@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { STREET_Y } from '../../shared/layout';
 import { mulberry32 } from '../../shared/rng';
-import { PERIOD, ROAD, STOREY, STREET_X, STREET_Z, WALK, Walls, blockAt, layBlocks, type Lot } from './city-blocks';
+import { CITY_EAST, CITY_LINKS, CITY_NORTH, CITY_RADIUS, CITY_ROAD as ROAD, CITY_WALK as WALK, PERIOD, isCityBlock } from '../../shared/city';
+import { STOREY, Walls, layBlocks, type Lot } from './city-blocks';
 import type { Fixture, StreetSite } from './office/fixture';
 import { bulb, roadTexture, tree, type NightParts } from './outside';
 import { tilingCanvasTexture } from './texture';
@@ -16,23 +18,20 @@ import { mergeByMaterial, mesh, toon } from './toon';
 // what's along it, or the sea. Cars and people go round its blocks (features/downtown).
 
 const G = STREET_Y;
-/** How far out it goes: past this the haze has it anyway. */
-const RADIUS = 330;
-/** Its edges: the street behind the office's (z), the one east of the pines (x), and clear of the coast to the west (x). */
-const NORTH = STREET_Z - 2 * PERIOD;
-const EAST = STREET_X + 4 * PERIOD;
-const WEST = STREET_X - 4 * PERIOD;
+const RADIUS = CITY_RADIUS;
 /** A street's half, sidewalks included, and how high the sidewalks stand. */
 const HALF = ROAD / 2 + WALK;
 const CURB = 0.12;
+/** A block's sidewalk all round it, and how round its corners are. */
+const BLOCK = PERIOD - ROAD;
+const CORNER = 4;
+/** The zebra crossings across each end of a street, how far along it they reach. */
+const ZEBRA = 3;
 /** Closer than this, buildings get shops along the bottom, the streets lamps and trees. */
 const NEAR = 200;
 
-/** Whether the block with its middle at (x, z) is the city's. */
-export const isCityBlock = (x: number, z: number) => (z < NORTH || x > EAST) && x > WEST && Math.hypot(x, z) <= RADIUS;
-
-/** The city's layout, for what goes round it (features/downtown): its edges, and the block (i, j) is at. */
-export const DOWNTOWN = { NORTH, EAST, WEST, RADIUS, HALF, CURB, blockAt } as const;
+/** The city's layout, for what goes round it (features/downtown): how high its sidewalks stand. */
+export const DOWNTOWN = { CURB } as const;
 
 /** The neighbours' kind of paint: walls, and their windows (see outside.ts building). */
 const PAINTS = ['#8ecae6', '#ffb4a2', '#cdb4db', '#ffd6a5', '#a2d2ff', '#f4acb7', '#ffe5b4', '#bde0fe', '#e9c46a', '#b8c0c8', '#f6bd60', '#c9e4de'];
@@ -104,6 +103,43 @@ function road(x: number, z: number, len: number, alongX: boolean, mat: THREE.Mat
   return new THREE.Mesh(geo, mat);
 }
 
+/** A plain flat rectangle on the ground at height y. */
+function flat(x0: number, x1: number, z0: number, z1: number, y: number, mat: THREE.Material): THREE.Mesh {
+  return mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), mat, (x0 + x1) / 2, y, (z0 + z1) / 2, false);
+}
+
+/** A zebra crossing's white bars, across the road. */
+function zebraTexture(): THREE.CanvasTexture {
+  return tilingCanvasTexture(128, 32, (c) => {
+    c.clearRect(0, 0, 128, 32);
+    c.fillStyle = '#f1f1f1';
+    for (let i = 0; i < 8; i++) c.fillRect(i * 16 + 3, 3, 10, 26);
+  });
+}
+
+/** A zebra crossing at (x, z) across a road along x (or along z). */
+function crossing(x: number, z: number, alongX: boolean, mat: THREE.Material): THREE.Mesh {
+  const geo = new THREE.PlaneGeometry(ROAD - 0.6, ZEBRA - 0.6).rotateX(-Math.PI / 2);
+  if (alongX) geo.rotateY(Math.PI / 2);
+  return new THREE.Mesh(geo.translate(x, G - 0.004, z), mat);
+}
+
+/** A square `size` across with its corners rounded `r`, in the x–y plane round the origin. */
+function roundedSquare(size: number, r: number): THREE.Shape {
+  const h = size / 2;
+  const s = new THREE.Shape();
+  s.moveTo(-h + r, -h);
+  s.lineTo(h - r, -h);
+  s.absarc(h - r, -h + r, r, -Math.PI / 2, 0, false);
+  s.lineTo(h, h - r);
+  s.absarc(h - r, h - r, r, 0, Math.PI / 2, false);
+  s.lineTo(-h + r, h);
+  s.absarc(-h + r, h - r, r, Math.PI / 2, Math.PI, false);
+  s.lineTo(-h, -h + r);
+  s.absarc(-h + r, -h + r, r, Math.PI, Math.PI * 1.5, false);
+  return s;
+}
+
 /** The city round the street (see above), built once, down on the street. */
 export const skyline: Fixture<never, StreetSite> = (site) => {
   const night = site.get('night');
@@ -119,14 +155,25 @@ export const skyline: Fixture<never, StreetSite> = (site) => {
     return take;
   });
 
-  // The streets: every side of every block, the asphalt like the street out front's, a plain square
-  // where two cross; and each block a raised sidewalk all round it.
+  // The streets: one asphalt under the whole grid (so where two cross it's one piece of road), the lane
+  // markings like the street out front's between the crossings, a zebra crossing across each end, and
+  // each block a raised sidewalk all round it with rounded corners.
   const asphalt = new THREE.MeshToonMaterial({ map: roadTexture().clone(), gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap });
   asphalt.map!.wrapS = THREE.RepeatWrapping;
   asphalt.map!.needsUpdate = true;
   const streets = new THREE.Group();
+  const plain = toon('#5b606c');
+  const extent = (bs: { x: number; z: number }[]) =>
+    bs.length && streets.add(flat(Math.min(...bs.map((b) => b.x)) - PERIOD / 2, Math.max(...bs.map((b) => b.x)) + PERIOD / 2, Math.min(...bs.map((b) => b.z)) - PERIOD / 2, Math.max(...bs.map((b) => b.z)) + PERIOD / 2, G - 0.01, plain));
+  extent(blocks.filter((b) => b.z < CITY_NORTH));
+  extent(blocks.filter((b) => b.z >= CITY_NORTH && b.x > CITY_EAST));
+  const zebra = new THREE.MeshToonMaterial({ map: zebraTexture(), transparent: true, gradientMap: (toon('#fff') as THREE.MeshToonMaterial).gradientMap });
   const ways = new Set<string>();
-  const crossings = new Set<string>();
+  // The textured ones (the lanes' markings, the zebras) merged keeping their UVs, which mergeByMaterial drops.
+  const lanes: THREE.BufferGeometry[] = [];
+  const zebras: THREE.BufferGeometry[] = [];
+  const kerb = new THREE.ExtrudeGeometry(roundedSquare(BLOCK, CORNER), { depth: CURB, bevelEnabled: false, curveSegments: 6 }).rotateX(-Math.PI / 2);
+  const pavement = toon('#e3ddd0');
   for (const b of blocks) {
     for (const [dx, dz, alongX] of [
       [0, -1, true],
@@ -139,17 +186,25 @@ export const skyline: Fixture<never, StreetSite> = (site) => {
       const key = `${x},${z}`;
       if (ways.has(key)) continue;
       ways.add(key);
-      streets.add(road(x, z, PERIOD - ROAD, alongX, asphalt));
+      lanes.push(road(x, z, BLOCK - ZEBRA * 2, alongX, asphalt).geometry);
+      for (const end of [-1, 1]) {
+        const along = end * (BLOCK / 2 - ZEBRA / 2);
+        zebras.push(crossing(alongX ? x + along : x, alongX ? z : z + along, alongX, zebra).geometry);
+      }
     }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) crossings.add(`${b.x + (sx * PERIOD) / 2},${b.z + (sz * PERIOD) / 2}`);
-    streets.add(mesh(new THREE.BoxGeometry(PERIOD - ROAD, CURB, PERIOD - ROAD), toon('#e3ddd0'), b.x, G + CURB / 2 - 0.01, b.z, false));
+    streets.add(new THREE.Mesh(kerb.clone().translate(b.x, G - 0.01, b.z), pavement));
   }
-  const plain = toon('#5b606c');
-  for (const key of crossings) {
-    const [x, z] = key.split(',').map(Number);
-    streets.add(mesh(new THREE.PlaneGeometry(ROAD, ROAD).rotateX(-Math.PI / 2), plain, x, G - 0.005, z, false));
+
+  // The avenues out of it, to the street out front and to the scenic loop: a road down each, a sidewalk
+  // either side, and lamps and trees along them.
+  for (const l of CITY_LINKS) {
+    const z0 = l.z0 + ROAD / 2;
+    const len = l.z1 - z0;
+    lanes.push(road(l.x, z0 + len / 2, len, false, asphalt).geometry);
+    zebras.push(crossing(l.x, z0 + ZEBRA / 2, false, zebra).geometry);
+    for (const s of [-1, 1]) streets.add(mesh(new THREE.BoxGeometry(WALK, CURB, len - CORNER), pavement, l.x + s * (ROAD / 2 + WALK / 2), G + CURB / 2 - 0.01, z0 + CORNER / 2 + len / 2, false));
   }
-  group.add(mergeByMaterial(streets));
+  group.add(mergeByMaterial(streets), new THREE.Mesh(mergeGeometries(lanes), asphalt), new THREE.Mesh(mergeGeometries(zebras), zebra));
   parks.position.y = G + CURB;
   group.add(mergeByMaterial(parks));
 
@@ -188,6 +243,26 @@ export const skyline: Fixture<never, StreetSite> = (site) => {
           t.position.set(x, G + CURB, z);
           trees.add(t);
           colliders.push({ minX: x - 0.25, maxX: x + 0.25, minZ: z - 0.25, maxZ: z + 0.25, bottom: G, top: G + 2.2 });
+        }
+      }
+    }
+  }
+  for (const l of CITY_LINKS) {
+    for (let z = l.z0 + ROAD / 2 + 10; z < l.z1 - 6; z += 14) {
+      for (const s of [-1, 1]) {
+        const x = l.x + s * (ROAD / 2 + 0.6);
+        if (Math.round((z - l.z0) / 14) % 2) {
+          lamps.add(mesh(new THREE.CylinderGeometry(0.07, 0.09, 5, 8), ink, x, G + CURB + 2.5, z));
+          lamps.add(mesh(new THREE.BoxGeometry(1.3, 0.08, 0.08), ink, x - s * 0.6, G + CURB + 4.95, z));
+          lamps.add(mesh(new THREE.CylinderGeometry(0.12, 0.42, 0.26, 12), ink, x - s * 1.2, G + CURB + 4.9, z));
+          lamps.add(mesh(new THREE.SphereGeometry(0.22, 12, 8), glass, x - s * 1.2, G + CURB + 4.7, z, false));
+          night.halos.push({ at: new THREE.Vector3(x - s * 1.2, G + CURB + 4.66, z), size: 2.4, color: '#ffd89a', ground: true });
+          colliders.push({ minX: x - 0.2, maxX: x + 0.2, minZ: z - 0.2, maxZ: z + 0.2, bottom: G, top: G + 5 });
+        } else {
+          const t = tree(0.85 + r() * 0.3);
+          t.position.set(x + s * 0.9, G + CURB, z);
+          trees.add(t);
+          colliders.push({ minX: x + s * 0.9 - 0.25, maxX: x + s * 0.9 + 0.25, minZ: z - 0.25, maxZ: z + 0.25, bottom: G, top: G + 2.2 });
         }
       }
     }
