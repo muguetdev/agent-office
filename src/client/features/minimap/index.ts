@@ -7,7 +7,8 @@
  * whoever's waiting on you, and the people, stay on its edge when they're off it, pointing the
  * way. It pulls back while you run, and further while you drive. Under it, bars for your coffee buzz
  * and how much you've had at the bar. J (or a click on it) opens the whole floor big, north up, where a
- * click on someone walks you over to them, and a click on the floor walks you there.
+ * click on someone walks you over to them, and a click on the floor walks you there; out on the street,
+ * the whole map instead (the office, the city round it, the scenic loop).
  */
 import './minimap.css';
 import * as THREE from 'three';
@@ -33,6 +34,8 @@ const WORKER: Record<string, string> = { working: '#06d6a0', needs_input: '#ffd1
 const RESTING = '#4895ef';
 const IDLE = '#ffffff';
 const BACKDROP = new THREE.Color('#3d3530');
+/** The whole map out of doors, for the big map on the street: the city round the office, the scenic loop, the beach. */
+const WORLD: Bounds = { minX: -262, maxX: 345, minZ: -340, maxZ: 390 };
 /** Where the office's places are, for their icons. */
 const PLACES: { icon: string; x: number; z: number }[] = [
   { icon: '☕', x: -15.4, z: 10.9 },
@@ -64,7 +67,7 @@ interface Blip {
 
 /** The whole floor from straight above, for the big map: drawn into pixels a 2D canvas can show. */
 class TopView {
-  readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 40);
+  readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 900);
   private target: THREE.WebGLRenderTarget;
   private buffer: Uint8Array;
   private image: ImageData;
@@ -79,12 +82,12 @@ class TopView {
     this.image = new ImageData(w, h);
   }
 
-  /** Frames all of `b` from straight above, north up. */
-  frame(b: Bounds, y: number) {
+  /** Frames all of `b` from straight above, north up, from `over` meters up. */
+  frame(b: Bounds, y: number, over = 20) {
     const c = this.camera;
     Object.assign(c, { left: -(b.maxX - b.minX) / 2, right: (b.maxX - b.minX) / 2, top: (b.maxZ - b.minZ) / 2, bottom: -(b.maxZ - b.minZ) / 2 });
     c.updateProjectionMatrix();
-    c.position.set((b.minX + b.maxX) / 2, y + 20, (b.minZ + b.maxZ) / 2);
+    c.position.set((b.minX + b.maxX) / 2, y + over, (b.minZ + b.maxZ) / 2);
     c.up.set(0, 0, -1);
     c.lookAt(c.position.x, y, c.position.z);
     c.updateMatrixWorld();
@@ -120,7 +123,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   const camera = new THREE.PerspectiveCamera(38, 1.5, 0.5, 140);
   const clip = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0)];
   let dist: number = DIST.stand;
-  let big: { canvas: HTMLCanvasElement; view: TopView; bounds: Bounds; close: () => void } | null = null;
+  let big: { canvas: HTMLCanvasElement; view: TopView; bounds: Bounds; outside: boolean; close: () => void } | null = null;
   let bigAt = 0;
   const last = new THREE.Vector3();
   let speed = 0;
@@ -145,6 +148,11 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     return parts.worlds.inOffice() && p.x > FLOOR.minX - WALL_T && p.x < FLOOR.maxX + WALL_T && p.z > FLOOR.minZ - WALL_T && p.z < FLOOR.maxZ + WALL_T;
   }
 
+  /** Out on the street round the office (not on its floor, nor in the garage under it): the big map's the whole map. */
+  function outdoors(): boolean {
+    return parts.worlds.inOffice() && !ctx.upTop() && floorY < -1 && !underRoof();
+  }
+
   /** The way you're looking, as an angle round from +z. */
   function heading(): number {
     const p = ctx.player;
@@ -155,7 +163,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
    * Draws the scene through `cam` as a model: indoors cut off over head height (outdoors the trees and
    * buildings stay whole), without name tags, bubbles or you.
    */
-  function renderModel(cam: THREE.Camera) {
+  function renderModel(cam: THREE.Camera, whole = false) {
     const { renderer, scene, me } = ctx;
     // The ceiling's cut by the level you're on, not your feet: in the office the storey's floor (over the
     // loft's head height when you're up there), down in the garage or out on the street the street's, so
@@ -173,6 +181,9 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     for (const o of hidden) o.visible = false;
     const background = scene.background;
     const shadows = renderer.shadowMap.autoUpdate;
+    // The whole map's seen from high up: no haze over it.
+    const fog = scene.fog;
+    if (whole) scene.fog = null;
     scene.background = BACKDROP;
     // The sun's shadows are worked out already this frame.
     renderer.shadowMap.autoUpdate = false;
@@ -180,11 +191,12 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // over it with it; outside there's no ceiling, just what's under your feet. On the office's storey
     // nothing's cut from under it: its floor hides the storeys below, and round the building you see down
     // to the street and the lots rather than a dark gap.
-    renderer.clippingPlanes = underRoof() ? [clip[0]] : [];
+    renderer.clippingPlanes = underRoof() && !whole ? [clip[0]] : [];
     renderer.render(scene, cam);
     renderer.clippingPlanes = [];
     renderer.shadowMap.autoUpdate = shadows;
     scene.background = background;
+    scene.fog = fog;
     for (const o of hidden) o.visible = true;
   }
 
@@ -192,7 +204,8 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   function blips(): Blip[] {
     const out: Blip[] = [];
     const y = ctx.player.pos.y;
-    if (parts.worlds.inOffice() && !ctx.upTop()) for (const p of PLACES) out.push({ at: new THREE.Vector3(p.x, y, p.z), icon: p.icon });
+    if (big?.outside) out.push({ at: new THREE.Vector3(0, y, 0), icon: '🏢' });
+    else if (parts.worlds.inOffice() && !ctx.upTop()) for (const p of PLACES) out.push({ at: new THREE.Vector3(p.x, y, p.z), icon: p.icon });
     for (const [id, vw] of parts.views.workerViews) {
       const w = store.workers.get(id);
       if (!w) continue;
@@ -341,13 +354,14 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
   /** The whole floor big in the middle of the screen, north up: click someone to walk over to them, or the floor to walk there. */
   function openBig() {
     if (big) return;
-    const bounds = floorBounds();
+    const outside = outdoors();
+    const bounds = outside ? WORLD : floorBounds();
     const aspect = (bounds.maxZ - bounds.minZ) / (bounds.maxX - bounds.minX);
     const width = Math.round(Math.min(window.innerWidth - 80, 1000, (window.innerHeight - 190) / aspect));
     const tv = new TopView(width, Math.round(width * aspect));
     const c = h('canvas.minimap-big-canvas', { width: tv.w, height: tv.h }) as HTMLCanvasElement;
     const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
-    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${L.minimap.title}`), close), c, h('p.minimap-tip', {}, L.minimap.tip));
+    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${outside ? L.minimap.cityTitle : L.minimap.title}`), close), c, h('p.minimap-tip', {}, outside ? L.minimap.cityTip : L.minimap.tip));
     const modal = openModal(el, {
       onClose: () => {
         tv.dispose();
@@ -372,7 +386,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
         parts.walking.walkThen({ x, z }, L.minimap.there, () => {});
       }
     });
-    big = { canvas: c, view: tv, bounds, close: () => modal.close() };
+    big = { canvas: c, view: tv, bounds, outside, close: () => modal.close() };
   }
 
   panel.addEventListener('click', openBig);
@@ -399,9 +413,10 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     // The big map, ten times a second, whether the corner one's showing or not.
     if (big && now - bigAt > 100) {
       bigAt = now;
-      big.view.frame(big.bounds, floorY);
+      big.view.frame(big.bounds, floorY, big.outside ? 400 : 20);
       const bg = big.canvas.getContext('2d')!;
-      big.view.draw(renderModel, renderer, bg);
+      const whole = big.outside;
+      big.view.draw((cam) => renderModel(cam, whole), renderer, bg);
       drawBigBlips(bg, big.bounds, big.view.w / (big.bounds.maxX - big.bounds.minX), (now / 900) % 1);
     }
     if (!shown) return;

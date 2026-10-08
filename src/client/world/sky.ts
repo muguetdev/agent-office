@@ -761,8 +761,8 @@ export class Sky {
     // the street never goes into it from the top floors, and from the roof you see across the city.
     // Out in the country (see open) it's further off again.
     const open = 1 + 1.4 * this.open;
-    fog.near = lerp(40, 3, this.fog) * (1 - 0.4 * precip) * open;
-    fog.far = lerp(90, 28, this.fog) * (1 - 0.3 * precip) * open;
+    fog.near = lerp(110, 3, this.fog) * (1 - 0.4 * precip) * open;
+    fog.far = lerp(240, 28, this.fog) * (1 - 0.3 * precip) * open;
     uniforms.skyStreet.value = this.roof ? this.roofStreet : this.indoors ? 0 : this.night.street;
     this.night.clouds.color.copy(C.white).lerp(C.cloudGrey, this.cover).lerp(SPOOKY.cloud, sp);
     this.night.clouds.visible = this.fog < 0.6;

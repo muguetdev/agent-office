@@ -3249,6 +3249,8 @@ Opções:
   },
   minimap: {
     title: 'Mapa do andar',
+    cityTitle: 'Mapa',
+    cityTip: 'O escritório, a cidade em volta e o circuito · Esc fecha',
     open: 'O andar visto de cima (J abre grande)',
     tip: 'Clique em alguém para ir até lá, ou no chão para andar até ali · Esc fecha',
     there: 'ali',

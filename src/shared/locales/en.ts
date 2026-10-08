@@ -3260,6 +3260,8 @@ Options:
   },
   minimap: {
     title: 'Floor map',
+    cityTitle: 'Map',
+    cityTip: 'The office, the city round it and the scenic loop · Esc closes it',
     open: 'The floor from above (J opens it big)',
     tip: 'Click someone to walk over to them, or the floor to walk there · Esc closes it',
     there: 'there',
