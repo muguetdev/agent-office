@@ -16,7 +16,7 @@ import {
 import type { Person } from '../../world/character/person';
 import { HIPS } from '../../world/character/rig';
 import { model } from '../../world/models';
-import { toon } from '../../world/toon';
+import { avatarMaterial } from './material';
 
 const A = 'CH_OfficeAvatar_';
 const LOD = '_LOD0';
@@ -150,7 +150,7 @@ export class Avatar {
       // so everyone in the same colour shares one. The roles are kept on the mesh the first time.
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       const roles: string[] = (mesh.userData.roles ??= mats.map((mt) => mt.name));
-      const painted = roles.map((r) => toon(outfit.colors[r] ?? '#ff00ff'));
+      const painted = roles.map((r) => avatarMaterial(outfit.colors[r] ?? '#ff00ff', piece.startsWith(A + 'Face_')));
       mesh.material = Array.isArray(mesh.material) ? painted : painted[0];
       if (mesh.visible && mesh.morphTargetDictionary && piece.startsWith(A + 'Face_')) this.faces.push(mesh);
     });
