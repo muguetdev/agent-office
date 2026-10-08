@@ -2,7 +2,7 @@ import './character.css';
 import * as THREE from 'three';
 import { OutlineEffect } from 'three/examples/jsm/effects/OutlineEffect.js';
 import {
-  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, CUT_STYLE, HAIR_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
+  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, CUT_STYLE, FRAME_COLORS, HAIR_COLORS, INNER_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
   outfitFromSeed, randomLook, randomName, type Look, type Outfit,
 } from '../../shared/avatar';
 import { AVATAR_COLORS, saveProfile, store, type Profile } from '../state';
@@ -179,10 +179,13 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
     ['top', C.top, AVATAR_TOPS, C.tops],
     ['bottom', C.pants, AVATAR_BOTTOMS, C.bottoms],
     ['shoes', C.shoes, AVATAR_SHOES, C.shoeKinds],
+    ['badge', C.badge, ['None', 'Lanyard'], C.badgeKinds],
   ];
   const rows = Object.fromEntries(kinds.map(([k, label]) => [k, h('div.seg', { role: 'radiogroup', 'aria-label': label })])) as Record<string, HTMLElement>;
   const pantsRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.pantsColor });
   const shoeRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.shoesColor });
+  const innerRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.innerColor });
+  const framesRow = h('div.swatches', { role: 'radiogroup', 'aria-label': C.framesColor });
 
   const swatch = (color: string, label: string, on: boolean, choose: () => void) =>
     h('button.swatch', { type: 'button', role: 'radio', 'aria-checked': String(on), style: `background:${color}`, class: on ? 'sel' : '', 'aria-label': label, title: label, onclick: choose });
@@ -209,6 +212,9 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
       );
     pantsRow.replaceChildren(...PANTS_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, PANTS_COLORS.length), i === o.pants, () => wear({ pants: i }))));
     shoeRow.replaceChildren(...SHOE_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, SHOE_COLORS.length), i === o.shoeColor, () => wear({ shoeColor: i }))));
+    innerRow.replaceChildren(...INNER_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, INNER_COLORS.length), i === o.inner, () => wear({ inner: i }))));
+    framesRow.replaceChildren(...FRAME_COLORS.map((c, i) => swatch(c, C.colorN(i + 1, FRAME_COLORS.length), i === o.frames, () => wear({ frames: i }))));
+    framesRow.hidden = !o.glasses;
     hairRow.replaceChildren(...HAIR_COLORS.map((c, i) => swatch(c, L.character.hairColors[i], i === hair, () => change({ hair: i }))));
     shirtRow.replaceChildren(...AVATAR_COLORS.map((c) => swatch(c, L.character.shirtN(c), c === pick.color, () => change({}, c))));
   };
@@ -238,10 +244,18 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
         h('label', {}, L.character.hair),
         rows.cut,
         hairRow,
-        h('div.charsel-pair', {}, h('div', {}, h('label', {}, C.beard), rows.beard), h('div', {}, h('label', {}, C.glasses), rows.glasses)),
+        h('label', {}, C.beard),
+        rows.beard,
+        h('label', {}, C.glasses),
+        rows.glasses,
+        framesRow,
         h('label', {}, C.top),
         rows.top,
         shirtRow,
+        h('label', {}, C.innerColor),
+        innerRow,
+        h('label', {}, C.badge),
+        rows.badge,
         h('div.charsel-pair', {}, h('div', {}, h('label', {}, C.pants), rows.bottom, pantsRow), h('div', {}, h('label', {}, C.shoes), rows.shoes, shoeRow)),
       ),
     ),

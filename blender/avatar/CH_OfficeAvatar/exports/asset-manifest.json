@@ -1,6 +1,6 @@
 {
   "asset": "CH_OfficeAvatar",
-  "generated": "2026-10-07T21:39:37",
+  "generated": "2026-10-07T21:48:45",
   "blender": "5.2.2 LTS",
   "source": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_delivery.blend",
   "target_engine": "three.js",
@@ -22,12 +22,12 @@
     ],
     "max": [
       0.3481,
-      0.2428,
+      0.2599,
       1.6307
     ],
     "size": [
       0.6961,
-      0.5321,
+      0.5492,
       1.6308
     ]
   },
@@ -50,29 +50,42 @@
         "CH_OfficeAvatar_Hair_Wavy_LOD0",
         "CH_OfficeAvatar_Hair_Bun_LOD0",
         "CH_OfficeAvatar_Hair_Bob_LOD0",
+        "CH_OfficeAvatar_Hair_Short_LOD0",
+        "CH_OfficeAvatar_Hair_Curly_LOD0",
+        "CH_OfficeAvatar_Hair_Long_LOD0",
         "CH_OfficeAvatar_Beard_Stubble_LOD0",
         "CH_OfficeAvatar_Beard_Full_LOD0",
+        "CH_OfficeAvatar_Beard_Long_LOD0",
+        "CH_OfficeAvatar_Beard_Goatee_LOD0",
         "CH_OfficeAvatar_Top_Tee_LOD0",
         "CH_OfficeAvatar_Top_HoodieOpen_LOD0",
         "CH_OfficeAvatar_Top_Jacket_LOD0",
+        "CH_OfficeAvatar_Top_Sweater_LOD0",
+        "CH_OfficeAvatar_Print_Squares_LOD0",
         "CH_OfficeAvatar_Bottom_Trousers_LOD0",
         "CH_OfficeAvatar_Bottom_Joggers_LOD0",
         "CH_OfficeAvatar_Shoes_Sneakers_LOD0",
         "CH_OfficeAvatar_Shoes_Runners_LOD0",
         "CH_OfficeAvatar_Glasses_Round_LOD0",
-        "CH_OfficeAvatar_Glasses_Square_LOD0"
+        "CH_OfficeAvatar_Glasses_Square_LOD0",
+        "CH_OfficeAvatar_Glasses_Thick_LOD0",
+        "CH_OfficeAvatar_Glasses_Sun_LOD0",
+        "CH_OfficeAvatar_Badge_Lanyard_LOD0"
       ],
-      "tris": 33781
+      "tris": 48357
     }
   ],
   "materials": [
     "M_Accessories",
+    "M_Badge",
     "M_EyeHighlight",
     "M_Eyes",
     "M_Hair",
+    "M_Lanyard",
     "M_Mouth",
     "M_Pants",
     "M_PrimaryClothing",
+    "M_Print",
     "M_SecondaryClothing",
     "M_Shoes",
     "M_ShoesAccent",

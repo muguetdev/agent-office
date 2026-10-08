@@ -24,22 +24,36 @@ export interface Outfit {
   beard: number;
   pants: number;
   shoeColor: number;
+  /** The shirt inside an open hoodie, the trims and a sweater's collar. */
+  inner: number;
+  /** The glasses' frames. */
+  frames: number;
+  /** An ID badge on a lanyard (0 none, 1 on). */
+  badge: number;
 }
 
 /** The avatar's hair cuts, and the classic HAIR_STYLES each one is closest to (for the cartoon people). */
-export const AVATAR_CUTS = ['Wavy', 'Bun', 'Bob', 'Bald'] as const;
-export const CUT_STYLE = [0, 2, 1, 6];
-export const AVATAR_TOPS = ['HoodieOpen', 'Jacket', 'Tee'] as const;
+// New choices go on the end of each list, so an index saved before still means the same.
+export const AVATAR_CUTS = ['Wavy', 'Bun', 'Bob', 'Bald', 'Short', 'Curly', 'Long'] as const;
+export const CUT_STYLE = [0, 2, 1, 6, 0, 4, 1];
+export const AVATAR_TOPS = ['HoodieOpen', 'Jacket', 'Tee', 'Sweater', 'TeePrint'] as const;
 export const AVATAR_BOTTOMS = ['Trousers', 'Joggers'] as const;
 export const AVATAR_SHOES = ['Sneakers', 'Runners'] as const;
-export const AVATAR_GLASSES = ['None', 'Round', 'Square'] as const;
-export const AVATAR_BEARDS = ['None', 'Stubble', 'Full'] as const;
+export const AVATAR_GLASSES = ['None', 'Round', 'Square', 'Thick', 'Sun'] as const;
+export const AVATAR_BEARDS = ['None', 'Stubble', 'Full', 'Long', 'Goatee'] as const;
+export const INNER_COLORS = ['#F4F4F2', '#2B2F37', '#FFC21F', '#3E7DF1', '#E63946', '#7F858F', '#2E8A84', '#F3EEE4'];
+export const FRAME_COLORS = ['#22252B', '#2F7FF0', '#B07A57', '#C9A227', '#E63946', '#F4F4F4', '#8E5CC9', '#2E8A84'];
+/** Whether a top leaves the forearms bare (a tee). */
+export const bareArms = (top: number) => AVATAR_TOPS[top] === 'Tee' || AVATAR_TOPS[top] === 'TeePrint';
 export const PANTS_COLORS = ['#2A3044', '#3B4256', '#7F858F', '#B8A486', '#1E1E22', '#4A6FA5', '#5B4636', '#556B3A', '#8C2F39', '#E9E4D8', '#C9A227', '#6D597A'];
 export const SHOE_COLORS = ['#F4F4F4', '#2F7FF0', '#2B2F37', '#B9BCC2', '#E63946', '#06D6A0', '#FFD166', '#F77F00', '#9D4EDD', '#FF8FAB', '#8B5A2B', '#264653'];
 const OUTFIT_SIZES: Record<keyof Outfit, number> = {
   cut: AVATAR_CUTS.length, top: AVATAR_TOPS.length, bottom: AVATAR_BOTTOMS.length, shoes: AVATAR_SHOES.length,
   glasses: AVATAR_GLASSES.length, beard: AVATAR_BEARDS.length, pants: PANTS_COLORS.length, shoeColor: SHOE_COLORS.length,
+  inner: INNER_COLORS.length, frames: FRAME_COLORS.length, badge: 2,
 };
+/** Choices added after the first outfits were saved: missing from those, so they start at 0. */
+const LATER: (keyof Outfit)[] = ['inner', 'frames', 'badge'];
 const OUTFIT_KEYS = Object.keys(OUTFIT_SIZES) as (keyof Outfit)[];
 
 /** An outfit from anything (a message, the browser's storage), or undefined if it isn't a whole, valid one. */
@@ -48,7 +62,7 @@ export function sanitizeOutfit(x: unknown): Outfit | undefined {
   const o = x as Record<string, unknown>;
   const out = {} as Outfit;
   for (const k of OUTFIT_KEYS) {
-    const v = o[k];
+    const v = o[k] === undefined && LATER.includes(k) ? 0 : o[k];
     if (!Number.isInteger(v) || (v as number) < 0 || (v as number) >= OUTFIT_SIZES[k]) return undefined;
     out[k] = v as number;
   }
@@ -59,7 +73,8 @@ export function sanitizeOutfit(x: unknown): Outfit | undefined {
 export const outfitParam = (o: Outfit) => OUTFIT_KEYS.map((k) => o[k]).join(',');
 export function parseOutfit(s: string | null | undefined): Outfit | undefined {
   const n = (s ?? '').split(',').map(Number);
-  return n.length === OUTFIT_KEYS.length ? sanitizeOutfit(Object.fromEntries(OUTFIT_KEYS.map((k, i) => [k, n[i]]))) : undefined;
+  const known = OUTFIT_KEYS.length - LATER.length;
+  return n.length >= known && n.length <= OUTFIT_KEYS.length ? sanitizeOutfit(Object.fromEntries(n.map((v, i) => [OUTFIT_KEYS[i], v]))) : undefined;
 }
 
 /** A whole outfit from a seed (the name), for someone who hasn't picked one: what they're seen in till they do. */
@@ -68,7 +83,7 @@ export function outfitFromSeed(seed: string, style: number): Outfit {
   const cut = [0, 2, 1, 0, 0, 1, 3][style] ?? 0;
   const g = (h >>> 7) % 8;
   const b = (h >>> 11) % 10;
-  return { cut, top: h % 3, bottom: (h >>> 3) % 2, shoes: (h >>> 5) % 2, glasses: g === 0 ? 1 : g === 1 ? 2 : 0, beard: b === 0 ? 1 : b === 1 ? 2 : 0, pants: (h >>> 13) % 4, shoeColor: (h >>> 15) % 4 };
+  return { cut, top: h % 3, bottom: (h >>> 3) % 2, shoes: (h >>> 5) % 2, glasses: g === 0 ? 1 : g === 1 ? 2 : 0, beard: b === 0 ? 1 : b === 1 ? 2 : 0, pants: (h >>> 13) % 4, shoeColor: (h >>> 15) % 4, inner: 0, frames: 0, badge: 0 };
 }
 
 /** The outfit someone called `name` wears with `look`: theirs, or the one from their name. */
@@ -92,6 +107,7 @@ export function randomLook(): Look {
   // A beard or glasses now and then, not on most.
   if (pick(3)) outfit.beard = 0;
   if (pick(3)) outfit.glasses = 0;
+  if (pick(4)) outfit.badge = 0;
   return { skin: pick(SKIN_TONES.length), hair: pick(HAIR_COLORS.length), style: CUT_STYLE[outfit.cut], outfit };
 }
 

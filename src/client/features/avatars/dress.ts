@@ -10,7 +10,7 @@
  */
 import * as THREE from 'three';
 import {
-  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, HAIR_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
+  AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, FRAME_COLORS, HAIR_COLORS, INNER_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
   outfitOf, type Look,
 } from '../../../shared/avatar';
 import type { Person } from '../../world/character/person';
@@ -26,8 +26,10 @@ const SCALE = 1.1;
 const AVATAR_HIPS = 0.49 * SCALE;
 
 /** What a top hides of the body under it (the pieces' `covers`). */
-const COVERS: Record<string, string[]> = { HoodieOpen: ['Body_Torso', 'Body_Arms'], Jacket: ['Body_Torso', 'Body_Arms'], Tee: ['Body_Torso'] };
-const FIXED: Record<string, string> = { M_Eyes: '#17120F', M_EyeHighlight: '#FFFFFF', M_Mouth: '#8A2E22', M_Teeth: '#FAFAF7', M_Accessories: '#22252B', M_SecondaryClothing: '#F4F4F2' };
+const COVERS: Record<string, string[]> = { HoodieOpen: ['Body_Torso', 'Body_Arms'], Jacket: ['Body_Torso', 'Body_Arms'], Sweater: ['Body_Torso', 'Body_Arms'], Tee: ['Body_Torso'], TeePrint: ['Body_Torso'] };
+/** The model's pieces for a top: the tee with the sheet's print is the tee and the print. */
+const TOP_PIECES: Record<string, string[]> = { TeePrint: ['Top_Tee', 'Print_Squares'] };
+const FIXED: Record<string, string> = { M_Eyes: '#17120F', M_EyeHighlight: '#FFFFFF', M_Mouth: '#8A2E22', M_Teeth: '#FAFAF7', M_Print: '#F2A541', M_Lanyard: '#2F7FF0', M_Badge: '#F4F4F2' };
 
 export interface Dress {
   pieces: string[];
@@ -38,11 +40,12 @@ export interface Dress {
 export function outfitFor(name: string, shirt: string, look: Look): Dress {
   const o = outfitOf(name, look);
   const top = AVATAR_TOPS[o.top];
-  const pieces = ['Body_Head', 'Body_Neck', 'Body_Hands', 'Body_Legs', 'Face_Eyes', 'Face_Brows', 'Face_Mouth', `Top_${top}`, `Bottom_${AVATAR_BOTTOMS[o.bottom]}`, `Shoes_${AVATAR_SHOES[o.shoes]}`];
+  const pieces = ['Body_Head', 'Body_Neck', 'Body_Hands', 'Body_Legs', 'Face_Eyes', 'Face_Brows', 'Face_Mouth', ...(TOP_PIECES[top] ?? [`Top_${top}`]), `Bottom_${AVATAR_BOTTOMS[o.bottom]}`, `Shoes_${AVATAR_SHOES[o.shoes]}`];
   for (const part of ['Body_Torso', 'Body_Arms']) if (!COVERS[top].includes(part)) pieces.push(part);
   if (AVATAR_CUTS[o.cut] !== 'Bald') pieces.push(`Hair_${AVATAR_CUTS[o.cut]}`);
   if (o.glasses) pieces.push(`Glasses_${AVATAR_GLASSES[o.glasses]}`);
   if (o.beard) pieces.push(`Beard_${AVATAR_BEARDS[o.beard]}`);
+  if (o.badge) pieces.push('Badge_Lanyard');
   return {
     pieces,
     colors: {
@@ -50,6 +53,8 @@ export function outfitFor(name: string, shirt: string, look: Look): Dress {
       M_Skin: SKIN_TONES[look.skin],
       M_Hair: HAIR_COLORS[look.hair],
       M_PrimaryClothing: shirt,
+      M_SecondaryClothing: INNER_COLORS[o.inner],
+      M_Accessories: FRAME_COLORS[o.frames],
       M_Pants: PANTS_COLORS[o.pants],
       M_Shoes: SHOE_COLORS[o.shoeColor],
       // The stripes blue, or white on blue shoes.

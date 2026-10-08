@@ -2,12 +2,19 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { outfitFromSeed, outfitOf, outfitParam, parseOutfit, sameLook, sanitizeLook, sanitizeOutfit } from '../src/shared/avatar.ts';
 
-const outfit = { cut: 2, top: 1, bottom: 0, shoes: 1, glasses: 2, beard: 1, pants: 3, shoeColor: 0 };
+const outfit = { cut: 2, top: 1, bottom: 0, shoes: 1, glasses: 2, beard: 1, pants: 3, shoeColor: 0, inner: 2, frames: 1, badge: 1 };
+const older = { cut: 2, top: 1, bottom: 0, shoes: 1, glasses: 2, beard: 1, pants: 3, shoeColor: 0 };
 
 test('an outfit goes through the URL and back', () => {
   assert.deepEqual(parseOutfit(outfitParam(outfit)), outfit);
   assert.equal(parseOutfit('1,2,3'), undefined);
   assert.equal(parseOutfit(null), undefined);
+});
+
+test('an outfit saved before the later choices gets them at their first', () => {
+  assert.deepEqual(sanitizeOutfit(older), { ...older, inner: 0, frames: 0, badge: 0 });
+  assert.deepEqual(parseOutfit('2,1,0,1,2,1,3,0'), { ...older, inner: 0, frames: 0, badge: 0 });
+  assert.equal(sanitizeOutfit({ ...outfit, badge: 2 }), undefined);
 });
 
 test('an outfit out of range or missing a piece is dropped', () => {

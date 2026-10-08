@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { OfficeSound } from '../sound';
 import { store, type Profile, type Settings } from '../state';
-import { AVATAR_TOPS, outfitOf } from '../../shared/avatar';
+import { bareArms, outfitOf } from '../../shared/avatar';
 import { toast } from '../ui/dom';
 import { Person } from '../world/character';
 import { Smoke } from '../world/smoke';
@@ -70,7 +70,7 @@ export function installYou(ctx: Ctx) {
     me.setLook(p.look);
     hands.setColor(p.color);
     hands.setSkin(me.skinColor);
-    hands.setBare(AVATAR_TOPS[outfitOf(p.name, p.look).top] === 'Tee');
+    hands.setBare(bareArms(outfitOf(p.name, p.look).top));
   }
 
   return { reach, showMyProfile };

@@ -48,7 +48,8 @@ ROLES = {
     "M_ShoesAccent": {"default": "#2F7FF0", "roughness": 0.5, "palette": ["#2F7FF0", "#F4F4F4", "#2B2F37", "#2E8A84"]},
     "M_Accessories": {"default": "#22252B", "roughness": 0.35, "palette": ["#22252B", "#2F7FF0", "#B07A57", "#C9A227"]},
 }
-FIXED = {"M_Eyes": ("#17120F", 0.2), "M_EyeHighlight": ("#FFFFFF", 0.2), "M_Mouth": ("#8A2E22", 0.9), "M_Teeth": ("#FAFAF7", 0.7)}
+FIXED = {"M_Eyes": ("#17120F", 0.2), "M_EyeHighlight": ("#FFFFFF", 0.2), "M_Mouth": ("#8A2E22", 0.9), "M_Teeth": ("#FAFAF7", 0.7),
+         "M_Print": ("#F2A541", 0.6), "M_Lanyard": ("#2F7FF0", 0.6), "M_Badge": ("#F4F4F2", 0.4)}
 
 
 def build(scene, args):

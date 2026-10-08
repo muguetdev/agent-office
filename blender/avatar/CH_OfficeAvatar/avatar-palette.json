@@ -79,6 +79,9 @@
     "M_Eyes": "#17120F",
     "M_EyeHighlight": "#FFFFFF",
     "M_Mouth": "#8A2E22",
-    "M_Teeth": "#FAFAF7"
+    "M_Teeth": "#FAFAF7",
+    "M_Print": "#F2A541",
+    "M_Lanyard": "#2F7FF0",
+    "M_Badge": "#F4F4F2"
   }
 }
