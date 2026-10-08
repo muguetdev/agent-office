@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the latest Agent Office release and start it, no clone needed:
+# Install the latest Command Express release and start it, no clone needed:
 #
 #   curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/install.sh | bash
 #
@@ -46,13 +46,13 @@ cleanup() {
 check_requirements() {
   case "$(uname -s)" in
     Darwin | Linux) ;;
-    *) die "Agent Office runs on macOS and Linux. On Windows, run this inside WSL." ;;
+    *) die "Command Express runs on macOS and Linux. On Windows, run this inside WSL." ;;
   esac
-  have node || die "Agent Office needs Node.js 20 or newer. Get it from https://nodejs.org (or nvm), then run this again."
+  have node || die "Command Express needs Node.js 20 or newer. Get it from https://nodejs.org (or nvm), then run this again."
   local major
   major="$(node -p 'process.versions.node.split(".")[0]')"
-  [ "$major" -ge 20 ] || die "Agent Office needs Node.js 20 or newer, and this is $(node -v). Update it, then run this again."
-  have npm || die "Agent Office needs npm, which comes with Node.js."
+  [ "$major" -ge 20 ] || die "Command Express needs Node.js 20 or newer, and this is $(node -v). Update it, then run this again."
+  have npm || die "Command Express needs npm, which comes with Node.js."
   have curl || die "this needs curl."
   have tar || die "this needs tar."
   have git || warn "git isn't installed. The office needs it for projects and worker worktrees."
@@ -85,20 +85,20 @@ install_release() {
   if [ -n "$tarball" ]; then
     cp "$tarball" "$STAGE/agent-office.tgz"
   else
-    step "Downloading Agent Office $tag"
+    step "Downloading Command Express $tag"
     curl -fSL --progress-bar -o "$STAGE/agent-office.tgz" "https://github.com/$REPO/releases/download/$tag/agent-office.tgz" ||
       die "couldn't download release $tag (is that a release of https://github.com/$REPO/releases ?)"
   fi
   tar -xzf "$STAGE/agent-office.tgz" -C "$STAGE" || die "that isn't a release tarball"
-  [ -f "$STAGE/package/bin/agent-office.js" ] || die "that release tarball doesn't contain Agent Office"
+  [ -f "$STAGE/package/bin/agent-office.js" ] || die "that release tarball doesn't contain Command Express"
   if [ -z "$tag" ]; then tag="v$(node -p 'require(process.argv[1]).version' "$STAGE/package/package.json")"; fi
   valid_tag "$tag" || die "not a release version: $tag"
   dest="$VERSIONS/$tag"
   if [ ! -f "$dest/.installed" ]; then
-    step "Installing Agent Office $tag"
+    step "Installing Command Express $tag"
     # Exactly the dependency versions the release was tested with (its npm-shrinkwrap.json).
     (cd "$STAGE/package" && npm ci --omit=dev --no-audit --no-fund --loglevel=error >&2) ||
-      die "npm couldn't install Agent Office's dependencies (see above)"
+      die "npm couldn't install Command Express's dependencies (see above)"
     touch "$STAGE/package/.installed"
     # Another run may have installed the same version meanwhile; either copy will do.
     if [ ! -e "$dest" ]; then mv "$STAGE/package" "$dest"
@@ -141,7 +141,7 @@ write_launcher() {
   cat >"$tmp" <<EOF
 #!/bin/sh
 # $MARKER (https://github.com/$REPO).
-# Starts Agent Office $tag. To update, run the install command again:
+# Starts Command Express $tag. To update, run the install command again:
 #   curl -fsSL https://raw.githubusercontent.com/$REPO/main/install.sh | bash
 exec node $(sq "$entry") "\$@"
 EOF
@@ -190,10 +190,10 @@ main() {
   write_launcher "$tag" "$entry"
 
   if [ "${AGENT_OFFICE_INSTALL_ONLY:-}" = 1 ]; then
-    step "Agent Office $tag is installed. Start it with: ${LAUNCHER:-node $entry}"
+    step "Command Express $tag is installed. Start it with: ${LAUNCHER:-node $entry}"
     return 0
   fi
-  step "Starting Agent Office $tag"
+  step "Starting Command Express $tag"
   # Piped into bash (curl … | bash), stdin is the rest of this script: give the office the terminal
   # instead, so its first-run walkthrough can ask where projects go and which one to start with, and
   # it can open itself in your browser, signed in.

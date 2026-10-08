@@ -46,7 +46,7 @@ export async function welcome(cfg: Config): Promise<void> {
   // --projects is the answer to the first question (the office applies it again as it starts).
   const folderGiven = !!cfg.projects && !building.setProjectsDir(cfg.projects, L.srv.commandLine);
   console.log(`
-  👋 Welcome to Agent Office!
+  👋 Welcome to Command Express!
 
   Every project is a floor of the building, and this one doesn't have any yet.
   Let's add your first: pick one of your GitHub repositories and the office

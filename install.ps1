@@ -1,4 +1,4 @@
-# Install the latest Agent Office release on Windows and start it, no clone needed. In PowerShell:
+# Install the latest Command Express release on Windows and start it, no clone needed. In PowerShell:
 #
 #   irm https://raw.githubusercontent.com/muguetdev/command-express/main/install.ps1 | iex
 #
@@ -65,11 +65,11 @@
       Where-Object { $_.Source -match '\.(cmd|bat|exe)$' } | Select-Object -First 1 | ForEach-Object { $_.Source }
 
     function Check-Requirements {
-      if (-not (Have 'node')) { throw 'Agent Office needs Node.js 20 or newer. Get it from https://nodejs.org (or nvm-windows), then run this again.' }
+      if (-not (Have 'node')) { throw 'Command Express needs Node.js 20 or newer. Get it from https://nodejs.org (or nvm-windows), then run this again.' }
       # No quotes in the expression: Windows PowerShell 5.1 strips them from native command arguments.
       $major = [int](& node -p 'parseInt(process.versions.node)')
-      if ($major -lt 20) { throw "Agent Office needs Node.js 20 or newer, and this is $(& node -v). Update it, then run this again." }
-      if (-not $npm) { throw "Agent Office needs npm, which comes with Node.js." }
+      if ($major -lt 20) { throw "Command Express needs Node.js 20 or newer, and this is $(& node -v). Update it, then run this again." }
+      if (-not $npm) { throw "Command Express needs npm, which comes with Node.js." }
       if (-not (Test-Path -LiteralPath $tar)) { throw "this needs Windows' tar.exe (Windows 10 1803 or newer)." }
       if (-not (Have 'git')) { Warn "git isn't installed. The office needs it for projects and worker worktrees." }
       if (-not ((Have 'claude') -or (Have 'opencode') -or (Have 'codex') -or (Have 'dsh'))) {
@@ -103,7 +103,7 @@
         if ($tarball) {
           Copy-Item -LiteralPath $tarball -Destination $tgz
         } else {
-          Step "Downloading Agent Office $tag"
+          Step "Downloading Command Express $tag"
           try {
             Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/$repo/releases/download/$tag/agent-office.tgz" -OutFile $tgz
           } catch {
@@ -113,7 +113,7 @@
         & $tar -xzf $tgz -C $stage | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "that isn't a release tarball" }
         $pkg = Join-Path $stage 'package'
-        if (-not (Test-Path -LiteralPath (Join-Path $pkg 'bin\agent-office.js'))) { throw "that release tarball doesn't contain Agent Office" }
+        if (-not (Test-Path -LiteralPath (Join-Path $pkg 'bin\agent-office.js'))) { throw "that release tarball doesn't contain Command Express" }
         if (-not $tag) { $tag = 'v' + (& node -p 'require(process.argv[1]).version' (Join-Path $pkg 'package.json')) }
         if (-not (ValidTag $tag)) { throw "not a release version: $tag" }
         $dest = Join-Path $versions $tag
@@ -122,12 +122,12 @@
           # Say so before the install rather than after it. On Windows a half-removed version (a file
           # still open when it was pruned) is the usual cause.
           if (Test-Path -LiteralPath $dest) { throw "$dest is in the way; remove it and run this again" }
-          Step "Installing Agent Office $tag"
+          Step "Installing Command Express $tag"
           # Exactly the dependency versions the release was tested with (its npm-shrinkwrap.json).
           Push-Location -LiteralPath $pkg
           # Out-Host, or npm's output would become part of this function's return value.
           try { & $npm ci --omit=dev --no-audit --no-fund --loglevel=error | Out-Host } finally { Pop-Location }
-          if ($LASTEXITCODE -ne 0) { throw "npm couldn't install Agent Office's dependencies (see above)" }
+          if ($LASTEXITCODE -ne 0) { throw "npm couldn't install Command Express's dependencies (see above)" }
           [IO.File]::WriteAllText((Join-Path $pkg '.installed'), '')
           # Another run may have installed the same version meanwhile; either copy will do.
           if (-not (Test-Path -LiteralPath $dest)) { Move-Item -LiteralPath $pkg -Destination $dest }
@@ -185,7 +185,7 @@
       [IO.File]::WriteAllText($cmdFile, (@(
         '@echo off',
         "rem $marker (https://github.com/$repo).",
-        "rem Starts Agent Office $tag. To update, run the install command again in PowerShell:",
+        "rem Starts Command Express $tag. To update, run the install command again in PowerShell:",
         "rem   $update",
         "node `"$cmdEntry`" %*"
       ) -join "`r`n") + "`r`n", $oem)
@@ -193,7 +193,7 @@
       [IO.File]::WriteAllText($shFile, (@(
         '#!/bin/sh',
         "# $marker (https://github.com/$repo).",
-        "# Starts Agent Office $tag. To update, run the install command again in PowerShell:",
+        "# Starts Command Express $tag. To update, run the install command again in PowerShell:",
         "#   $update",
         "exec node '$shEntry' `"`$@`""
       ) -join "`n") + "`n", $utf8)
@@ -261,10 +261,10 @@
 
     if ($env:AGENT_OFFICE_INSTALL_ONLY -eq '1') {
       $start = if ($launcher) { $launcher } else { "node `"$entry`"" }
-      Step "Agent Office $tag is installed. Start it with: $start"
+      Step "Command Express $tag is installed. Start it with: $start"
       return
     }
-    Step "Starting Agent Office $tag"
+    Step "Starting Command Express $tag"
     # Before PowerShell 7.3, an argument with a space and a trailing backslash (a tab-completed folder,
     # 'C:\My Project\') is quoted so that the backslash escapes the closing quote, and it swallows every
     # argument after it. Doubling the trailing backslashes gets it through intact.

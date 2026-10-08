@@ -7,5 +7,5 @@ export function renderTitle() {
   const name = store.project?.name;
   const elsewhere = store.floors.reduce((n, f) => n + (f.id === store.floor ? 0 : f.waiting), 0);
   const waiting = [...store.workers.values()].filter(waitingOnSomeone).length + elsewhere;
-  document.title = `${waiting ? `(${waiting}) ` : ''}${name ? `${name} · ` : ''}Agent Office`;
+  document.title = `${waiting ? `(${waiting}) ` : ''}${name ? `${name} · ` : ''}Command Express`;
 }

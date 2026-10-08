@@ -31,7 +31,7 @@ Opções:
     clonedInto: (dir: string) => `  📁 Os projetos novos são clonados em ${dir}/<dono>/<repo>`,
 
     welcome: `
-  👋 Boas-vindas ao Agent Office!
+  👋 Boas-vindas ao Command Express!
 
   Cada projeto é um andar do prédio, e este ainda não tem nenhum.
   Vamos adicionar o primeiro: escolha um dos seus repositórios do GitHub e o
@@ -703,7 +703,7 @@ Opções:
     couldNotAdd: 'Não deu para adicionar o andar',
     introFloors: 'Cada projeto é um andar deste prédio. Escolha um andar para ir, ou adicione outro projeto.',
     introEmpty: 'Cada projeto é um andar deste prédio, e ele ainda não tem nenhum. Escolha um dos seus repositórios: o escritório clona e ele vira o primeiro andar.',
-    welcome: '🏢 Boas-vindas ao Agent Office',
+    welcome: '🏢 Boas-vindas ao Command Express',
     footSetup: 'Seu escritório, um andar por projeto',
     foot: 'Escolha um andar · Esc para ficar aqui',
     doing: '🛗 no elevador',
@@ -1354,7 +1354,7 @@ Opções:
     soFar: (cost: string) => `${cost} até agora`,
   },
   team: {
-    msgInvited: (project: string | undefined, os: string) => `Você foi convidado para o Agent Office${project ? ` do ${project}` : ''}. Rode isto num terminal (${os}):`,
+    msgInvited: (project: string | undefined, os: string) => `Você foi convidado para o Command Express${project ? ` do ${project}` : ''}. Rode isto num terminal (${os}):`,
     msgOpens: (port: number) => `Ele abre o escritório em http://localhost:${port} — entre (com a senha do escritório, ou com o link de conta que eu te mandar) e deixe esse terminal aberto enquanto estiver lá.`,
     msgFingerprint: (fp: string) => `Na primeira vez, o ssh pergunta se deve confiar no servidor. Só diga sim se aparecer ${fp}`,
     copied: '✓ Copiado',
@@ -1380,7 +1380,7 @@ Opções:
     nobody: 'Ninguém ainda',
     invited: 'Convidados',
     isInvited: (who: string, keys: string) => `✅ ${who} foi convidado (${keys}). Mande o comando abaixo.`,
-    msgTailnet: (project: string | undefined, url: string) => `Você foi convidado para o Agent Office${project ? ` do ${project}` : ''}: ${url}`,
+    msgTailnet: (project: string | undefined, url: string) => `Você foi convidado para o Command Express${project ? ` do ${project}` : ''}: ${url}`,
     msgTailnetHow: 'Ele está na nossa rede Tailscale. Se você ainda não está nela: instale o Tailscale (https://tailscale.com/download), entre, e aceite o convite que eu te mandar pelo Tailscale. Depois abra o link e entre com a senha do escritório, ou com o link de conta que eu te passar.',
     orParen: ' (ou ',
     tailnetOpens: 'Todo mundo na sua rede Tailscale abre',
@@ -1960,13 +1960,13 @@ Opções:
     officeTime: (time: string) => `${time} no horário do escritório`,
   },
   auth: {
-    signInTitle: 'Agent Office · Entrar',
+    signInTitle: 'Command Express · Entrar',
     knock: 'Toc toc. Qual é a senha?',
     yourName: 'Seu nome',
     password: 'Senha',
     nameNote: 'Entrou com a senha compartilhada do escritório? Deixe o nome em branco.',
     comeIn: 'Pode entrar',
-    joinTitle: 'Agent Office · Entrar no time',
+    joinTitle: 'Command Express · Entrar no time',
     invited: 'Você foi convidado 🎉',
     checking: 'Verificando seu convite…',
     pickPassword: 'Escolha uma senha',
@@ -1974,7 +1974,7 @@ Opções:
     atLeast8: 'Pelo menos 8 caracteres. Ela é só sua: ninguém mais no escritório vê.',
     makeAccount: 'Criar minha conta',
     goSignIn: 'Ir para o login →',
-    claimTitle: 'Agent Office · Sua senha',
+    claimTitle: 'Command Express · Sua senha',
     ready: 'Seu escritório está pronto 🎉',
     unlocking: 'Desbloqueando…',
     writeDown: 'Anote esta senha agora.',

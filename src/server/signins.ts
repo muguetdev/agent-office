@@ -604,7 +604,7 @@ export class SignIns {
     const base = this.base();
     const xdg = base.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
     const includes = base.GIT_CONFIG_GLOBAL ? [base.GIT_CONFIG_GLOBAL] : [path.join(xdg, 'git', 'config'), path.join(os.homedir(), '.gitconfig')];
-    const lines = ['# Written by Agent Office: git for this account, on top of the office machine’s own settings.', '[include]', ...includes.map((p) => `\tpath = ${quote(p)}`)];
+    const lines = ['# Written by Command Express: git for this account, on top of the office machine’s own settings.', '[include]', ...includes.map((p) => `\tpath = ${quote(p)}`)];
     if (this.gh) {
       for (const host of ['https://github.com', 'https://gist.github.com']) {
         lines.push(`[credential ${quote(host)}]`, '\thelper =', `\thelper = ${quote(`!'${this.gh.replace(/'/g, `'\\''`)}' auth git-credential`)}`);

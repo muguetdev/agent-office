@@ -189,7 +189,7 @@ export function installArrival(ctx: Ctx, core: CoreState, parts: ArrivalParts) {
       return;
     }
     if (!p) {
-      $('project-name').textContent = '🏢 Agent Office';
+      $('project-name').textContent = '🏢 Command Express';
       $('project-meta').textContent = store.floors.length ? L.main.takeElevator : L.main.noFloorsYet;
       // Where to go next, so it shows even with the floor details turned off.
       $('project-meta').classList.add('lobby');

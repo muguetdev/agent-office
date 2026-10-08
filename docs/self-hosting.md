@@ -79,7 +79,7 @@ To keep the office running, use a systemd unit:
 ```ini
 # /etc/systemd/system/agent-office.service
 [Unit]
-Description=Agent Office
+Description=Command Express
 After=network.target
 
 [Service]
