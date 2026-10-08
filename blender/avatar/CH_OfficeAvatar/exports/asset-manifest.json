@@ -1,6 +1,6 @@
 {
   "asset": "CH_OfficeAvatar",
-  "generated": "2026-10-07T21:48:45",
+  "generated": "2026-10-07T21:57:04",
   "blender": "5.2.2 LTS",
   "source": "/private/tmp/claude-501/-Users-muguet-Documents-agent-office/5d60223c-4fcc-4eab-b471-5e1fabe79fb0/scratchpad/avatar/blender/avatar/CH_OfficeAvatar/CH_OfficeAvatar_delivery.blend",
   "target_engine": "three.js",
@@ -44,6 +44,9 @@
         "CH_OfficeAvatar_Body_Legs_LOD0",
         "CH_OfficeAvatar_Body_Head_LOD0",
         "CH_OfficeAvatar_Body_Hands_LOD0",
+        "CH_OfficeAvatar_Body_HandsOpen_LOD0",
+        "CH_OfficeAvatar_Body_HandsPoint_LOD0",
+        "CH_OfficeAvatar_Body_HandsThumb_LOD0",
         "CH_OfficeAvatar_Face_Eyes_LOD0",
         "CH_OfficeAvatar_Face_Brows_LOD0",
         "CH_OfficeAvatar_Face_Mouth_LOD0",
@@ -72,7 +75,7 @@
         "CH_OfficeAvatar_Glasses_Sun_LOD0",
         "CH_OfficeAvatar_Badge_Lanyard_LOD0"
       ],
-      "tris": 48357
+      "tris": 53997
     }
   ],
   "materials": [

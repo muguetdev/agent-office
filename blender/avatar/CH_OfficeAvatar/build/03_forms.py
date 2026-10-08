@@ -216,24 +216,47 @@ def hair(mat):
     return fuse("CH_OfficeAvatar_Hair_HIGH", parts, 0.006, mat, smooth=12)
 
 
-def hand(side, s, skin):
+def hand(side, s, skin, pose="fist"):
     """A relaxed fist hanging at the side, as on the sheet: a smooth round fist growing straight out of the
     sleeve's cuff (the wrist where the hand bone starts), the fingers curled under it showing only as soft
     knuckles, the thumb lying along the front."""
     # Built for the left hand (+X) from the wrist, where the sleeve ends; the right one is its mirror.
     W = Vector((0.268, -0.03, 0.6))
-    parts = [
-        blob("_wrist", W + Vector((0.0, 0.0, -0.012)), (0.034, 0.036, 0.03)),
-        blob("_core", W + Vector((0.012, -0.006, -0.066)), (0.05, 0.058, 0.058)),
-    ]
-    for i, fy in enumerate((-0.04, -0.014, 0.012, 0.037)):
-        parts.append(blob(f"_f{i}", W + Vector((-0.004, fy - 0.006, -0.108 + 0.004 * abs(fy) / 0.04)), (0.026, 0.018, 0.026)))
-    parts.append(blob("_thumb", W + Vector((-0.028, -0.052, -0.068)), (0.019, 0.021, 0.034), rot=(math.radians(20), 0, math.radians(-15))))
+    # The other poses (for gestures, swapped in for the fist): "open" a flat open hand, fingers together and
+    # the thumb out (a wave, a clap); "point" the fist with the index finger out; "thumb" the fist with
+    # the thumb up along the knuckles (a thumbs up). The palm faces the body (-X), the fingers hang down.
+    V = lambda x, y, z: W + Vector((x, y, z))
+    parts = [blob("_wrist", V(0.0, 0.0, -0.012), (0.034, 0.036, 0.03))]
+    def digit(name, pts, r):
+        """A soft round finger along `pts`: a tube with a round tip."""
+        out = [sweep(name, pts, r, skin, radii=[r * 1.05, r, r * 0.95])]
+        out.append(blob(name + "_tip", pts[-1], (r * 0.95, r * 0.95, r * 0.95), u=16, v=10))
+        return out
+    if pose == "open":
+        parts.append(blob("_palm", V(0.006, -0.004, -0.064), (0.03, 0.054, 0.05)))
+        for i, fy in enumerate((-0.036, -0.012, 0.012, 0.035)):
+            length = (0.068, 0.075, 0.07, 0.058)[i]
+            parts += digit(f"_f{i}", [V(0.004, fy - 0.004, -0.085), V(0.001, fy * 1.08 - 0.004, -0.085 - length * 0.55), V(-0.003, fy * 1.15 - 0.004, -0.085 - length)], 0.0165)
+        parts += digit("_thumb", [V(0.0, -0.042, -0.042), V(-0.006, -0.068, -0.06), V(-0.01, -0.082, -0.08)], 0.019)
+    else:
+        parts.append(blob("_core", V(0.012, -0.006, -0.066), (0.05, 0.058, 0.058)))
+        for i, fy in enumerate((-0.04, -0.014, 0.012, 0.037)):
+            if pose == "point" and i == 0:
+                # The index finger straight out of the fist, the way the arm points.
+                parts += digit("_index", [V(-0.004, fy - 0.006, -0.1), V(-0.006, fy - 0.008, -0.135), V(-0.008, fy - 0.01, -0.165)], 0.0175)
+                continue
+            parts.append(blob(f"_f{i}", V(-0.004, fy - 0.006, -0.108 + 0.004 * abs(fy) / 0.04), (0.026, 0.018, 0.026)))
+        if pose == "thumb":
+            # Up off the top of the fist, square to the curled fingers (up once the arm is out in front).
+            parts += digit("_thumb", [V(-0.02, -0.05, -0.052), V(-0.023, -0.078, -0.048), V(-0.025, -0.1, -0.046)], 0.02)
+        else:
+            parts.append(blob("_thumb", V(-0.028, -0.052, -0.068), (0.019, 0.021, 0.034), rot=(math.radians(20), 0, math.radians(-15))))
     bpy.context.view_layer.update()
     for p in parts:   # two sizes up (the sheet's fists are nearly as wide as its face is tall), about the wrist
         p.location = W + (p.location - W) * 1.3
         p.scale = p.scale * 1.3
-    return fuse("CH_OfficeAvatar_Hand_L_HIGH", parts, 0.0035, skin, smooth=12)
+    name = "Hand" if pose == "fist" else "Hand" + pose.capitalize()
+    return fuse(f"CH_OfficeAvatar_{name}_L_HIGH", parts, 0.0035, skin, smooth=12)
 
 
 def body(skin):
@@ -548,8 +571,9 @@ def build(scene, args):
     head(skin)
     face(ink, eye_white, hair_m, mouth)
     hair(hair_m)
-    left = hand("L", 1, skin)
-    mirror_x(left, "CH_OfficeAvatar_Hand_R_HIGH")
+    for pose in ("fist", "open", "point", "thumb"):
+        left = hand("L", 1, skin, pose)
+        mirror_x(left, left.name.replace("_L_HIGH", "_R_HIGH"))
     tee(white)
     hoodie(blue, white)
     trousers(navy)

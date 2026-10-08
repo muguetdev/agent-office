@@ -16,6 +16,7 @@ import {
 import type { Person } from '../../world/character/person';
 import { HIPS } from '../../world/character/rig';
 import { model } from '../../world/models';
+import { AvatarHands } from './hands';
 import { avatarMaterial } from './material';
 
 const A = 'CH_OfficeAvatar_';
@@ -101,6 +102,7 @@ export class Avatar {
   /** The cartoon body's own meshes, drawn no more while the avatar's on. */
   private hidden: THREE.Object3D[];
   private key = '';
+  private hands: AvatarHands;
   private blinkIn = 2 + Math.random() * 3;
   private blinkT = -1;
 
@@ -112,8 +114,10 @@ export class Avatar {
     const rig = person.rig;
     rig.body.add(this.root);
     // The cartoon body's meshes: the torso, everything on the head as it's made (the face and the hair
-    // group), the limbs' capsules and the hands; not what's added later (a hat, an outfit) or held.
-    this.hidden = [rig.torso, ...rig.head.children, ...[rig.armL, rig.armR].flatMap((a) => a.children.slice(0, 2)), rig.legL.children[0], rig.legR.children[0]];
+    // group), the limbs' capsules, the hands and the emotes' thumb and finger; not what's added later (a hat,
+    // an outfit) or held (a mug, a cigarette: groups).
+    this.hidden = [rig.torso, ...rig.head.children, ...[rig.armL, rig.armR].flatMap((a) => a.children.filter((c) => (c as THREE.Mesh).isMesh)), rig.legL.children[0], rig.legR.children[0]];
+    this.hands = new AvatarHands(this.root, A, LOD);
     this.dress();
     // The bones' rest orientations in the body, for copying the limbs onto them.
     rig.body.updateMatrixWorld(true);
@@ -185,6 +189,7 @@ export class Avatar {
     for (const part of [rig.torso, rig.armL, rig.armR, rig.legL, rig.legR, rig.body])
       for (const c of part.children) if (c.userData.outfit) c.traverse((m) => m.layers.set(layer));
     if (!this.root.visible) return;
+    this.hands.pose(this.person.emoteId);
     for (const d of this.drives) d.bone.quaternion.copy(d.parentInv).multiply(qa.copy(d.part.quaternion)).multiply(d.rest);
     // A leg out in front (sitting) bends at the knee, the shin hanging down; the hips come down onto the seat.
     let sit = 0;

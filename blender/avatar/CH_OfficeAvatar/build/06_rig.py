@@ -76,6 +76,8 @@ ALLOWED = {
     "Bottom_Trousers": ["pelvis", "spine_01", "thigh_L", "thigh_R", "shin_L", "shin_R"],
     "Shoes_Sneakers": ["foot_L", "foot_R", "toe_L", "toe_R"],
 }
+for pose in ("Open", "Point", "Thumb"):
+    ALLOWED[f"Body_Hands{pose}"] = ["hand_L", "hand_R"]   # each hand rigid on its own bone
 ALLOWED["Top_Jacket"] = ALLOWED["Top_Sweater"] = ALLOWED["Top_HoodieOpen"]
 ALLOWED["Bottom_Joggers"] = ALLOWED["Bottom_Trousers"]
 ALLOWED["Shoes_Runners"] = ALLOWED["Shoes_Sneakers"]

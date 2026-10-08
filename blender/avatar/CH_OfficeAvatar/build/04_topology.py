@@ -199,6 +199,9 @@ def build(scene, args):
     reduce_to(copy_high(f"{A}_Head_HIGH", f"{A}_Body_Head_LOD0", "01_BODY"), TRIS["Head"])
     hands = [reduce_to(copy_high(f"{A}_Hand_{s}_HIGH", f"_hand{s}", "01_BODY"), TRIS["Hand"]) for s in "LR"]
     merge(f"{A}_Body_Hands_LOD0", hands, "01_BODY")
+    # The gesture hands (an open hand, pointing, a thumbs up), both sides each, swapped in for the fists.
+    for pose in ("Open", "Point", "Thumb"):
+        merge(f"{A}_Body_Hands{pose}_LOD0", [reduce_to(copy_high(f"{A}_Hand{pose}_{s}_HIGH", f"_hand{pose}{s}", "01_BODY"), TRIS["Hand"] * 2) for s in "LR"], "01_BODY")
 
     eyes = []
     for s in "LR":

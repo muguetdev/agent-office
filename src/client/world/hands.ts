@@ -6,7 +6,7 @@ import { OpenBook } from '../features/bookshelf/book';
 import { HeldCard } from '../features/carrying/card';
 import { REACH_TIME, SMOKE_CYCLE, cigarette, coffeeMug, dragCurve, drinkGlass, emoteEnvelope, putDownGlass, reachCurve } from './character';
 import { UNDEAD_SKIN, raggedCuff, warlockHand, witchFire } from './costumes';
-import { avatarArm, type AvatarArm } from './hands-avatar';
+import { GESTURES, avatarArm, showPose, type AvatarArm } from './hands-avatar';
 import { mesh, toon, toonUnique } from './toon';
 import { ballMesh } from '../features/basketball/world';
 
@@ -35,11 +35,10 @@ interface Arm {
   side: 1 | -1;
   /** The white cuff at the wrist. */
   cuff: THREE.Mesh;
-  /** The hand (see hands-avatar.ts), and on the right a pointing finger, out only to point. */
-  mitten: THREE.Mesh[];
+  /** The hand, in the shape a gesture needs (see hands-avatar.ts). */
+  mitten: THREE.Object3D[];
   /** The sleeve, or the bare forearm in a tee. */
   dress: AvatarArm;
-  finger: THREE.Mesh | null;
   /** A holiday hand in place of the mitten (see setCostume), and the witch-fire round it. */
   dressed: THREE.Group | null;
   fire: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial> | null;
@@ -95,7 +94,6 @@ export class Hands {
   /** The emote your character is doing, and how far into it (see Person.emote). */
   private emoting: { emote: Emote; t: number } | null = null;
   /** Sticks up out of the right fist for a thumbs up. */
-  private thumbUp: THREE.Mesh;
   /** Your shirt and skin, under whatever costume the hands wear. */
   private shirt: string;
   private skinTone: string;
@@ -135,10 +133,6 @@ export class Hands {
     this.cig.position.set(-0.035, 0.03, -0.075);
     this.cig.visible = false;
     this.right.group.add(this.cig);
-    this.thumbUp = mesh(new THREE.CapsuleGeometry(0.027, 0.035, 4, 10), this.skin, -0.035, 0.065, -0.005, false);
-    this.thumbUp.rotation.z = 0.3;
-    this.thumbUp.visible = false;
-    this.right.group.add(this.thumbUp);
     // Tipped back, so you look down onto its front.
     this.holder.rotation.x = -0.35;
     this.scene.add(this.holder);
@@ -330,8 +324,9 @@ export class Hands {
   emote(id: EmoteId) {
     const emote = EMOTE_BY_ID.get(id);
     this.emoting = emote ? { emote, t: 0 } : null;
-    this.thumbUp.visible = id === 'thumbs';
-    if (this.right.finger) this.right.finger.visible = id === 'point' && this.costume !== 'halloween' && this.costume !== 'christmas';
+    const [right, left] = (emote && GESTURES[emote.id]) || ['fist', 'fist'];
+    showPose(this.right.dress, right);
+    showPose(this.left.dress, left);
   }
 
   /** Raise the mug for a sip, once the right hand is back from the coffee machine. */
@@ -346,19 +341,13 @@ export class Hands {
     const cuff = mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.045, 18).rotateX(Math.PI / 2), toon('#fffaf3'), 0, 0, 0.075, false);
     cuff.visible = false;
     group.add(cuff);
-    // The right hand points a finger only to point (see emote).
-    const finger = side === 1 ? mesh(new THREE.CapsuleGeometry(0.017, 0.045, 4, 10).rotateX(Math.PI / 2), this.skin, -0.01, 0.01, -0.08, false) : null;
-    if (finger) {
-      finger.visible = false;
-      group.add(finger);
-    }
     // Out from the bottom corners of the view, the sleeves angled in toward the hands.
     const base = new THREE.Vector3(side * 0.18, -0.17, -0.5);
     const baseRot = new THREE.Euler(0.45, side * 0.55, side * -0.2);
     group.position.copy(base);
     group.rotation.copy(baseRot);
     this.scene.add(group);
-    return { group, base, baseRot, side, cuff, mitten: [dress.hand], dress, finger, dressed: null, fire: null };
+    return { group, base, baseRot, side, cuff, mitten: [dress.hand], dress, dressed: null, fire: null };
   }
 
   /** Witch-fire curling up round your fingers, and flickering. */
@@ -535,8 +524,7 @@ export class Hands {
     const { seconds, id } = e.emote;
     if (u >= seconds) {
       this.emoting = null;
-      this.thumbUp.visible = false;
-      if (this.right.finger) this.right.finger.visible = false;
+      for (const arm of [this.right, this.left]) showPose(arm.dress, 'fist');
       return;
     }
     const k = emoteEnvelope(u, seconds);
