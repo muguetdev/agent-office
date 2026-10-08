@@ -147,6 +147,8 @@ export function openCharacter(first: boolean, onSave: (p: Profile) => void) {
   pick.look.outfit ??= outfitFromSeed(pick.name, pick.look.style);
   const canvas = h('canvas', { 'aria-label': L.character.preview }) as HTMLCanvasElement;
   const preview = new Preview(canvas, pick);
+  // For screenshots and debugging, like window.__office.
+  (window as unknown as { __charPreview?: Preview }).__charPreview = preview;
 
   // Leave the name blank (or skip this) and you go by the made-up one in the box; 🎲 deals another.
   // Guest is what you were before you picked one, so it isn't a name to keep.

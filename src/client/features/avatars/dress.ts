@@ -13,6 +13,7 @@ import {
   AVATAR_BEARDS, AVATAR_BOTTOMS, AVATAR_CUTS, AVATAR_GLASSES, AVATAR_SHOES, AVATAR_TOPS, FRAME_COLORS, HAIR_COLORS, INNER_COLORS, PANTS_COLORS, SHOE_COLORS, SKIN_TONES,
   outfitOf, type Look,
 } from '../../../shared/avatar';
+import type { EmoteId } from '../../../shared/emotes';
 import type { Person } from '../../world/character/person';
 import { HIPS } from '../../world/character/rig';
 import { model } from '../../world/models';
@@ -89,9 +90,24 @@ interface Knee {
   axis: THREE.Vector3;
 }
 
+/** What's on the head, not drawn in first person (the camera's inside it). */
+const HEAD = /_(Body_Head|Body_Neck|Face_|Hair_|Beard_|Glasses_)/;
+
+/**
+ * Gestures the avatar's bigger head and hands need beyond the cartoon's pose: the right hand turned about
+ * its length (radians; a wave's palm out to whoever you wave at, a facepalm's onto the face) and the right
+ * arm brought forward (radians about the body's x) so the hand lands on the face, not in it.
+ */
+const GESTURE_FIX: Partial<Record<EmoteId, { twist: number; forward: number }>> = {
+  wave: { twist: -1.5, forward: 0 },
+  facepalm: { twist: -1.2, forward: 0.35 },
+};
+
 const q = new THREE.Quaternion();
 const qa = new THREE.Quaternion();
 const down = new THREE.Vector3();
+const off = new THREE.Vector3();
+const X = new THREE.Vector3(1, 0, 0);
 
 /** One person's avatar: the model's pieces they wear, posed after their cartoon body. */
 export class Avatar {
@@ -103,6 +119,11 @@ export class Avatar {
   private hidden: THREE.Object3D[];
   private key = '';
   private hands: AvatarHands;
+  private fp = false;
+  /** The thighs' rest places on the pelvis, and the right hand with the axis along it (to its fingers). */
+  private thighs: { bone: THREE.Bone; rest: THREE.Vector3 }[] = [];
+  private handR: { bone: THREE.Bone; rest: THREE.Quaternion; axis: THREE.Vector3 } | null = null;
+  private gesture = { twist: 0, forward: 0 };
   private blinkIn = 2 + Math.random() * 3;
   private blinkT = -1;
 
@@ -129,6 +150,13 @@ export class Avatar {
       if (!bone?.parent) continue;
       this.drives.push({ part: rig[part] as THREE.Object3D, bone, parentInv: inBody(bone.parent).invert(), rest: inBody(bone) });
     }
+    for (const side of ['L', 'R']) {
+      const bone = this.root.getObjectByName(`thigh_${side}`) as THREE.Bone | undefined;
+      if (bone) this.thighs.push({ bone, rest: bone.position.clone() });
+    }
+    const hand = this.root.getObjectByName('hand_R') as THREE.Bone | undefined;
+    const fingers = this.root.getObjectByName('fingers_R');
+    if (hand && fingers) this.handR = { bone: hand, rest: hand.quaternion.clone(), axis: fingers.position.clone().normalize() };
     for (const [leg, side] of [['legR', 'L'], ['legL', 'R']] as const) {
       const shin = this.root.getObjectByName(`shin_${side}`) as THREE.Bone | undefined;
       const thigh = this.root.getObjectByName(`thigh_${side}`);
@@ -141,7 +169,7 @@ export class Avatar {
   dress() {
     const p = this.person;
     const shirt = `#${p.shirt.color.getHexString()}`;
-    const key = `${p.name}|${shirt}|${JSON.stringify(p.look)}`;
+    const key = `${p.name}|${shirt}|${JSON.stringify(p.look)}|${this.fp}`;
     if (key === this.key) return;
     this.key = key;
     const outfit = outfitFor(p.name, shirt, p.look);
@@ -152,7 +180,7 @@ export class Avatar {
       if (!mesh.isMesh) return;
       // A piece is a node of the model, its mesh itself or (one per material) the meshes under it.
       const piece = wear.has(mesh.name) ? mesh.name : (mesh.parent?.name ?? '');
-      mesh.visible = wear.has(piece);
+      mesh.visible = wear.has(piece) && !(this.fp && HEAD.test(piece));
       mesh.castShadow = true;
       mesh.frustumCulled = false;
       // Each material is a role (M_Skin…), painted the person's colour for it: shared toon materials,
@@ -165,11 +193,16 @@ export class Avatar {
     });
   }
 
-  /** You in first person: no head or arms (your hands are drawn on their own), and kept when the rest of you is hidden (world/character/person-first.ts). */
+  /**
+   * You in first person: no head (the camera's in it) and no arms (your hands are drawn on their own), and
+   * kept when the rest of you is hidden (world/character/person-first.ts).
+   */
   firstPerson(on: boolean) {
-    if (on === !!this.root.userData.firstPerson) return;
-    this.root.userData.firstPerson = on;
-    for (const n of ['neck', 'upperarm_L', 'upperarm_R']) this.root.getObjectByName(n)?.scale.setScalar(on ? 0.001 : 1);
+    if (on === this.fp) return;
+    this.fp = this.root.userData.firstPerson = on;
+    for (const n of ['upperarm_L', 'upperarm_R']) this.root.getObjectByName(n)?.scale.setScalar(on ? 0.001 : 1);
+    this.key = '';
+    if (!on) for (const t of this.thighs) t.bone.position.copy(t.rest);
   }
 
   /** Turns the avatar on (the cartoon body hidden) or off (the cartoon back). */
@@ -189,8 +222,19 @@ export class Avatar {
     for (const part of [rig.torso, rig.armL, rig.armR, rig.legL, rig.legR, rig.body])
       for (const c of part.children) if (c.userData.outfit) c.traverse((m) => m.layers.set(layer));
     if (!this.root.visible) return;
-    this.hands.pose(this.person.emoteId);
-    for (const d of this.drives) d.bone.quaternion.copy(d.parentInv).multiply(qa.copy(d.part.quaternion)).multiply(d.rest);
+    const emote = this.person.emoteId;
+    this.hands.pose(emote);
+    // The gesture's fixes, eased in and out with it.
+    const fix = (emote && GESTURE_FIX[emote]) || { twist: 0, forward: 0 };
+    const ease = Math.min(1, dt * 8);
+    this.gesture.twist += (fix.twist - this.gesture.twist) * ease;
+    this.gesture.forward += (fix.forward - this.gesture.forward) * ease;
+    for (const d of this.drives) {
+      qa.copy(d.part.quaternion);
+      if (d.bone.name === 'upperarm_R' && this.gesture.forward) qa.premultiply(q.setFromAxisAngle(X, this.gesture.forward));
+      d.bone.quaternion.copy(d.parentInv).multiply(qa).multiply(d.rest);
+    }
+    if (this.handR) this.handR.bone.quaternion.copy(this.handR.rest).multiply(q.setFromAxisAngle(this.handR.axis, this.gesture.twist));
     // A leg out in front (sitting) bends at the knee, the shin hanging down; the hips come down onto the seat.
     let sit = 0;
     for (const k of this.knees) {
@@ -201,6 +245,18 @@ export class Avatar {
       k.shin.quaternion.copy(q.setFromAxisAngle(k.axis, forward * bend)).multiply(k.rest);
     }
     this.root.position.y = (HIPS - AVATAR_HIPS) * sit;
+    // In first person your body stands back from the camera (see person-first.ts), which would sit your
+    // legs back in the seat, under its cushion: seated, the thighs come forward again, out over it.
+    if (this.fp) {
+      const body = this.person.rig.body.position;
+      for (const t of this.thighs) {
+        const pelvis = t.bone.parent!;
+        this.root.getWorldQuaternion(q).invert();
+        pelvis.getWorldQuaternion(qa);
+        off.set(-body.x, 0, -body.z).multiplyScalar(sit / SCALE).applyQuaternion(q.multiply(qa).invert());
+        t.bone.position.copy(t.rest).add(off);
+      }
+    }
     // The face: the mouth after the voice, a blink every few seconds.
     this.blinkIn -= dt;
     if (this.blinkIn < 0) {

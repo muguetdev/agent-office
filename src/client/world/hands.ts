@@ -25,6 +25,9 @@ export interface HandsInput {
 /** Where the hands rest for holding, throwing, a drag or an emote (see classic): out wider than at rest. */
 const CLASSIC = { x: 0.25, y: -0.185, z: -0.44, rx: 0.2, ry: 0.22, rz: -0.25 } as const;
 
+/** How far a wave turns the hand about its length, so its palm faces out. */
+const WAVE_TWIST = -1.4;
+
 /** Lifting the mug for a sip and lowering it again, in seconds. */
 const SIP_TIME = 1.1;
 
@@ -525,10 +528,13 @@ export class Hands {
     if (u >= seconds) {
       this.emoting = null;
       for (const arm of [this.right, this.left]) showPose(arm.dress, 'fist');
+      this.right.dress.hand.rotation.z = 0;
       return;
     }
     const k = emoteEnvelope(u, seconds);
     const r = this.right.group;
+    // A wave's open hand turned palm out, away from you.
+    this.right.dress.hand.rotation.z = id === 'wave' ? WAVE_TWIST * k : 0;
     this.classic(this.right, k);
     this.classic(this.left, k);
     switch (id) {
@@ -541,8 +547,8 @@ export class Hands {
         break;
       case 'thumbs':
         // Up in front of you, fist level and thumb up, with a little pump.
-        r.position.x -= 0.13 * k;
-        r.position.y += (0.12 + Math.exp(-u * 3) * Math.sin(u * 14) * 0.03) * k;
+        r.position.x -= 0.16 * k;
+        r.position.y += (0.07 + Math.exp(-u * 3) * Math.sin(u * 14) * 0.03) * k;
         r.rotation.z += 0.25 * k;
         break;
       case 'clap': {
