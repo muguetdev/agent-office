@@ -25,6 +25,10 @@ interface Column<T> {
 
 const byUpdated = (a: { updatedAt: string }, b: { updatedAt: string }) => b.updatedAt.localeCompare(a.updatedAt);
 
+function githubErrorHint(error: string): string {
+  return /^Unknown JSON field:/i.test(error) ? L.boards.ghOld : L.boards.ghHelp;
+}
+
 function issueColumns(items: GhIssue[]): Column<GhIssue>[] {
   const open = items.filter((i) => i.state === 'OPEN');
   const started = open.filter((i) => inProgress(i, store.taskForIssue(i.number)));
@@ -257,7 +261,7 @@ export function openBoard(kind: 'issues' | 'pulls', net: Net, actions: BoardActi
     const caret = active instanceof HTMLInputElement ? ([active.selectionStart, active.selectionEnd] as const) : null;
     body.replaceChildren();
     if (st.error && !st.items.length) {
-      body.append(h('div.board-error', {}, L.pull.loadFailed(st.error), h('br'), h('small', {}, L.boards.ghHelp)));
+      body.append(h('div.board-error', {}, L.pull.loadFailed(st.error), h('br'), h('small', {}, githubErrorHint(st.error))));
       return;
     }
     const all = boardLabels(st.items);

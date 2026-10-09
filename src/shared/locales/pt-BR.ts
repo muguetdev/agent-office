@@ -1234,6 +1234,7 @@ Opções:
     refreshing: 'Atualizando…',
     updated: (when: string) => `Atualizado ${when}`,
     ghHelp: 'O servidor roda o `gh` na pasta do projeto — confira se ele está instalado e autenticado (gh auth login).',
+    ghOld: 'O servidor está com uma versão do GitHub CLI mais antiga do que este recurso espera; atualize o `gh` se o quadro continuar sem carregar.',
     by: (who: string) => `por ${who}`,
     changesRequested: '🛠 mudanças pedidas',
     atIssues: '📋 no quadro de chamados',

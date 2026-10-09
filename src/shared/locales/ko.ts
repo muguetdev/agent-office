@@ -1244,6 +1244,7 @@ GitHub CLI 로그인, 층으로 복제할 저장소 선택. --projects나 --proj
     refreshing: '새로고침 중…',
     updated: (when: string) => `${when} 업데이트됨`,
     ghHelp: '서버는 프로젝트 폴더에서 `gh`를 실행합니다. gh가 설치되어 있고 로그인되어 있는지 확인하세요 (gh auth login).',
+    ghOld: '서버의 GitHub CLI가 이 기능이 기대하는 버전보다 오래되었습니다. 보드가 계속 열리지 않으면 `gh`를 업데이트하세요.',
     by: (who: string) => `작성자 ${who}`,
     changesRequested: '🛠 수정 요청됨',
     atIssues: '📋 이슈 게시판 보는 중',

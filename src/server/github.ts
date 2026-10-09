@@ -6,14 +6,19 @@ import { L } from './i18n.js';
 const REFRESH_MS = 90_000;
 /** How long the repo's list of labels is kept before the label picker asks GitHub again. */
 const LABELS_MS = 60_000;
+type GhRunner = (args: string[], cwd: string, timeout?: number, env?: Record<string, string>) => Promise<string>;
 
 /** Turns gh's stderr into something a person standing at the board can act on. */
-function friendly(raw: string): string {
-  if (/no git remotes found|none of the git remotes/i.test(raw)) return L.srvGithub.noRemote;
-  if (/not a git repository/i.test(raw)) return L.srvGithub.notRepo;
-  if (/auth login|not logged in|authentication/i.test(raw)) return L.srvGithub.notSignedIn;
-  if (/could not resolve to a repository|not found/i.test(raw)) return L.srvGithub.notFound;
-  return raw;
+export function friendlyGhError(raw: string): string {
+  const lines = raw.trim().split('\n').map((l) => l.trim()).filter(Boolean);
+  const text = lines.join(' ');
+  const first = lines[0] ?? raw.trim();
+  if (/^Unknown JSON field:/i.test(first)) return first;
+  if (/no git remotes found|none of the git remotes/i.test(text)) return L.srvGithub.noRemote;
+  if (/not a git repository/i.test(text)) return L.srvGithub.notRepo;
+  if (/auth login|not logged in|authentication/i.test(text)) return L.srvGithub.notSignedIn;
+  if (/could not resolve to a repository|not found/i.test(text)) return L.srvGithub.notFound;
+  return lines.slice(-2).join(' ') || raw;
 }
 
 /** Runs gh as the office, or with `env` as someone signed in to their own GitHub (see signins.ts). */
@@ -21,9 +26,9 @@ export function gh(args: string[], cwd: string, timeout = 30_000, env?: Record<s
   return new Promise((resolve, reject) => {
     execFile('gh', args, { cwd, maxBuffer: 32 * 1024 * 1024, timeout, env }, (err, stdout, stderr) => {
       if (err) {
-        const msg = (stderr || err.message || '').trim().split('\n').slice(-2).join(' ');
+        const msg = (stderr || err.message || '').trim();
         const signedOut = env && /auth login|not logged in|authentication/i.test(msg);
-        reject(new Error((err as NodeJS.ErrnoException).code === 'ENOENT' ? L.srvGithub.noGh : signedOut ? L.srvGithub.signInStopped : friendly(msg)));
+        reject(new Error((err as NodeJS.ErrnoException).code === 'ENOENT' ? L.srvGithub.noGh : signedOut ? L.srvGithub.signInStopped : friendlyGhError(msg)));
       } else resolve(stdout);
     });
   });
@@ -69,6 +74,32 @@ function commentsOf(raw: any[]): GhComment[] {
     url: c.url,
     state: c.state,
   }));
+}
+
+const PULL_LIST_FIELDS = [
+  'number',
+  'title',
+  'state',
+  'isDraft',
+  'url',
+  'author',
+  'labels',
+  'reviewDecision',
+  'headRefName',
+  'headRefOid',
+  'baseRefName',
+  'createdAt',
+  'updatedAt',
+  'additions',
+  'deletions',
+  'statusCheckRollup',
+  'body',
+  'closingIssuesReferences',
+];
+const REQUIRED_PULL_LIST_FIELDS = new Set(['number', 'title', 'state']);
+
+function unsupportedJsonField(message: string): string | undefined {
+  return /^Unknown JSON field: "([^"]+)"/i.exec(message.trim())?.[1];
 }
 
 /**
@@ -154,6 +185,7 @@ export class GitHub {
     private dir: string,
     private onIssues: (s: GhState<GhIssue>) => void,
     private onPulls: (s: GhState<GhPull>) => void,
+    private runGh: GhRunner = gh,
   ) {}
 
   /** A server's floor's repository: the one the boards show from now on, or none. */
@@ -168,7 +200,7 @@ export class GitHub {
   /** gh on this floor's repository (see ghRepo), as the office or with `env` as someone signed in to their own GitHub. */
   private run(args: string[], timeout?: number, env?: Record<string, string>): Promise<string> {
     if (this.ghRepo === null) return Promise.reject(new Error(L.servers.noRepo));
-    return gh(args, this.dir, timeout, this.ghRepo ? { ...(env ?? (process.env as Record<string, string>)), GH_REPO: this.ghRepo } : env);
+    return this.runGh(args, this.dir, timeout, this.ghRepo ? { ...(env ?? (process.env as Record<string, string>)), GH_REPO: this.ghRepo } : env);
   }
 
   start() {
@@ -476,29 +508,29 @@ export class GitHub {
     this.onPulls(this.pulls);
     const asked = Date.now();
     try {
-      const fields = 'number,title,state,isDraft,url,author,labels,reviewDecision,headRefName,headRefOid,baseRefName,createdAt,updatedAt,additions,deletions,statusCheckRollup,body,closingIssuesReferences';
       const [open, merged, closed] = await Promise.all([
-        this.run(['pr', 'list', '--state', 'open', '--limit', '150', '--json', fields]),
-        this.run(['pr', 'list', '--state', 'merged', '--limit', '30', '--json', fields]),
-        this.run(['pr', 'list', '--state', 'closed', '--limit', '40', '--json', fields]),
+        this.listPulls('open', 150),
+        this.listPulls('merged', 30),
+        this.listPulls('closed', 40),
       ]);
       // `--state closed` includes merged PRs; keep only the ones closed without merging.
       const seen = new Set<number>();
-      const all = [...JSON.parse(open), ...JSON.parse(merged), ...JSON.parse(closed)].filter((p: any) => !seen.has(p.number) && seen.add(p.number));
+      const all = [...open, ...merged, ...closed].filter((p: any) => !seen.has(p.number) && seen.add(p.number));
+      const repo = all.some((p: any) => typeof p.url !== 'string' || !p.url) ? await this.repoInfo().catch(() => undefined) : undefined;
       const fetched: GhPull[] = all.map((p: any) => ({
         number: p.number,
         title: p.title,
         state: p.state,
         isDraft: !!p.isDraft,
-        url: p.url,
+        url: typeof p.url === 'string' && p.url ? p.url : repo ? `https://github.com/${repo.nameWithOwner}/pull/${p.number}` : '',
         author: p.author?.login ?? '',
         labels: labels(p.labels),
         reviewDecision: p.reviewDecision ?? '',
-        headRefName: p.headRefName,
+        headRefName: p.headRefName ?? '',
         headRefOid: typeof p.headRefOid === 'string' ? p.headRefOid : undefined,
-        baseRefName: p.baseRefName,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
+        baseRefName: p.baseRefName ?? '',
+        createdAt: p.createdAt ?? '',
+        updatedAt: p.updatedAt ?? p.createdAt ?? '',
         additions: p.additions ?? 0,
         deletions: p.deletions ?? 0,
         checks: checksOf(p.statusCheckRollup),
@@ -511,5 +543,19 @@ export class GitHub {
       this.pulls = { ...this.pulls, loading: false, error: (err as Error).message, fetchedAt: Date.now() };
     }
     this.onPulls(this.pulls);
+  }
+
+  private async listPulls(state: string, limit: number): Promise<any[]> {
+    let fields = [...PULL_LIST_FIELDS];
+    for (;;) {
+      try {
+        const out = await this.run(['pr', 'list', '--state', state, '--limit', String(limit), '--json', fields.join(',')]);
+        return JSON.parse(out);
+      } catch (err) {
+        const field = unsupportedJsonField((err as Error).message);
+        if (!field || REQUIRED_PULL_LIST_FIELDS.has(field) || !fields.includes(field)) throw err;
+        fields = fields.filter((f) => f !== field);
+      }
+    }
   }
 }

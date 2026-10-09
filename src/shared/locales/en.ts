@@ -1242,6 +1242,7 @@ Options:
     refreshing: 'Refreshing…',
     updated: (when: string) => `Updated ${when}`,
     ghHelp: 'The server runs `gh` in the project directory — make sure it is installed and authenticated (gh auth login).',
+    ghOld: 'The server is running an older GitHub CLI than this feature expected; update `gh` if the board still cannot load.',
     by: (who: string) => `by ${who}`,
     changesRequested: '🛠 changes requested',
     atIssues: '📋 at the issues board',
