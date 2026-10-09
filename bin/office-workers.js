@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // office-workers: the office's workers, from inside Agent Office: who's at which desk and where their
 // pull requests stand, hiring one, sending some home (their worktrees and branches with them),
-// telling one something and saying which pull request is one's. The office puts it on every worker's PATH and gives each its own address and
+// telling one something, replying in a discussion and saying which pull request is one's. The office puts it on every worker's PATH and gives each its own address and
 // token in AGENT_OFFICE_HOOK_URL, AGENT_OFFICE_WORKER_ID and AGENT_OFFICE_HOOK_TOKEN; this talks to
 // the /office/workers endpoint with them (src/server/office-workers.ts). `office-workers mcp` is the
 // same as an MCP server on stdio, which the office hands the agents that take one. Plain Node, no
@@ -24,6 +24,9 @@ const USAGE = `Usage:
                                                 that isn't on GitHub, and says what it kept
   office-workers home --merged                  send home everyone whose pull request merged
   office-workers tell <name|id> <<'EOF'         type a prompt to a worker (or --prompt "…")
+  office-workers discuss <id> <<'EOF'           reply in a bounded worker discussion; appears in
+  …your reply…                                  the floor's chat (or --message "…")
+  EOF
   office-workers pr <number|url> [--worker <name|id>]
                                                 say which pull request is a worker's (yours, without
                                                 --worker), when the list doesn't show it: the office
@@ -42,9 +45,9 @@ export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 /** How long the office may take to come back when it's restarting (a dev reload, an upgrade). */
 const RETRY_MS = 6000;
 /** Sending several workers home waits on git for each; hiring may fetch from GitHub first. */
-const TIMEOUT_MS = { list: 15_000, tell: 15_000, model: 15_000, pr: 45_000, hire: 90_000, home: 300_000 };
+const TIMEOUT_MS = { list: 15_000, tell: 15_000, discuss: 15_000, model: 15_000, pr: 45_000, hire: 90_000, home: 300_000 };
 /** Where each call goes, under /office/workers. */
-const PATHS = { list: '', hire: '', home: '/home', tell: '/tell', model: '/model', pr: '/pr' };
+const PATHS = { list: '', hire: '', home: '/home', tell: '/tell', discuss: '/discuss', model: '/model', pr: '/pr' };
 
 /**
  * Reads `--flag value` and `--flag=value` options, and the words that aren't options.
@@ -109,6 +112,11 @@ export function parseArgs(argv) {
     if (words.length !== 1) throw new UsageError('tell takes one worker, its name or id, with the prompt on stdin or --prompt "…"');
     return { cmd: 'tell', worker: words[0], ...(opts['--prompt'] !== undefined ? { prompt: opts['--prompt'] } : {}) };
   }
+  if (cmd === 'discuss') {
+    const { opts, words } = options(rest, ['--message'], []);
+    if (words.length !== 1) throw new UsageError('discuss takes the discussion id, with your reply on stdin or --message "…"');
+    return { cmd: 'discuss', id: words[0], ...(opts['--message'] !== undefined ? { message: opts['--message'] } : {}) };
+  }
   // link-pr, after the MCP tool.
   if (cmd === 'pr' || cmd === 'link-pr') {
     const { opts, words } = options(rest, ['--worker'], ['--none', '--json']);
@@ -157,7 +165,7 @@ export function officeEnv(env) {
 
 /**
  * The HTTP request for one of the office's worker calls.
- * @param {'list' | 'hire' | 'home' | 'tell' | 'pr'} what
+ * @param {'list' | 'hire' | 'home' | 'tell' | 'discuss' | 'pr'} what
  * @param {{ url: string, worker: string, token: string }} office
  * @param {Record<string, unknown>} [body]
  * @returns {{ method: string, url: string, headers: Record<string, string>, body?: string, timeout: number }}
@@ -206,7 +214,7 @@ async function send(req, fetchImpl) {
 
 /**
  * Makes one call to the office; resolves to what it answered, or throws with why it said no.
- * @param {'list' | 'hire' | 'home' | 'tell' | 'pr'} what
+ * @param {'list' | 'hire' | 'home' | 'tell' | 'discuss' | 'pr'} what
  * @param {Record<string, unknown> | undefined} body
  * @param {{ env: Record<string, string | undefined>, fetch: typeof fetch }} io
  */
@@ -356,6 +364,21 @@ export const TOOLS = [
     annotations: { destructiveHint: false, openWorldHint: false },
   },
   {
+    name: 'discuss_with_worker',
+    title: 'Reply in a worker discussion',
+    description: "Post your turn in an existing bounded discussion. The office shows it in the floor's chat and delivers it to your partner once their current turn is done.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Discussion id in your prompt.' },
+        message: { type: 'string', description: 'Your concise reply.' },
+      },
+      required: ['id', 'message'],
+      additionalProperties: false,
+    },
+    annotations: { destructiveHint: false, openWorldHint: false },
+  },
+  {
     name: 'link_pr',
     title: "Say which pull request is a worker's",
     description:
@@ -382,7 +405,7 @@ const INSTRUCTIONS =
   "You work in Agent Office, where coding agents (the office's workers) sit at desks, each usually in its own git worktree and branch. These tools are the way to see and manage " +
   'the other agents: whenever you are asked about the agents or workers (who is working on what, whose pull request merged, hiring one, sending them home), use them, ' +
   "rather than looking for the agents with git, ps or HTTP calls. list_workers says where each one's pull request stands (merged: true means it merged), hire_worker " +
-  'puts a new agent to work, send_home sends agents home and deletes their worktrees and branches, tell_worker gives one a prompt, and link_pr says which pull request is a ' +
+  'puts a new agent to work, send_home sends agents home and deletes their worktrees and branches, tell_worker gives one a prompt, discuss_with_worker posts your turn in a discussion the office started you in, and link_pr says which pull request is a ' +
   "worker's when list_workers does not show it. Everyone in the office sees who did what. " +
   'choose_model switches your own model to fit the task: call it when you start a task (high for planning and hard problems, medium for ordinary work, low for small edits and lookups) and again when the work changes size. ' +
   'The office-workers command on your PATH does the same from a shell.';
@@ -404,6 +427,10 @@ async function runTool(name, args, io) {
   if (name === 'tell_worker') {
     const answer = await call('tell', a, io);
     return { text: `Told ${answer.worker?.name ?? a.worker}.` };
+  }
+  if (name === 'discuss_with_worker') {
+    const answer = await call('discuss', a, io);
+    return { text: answer.finished ? 'Discussion complete.' : `Reply posted in the floor's chat; ${answer.remaining} messages remain.` };
   }
   if (name === 'choose_model') {
     const answer = await call('model', a, io);
@@ -533,6 +560,18 @@ export async function main(argv, io = {}) {
       if (!text) throw new UsageError('The prompt is empty');
       const answer = await call('tell', { worker: cmd.worker, prompt: text }, ctx);
       err(`Told ${answer.worker?.name ?? cmd.worker}.`);
+      return 0;
+    }
+    if (cmd.cmd === 'discuss') {
+      let message = cmd.message;
+      if (message === undefined) {
+        if (stdin.isTTY) throw new UsageError(`Give your reply on stdin (office-workers discuss ${cmd.id} <<'EOF' … EOF) or with --message "…"`);
+        message = await readStdin(stdin);
+      }
+      message = String(message).trim();
+      if (!message) throw new UsageError('The discussion message is empty');
+      const answer = await call('discuss', { id: cmd.id, message }, ctx);
+      out(answer.finished ? 'Discussion complete.' : `Reply posted; ${answer.remaining} messages remain.`);
       return 0;
     }
     if (cmd.cmd === 'pr') {

@@ -10,6 +10,7 @@ import type { Ctx } from '../office/context.js';
 import { str } from '../office/input.js';
 import { readBody, send } from '../http/util.js';
 import { L } from '../i18n.js';
+import { DISCUSSION_REPLY_MAX, discussionText } from '../../shared/discussions.js';
 
 /**
  * Pull request `n` on a floor, for a worker to have as its own: one that's open, or merged and still
@@ -37,7 +38,8 @@ async function pullOf(floor: Floor, n: number, repo?: string): Promise<{ number:
  * The floor's workers, for any worker on it (see office-workers.ts, and bin/office-workers.js, the
  * command and MCP server that call it): GET lists them, POST hires one, POST /home sends some home
  * (its worktree and branch go too, unless they hold work), POST /tell types a prompt to one, POST /pr
- * says which pull request is one's (for one the office couldn't tell by itself). The
+ * says which pull request is one's (for one the office couldn't tell by itself), POST /discuss is a
+ * worker's turn in the floor's discussion (see discussions.ts). The
  * worker's own hook token says who's asking, and the floor hears who did what, as from anyone.
  */
 export async function officeWorkers(ctx: Ctx, req: http.IncomingMessage, res: http.ServerResponse, url: URL) {
@@ -67,7 +69,7 @@ export async function officeWorkers(ctx: Ctx, req: http.IncomingMessage, res: ht
       workers: list.map((w) => workerRow(w, view, me.id)),
     });
   }
-  if (req.method !== 'POST' || !['', '/home', '/tell', '/pr', '/model'].includes(action)) return send(res, 405, { error: 'GET /office/workers, or POST to /office/workers, /office/workers/home, /office/workers/tell or /office/workers/pr' });
+  if (req.method !== 'POST' || !['', '/home', '/tell', '/pr', '/model', '/discuss'].includes(action)) return send(res, 405, { error: 'GET /office/workers, or POST to /office/workers, /office/workers/home, /office/workers/tell, /office/workers/pr or /office/workers/discuss' });
   let body: unknown;
   try {
     body = JSON.parse((await readBody(req)) || '{}');
@@ -124,9 +126,23 @@ export async function officeWorkers(ctx: Ctx, req: http.IncomingMessage, res: ht
     if (!text) return send(res, 400, { error: 'Say what to tell it: prompt' });
     let err = floor.workers.prompt(w.id, text, who);
     // Stopped or asleep: it wakes up with this as its next message.
-    if (err === 'Worker is not running') err = floor.workers.resume(w.id, text);
+    if (err === L.workers.notRunning) err = floor.workers.resume(w.id, text);
     if (err) return send(res, 400, { error: err });
     return send(res, 200, { ok: true, worker: row(w.id) });
+  }
+
+  if (action === '/discuss') {
+    const b = (body ?? {}) as { id?: unknown; message?: unknown };
+    const id = str(b.id, 32).trim();
+    if (!/^[0-9a-f]{10}$/.test(id)) return send(res, 400, { error: 'Give the discussion id from your prompt: id' });
+    const raw = typeof b.message === 'string' ? b.message : '';
+    if (raw.length > DISCUSSION_REPLY_MAX) return send(res, 400, { error: `Keep it under ${DISCUSSION_REPLY_MAX} characters` });
+    const message = discussionText(raw);
+    if (!message) return send(res, 400, { error: 'Say what to discuss: message' });
+    // Only one of its two workers, on its own turn once that was delivered (see Discussions.post).
+    const result = floor.discussions.reply(id, me, message);
+    if (typeof result === 'string') return send(res, 409, { error: result });
+    return send(res, 200, { ok: true, ...result });
   }
 
   if (action === '/model') {

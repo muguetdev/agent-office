@@ -30,7 +30,7 @@ const pull = (number: number, state: string, headRefName: string, headRefOid?: s
   headRefName, headRefOid, baseRefName: 'main', createdAt: '', updatedAt: '', additions: 0, deletions: 0, checks: 'none', body: '', closes: [],
 });
 
-test('parses list, hire, home, tell, pr and mcp', () => {
+test('parses list, hire, home, tell, discuss, pr and mcp', () => {
   assert.deepEqual(parseArgs(['pr', '12']), { cmd: 'pr', pr: '12', json: false });
   assert.deepEqual(parseArgs(['pr', 'https://github.com/acme/app/pull/12', '--worker', 'Mochi', '--json']), { cmd: 'pr', pr: 'https://github.com/acme/app/pull/12', worker: 'Mochi', json: true });
   assert.deepEqual(parseArgs(['link-pr', '--none', '--worker=b0b']), { cmd: 'pr', unlink: true, worker: 'b0b', json: false });
@@ -43,6 +43,9 @@ test('parses list, hire, home, tell, pr and mcp', () => {
   assert.deepEqual(parseArgs(['home', '--merged', '--cleanup=keep']), { cmd: 'home', workers: [], merged: true, cleanup: 'keep', json: false });
   assert.deepEqual(parseArgs(['send-home', '--merged']), { cmd: 'home', workers: [], merged: true, json: false });
   assert.deepEqual(parseArgs(['tell', 'Mochi', '--prompt', '- rebase on main']), { cmd: 'tell', worker: 'Mochi', prompt: '- rebase on main' });
+  assert.deepEqual(parseArgs(['discuss', 'thread1', '--message', 'Review the transaction']), { cmd: 'discuss', id: 'thread1', message: 'Review the transaction' });
+  assert.deepEqual(parseArgs(['discuss', 'thread1']), { cmd: 'discuss', id: 'thread1' });
+  assert.throws(() => parseArgs(['discuss']), /discussion id/);
   assert.deepEqual(parseArgs(['hire', '--provider', 'codex', '--effort=high', '--issue', '#12', '--no-worktree', '--desk', 'desk-4']), {
     cmd: 'hire', json: false, provider: 'codex', effort: 'high', issue: 12, worktree: false, desk: 'desk-4',
   });
@@ -81,6 +84,7 @@ test('builds requests for each call, with the worker and its token', () => {
   assert.equal(home.body, '{"merged":true}');
   assert.ok(home.timeout > list.timeout, 'sending home waits on git');
   assert.equal(buildRequest('tell', OFFICE, {}).url, 'http://127.0.0.1:4455/office/workers/tell?worker=w1');
+  assert.equal(buildRequest('discuss', OFFICE, {}).url, 'http://127.0.0.1:4455/office/workers/discuss?worker=w1');
   assert.equal(buildRequest('pr', OFFICE, { pr: '12' }).url, 'http://127.0.0.1:4455/office/workers/pr?worker=w1');
   assert.equal(buildRequest('hire', OFFICE, {}).url, 'http://127.0.0.1:4455/office/workers?worker=w1');
 });
@@ -143,6 +147,11 @@ test('the command reads a prompt from stdin, reports refusals and exits non-zero
   assert.match((await run(['pr', '7', '--worker', 'Nope'], reply(404, { error: 'No worker here is called Nope' }) as typeof fetch)).err, /^office-workers: No worker here is called Nope$/);
   assert.match((await run(['pr', '7'], reply(405, { error: 'GET /office/workers, or POST' }) as typeof fetch)).err, /older Agent Office than this command/);
 
+  const discussed = await run(['discuss', 'thread1'], reply(200, { ok: true, finished: false, remaining: 3 }) as typeof fetch, 'Review the new constraint\n');
+  assert.deepEqual(discussed, { code: 0, out: 'Reply posted; 3 messages remain.', err: '' });
+  assert.deepEqual(JSON.parse(String(calls[calls.length - 1].init.body)), { id: 'thread1', message: 'Review the new constraint' });
+  assert.match(calls[calls.length - 1].url, /\/office\/workers\/discuss\?worker=w1$/);
+
   const refused = await run(['list'], reply(401, { error: 'bad token' }) as typeof fetch);
   assert.equal(refused.code, 1);
   assert.match(refused.err, /didn't accept this worker's token \(401\): bad token/);
@@ -159,7 +168,7 @@ test('answers MCP: the handshake, its tools, and a call', async () => {
   assert.equal((await handleMcp({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '1999-01-01' } }, io))?.result.protocolVersion, '2025-11-25');
   assert.equal(await handleMcp({ jsonrpc: '2.0', method: 'notifications/initialized' }, io), undefined);
   const tools = await handleMcp({ jsonrpc: '2.0', id: 3, method: 'tools/list' }, io);
-  assert.deepEqual(tools?.result.tools.map((t: { name: string }) => t.name), ['list_workers', 'hire_worker', 'send_home', 'choose_model', 'tell_worker', 'link_pr']);
+  assert.deepEqual(tools?.result.tools.map((t: { name: string }) => t.name), ['list_workers', 'hire_worker', 'send_home', 'choose_model', 'tell_worker', 'discuss_with_worker', 'link_pr']);
   const linking = { env: ENV, fetch: (async (_url: unknown, init?: RequestInit) => new Response(JSON.stringify({ ok: true, worker: { name: 'Bolt', pr: { number: Number(JSON.parse(String(init?.body)).pr), state: 'open' }, merged: false } }))) as typeof fetch };
   const linked = await handleMcp({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'link_pr', arguments: { worker: 'Bolt', pr: 7 } } }, linking);
   assert.deepEqual(linked?.result, { content: [{ type: 'text', text: 'Bolt: PR #7 open' }] });
