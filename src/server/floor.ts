@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import type { ChangesState, FloorInfo, PeerInfo, ProjectInfo, ServerMsg, WorkerInfo } from '../shared/protocol.js';
+import type { ChangesState, ChatLine, FloorInfo, PeerInfo, ProjectInfo, ServerMsg, WorkerInfo } from '../shared/protocol.js';
 import { isBusy } from '../shared/status.js';
 import { DESK_BY_ID } from '../shared/layout.js';
 import type { FloorDef } from './building.js';
@@ -22,6 +22,7 @@ import { Garage } from './garage.js';
 import { Jukebox } from './jukebox.js';
 import { Whiteboard } from './whiteboard.js';
 import { MeetingRoom } from './meetings.js';
+import { DiscussionRoom } from './discussions.js';
 import { Worktrees, type WorktreeCleanup } from './worktrees.js';
 import { landedWork, landedWorkers, type Landed } from './leave-on-merge.js';
 import type { Ledger } from './usage.js';
@@ -54,6 +55,8 @@ export interface FloorContext {
   /** To everyone on this floor. */
   emit(floor: Floor, msg: ServerMsg, droppable?: boolean): void;
   toast(floor: Floor, text: string, level?: ToastLevel): void;
+  /** A line in this floor's chat: kept, and said to everyone on the floor. */
+  chat(floor: Floor, line: ChatLine): void;
   /** A worker's terminal output, for whoever has that terminal open. */
   termData(workerId: string, data: string, viewers: string[]): void;
   /** What a worker changed, for whoever has its Changes window open. */
@@ -130,6 +133,8 @@ export class Floor {
   readonly whiteboard: Whiteboard;
   /** The meeting room, where workers work through a question together (see meetings.ts). */
   readonly meetings: MeetingRoom;
+  /** Two of its workers talking something through in its chat (see discussions.ts). */
+  readonly discussions: DiscussionRoom;
   /** The bookshelf: the project's Markdown files (see docs.ts). */
   readonly docs: Docs;
   /** Settles once the workers whose terminals outlived the last office are picked back up, and the rest woken. */
@@ -185,6 +190,7 @@ export class Floor {
           // Still being built: the first updates come from waking the workers already at their desks.
           this.queue?.onWorker(worker);
           this.meetings?.onWorker(worker);
+          this.discussions?.onWorker(worker);
           this.dog.onWorker(worker);
           ctx.workerChanged(this, worker);
           // Its turn ended, or whoever had its terminal open closed it: it may be free to go now.
@@ -199,6 +205,7 @@ export class Floor {
           ctx.emit(this, { t: 'worker.remove', workerId, ...(jail ? { jail } : {}) });
           this.queue?.onWorkerGone(workerId);
           this.meetings?.onWorkerGone(workerId);
+          this.discussions?.onWorkerGone(workerId);
           this.dog.onWorkerGone(workerId);
           ctx.workerChanged(this, workerId);
         },
@@ -282,6 +289,14 @@ export class Floor {
       },
     );
 
+    this.discussions = new DiscussionRoom(dataDir, {
+      get: (id) => this.workers.get(id),
+      prompt: (id, text, by) => this.workers.prompt(id, text, by),
+      resume: (id, text) => this.workers.resume(id, text),
+      say: (line) => ctx.chat(this, { ...line, at: Date.now(), place: this.id }),
+      toast: (text, level) => ctx.toast(this, text, level),
+    });
+
     // What each worker changed, for the Changes window at its desk (see changes.ts).
     this.code = new CodeFiles((workerId) => {
       const w = this.workers.get(workerId);
@@ -320,6 +335,8 @@ export class Floor {
     this.jukebox = new Jukebox(dataDir);
     this.whiteboard = new Whiteboard(dataDir);
     this.ready = this.workers.start();
+    // A turn still waiting from before a restart goes in once its worker is back at its desk.
+    void this.ready.then(() => this.discussions.pump(), () => {});
 
     void this.github.refresh();
     // A floor with people on it, or work under way, keeps its boards fresh; the others check in now and then.

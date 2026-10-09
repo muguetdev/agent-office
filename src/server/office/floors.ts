@@ -84,6 +84,10 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
     prompts: ctx.prompts,
     emit: ctx.toFloor,
     toast: ctx.toastFloor,
+    chat: (floor, line) => {
+      ctx.chat.add(line);
+      ctx.toFloor(floor, { t: 'chat', ...line });
+    },
     termData: (workerId, data, viewers) => {
       const json = JSON.stringify({ t: 'term.data', workerId, data } satisfies ServerMsg);
       for (const id of viewers) {
