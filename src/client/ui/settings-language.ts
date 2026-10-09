@@ -7,7 +7,7 @@ import { h, timeAgo } from './dom';
 import { L, chooseLocale, chosenLocale } from '../i18n';
 
 /** Each language by its own name, as it'd be picked from a list. */
-const NAMES: Record<Locale, string> = { en: 'English', 'pt-BR': 'Português (Brasil)' };
+const NAMES: Record<Locale, string> = { en: 'English', 'pt-BR': 'Português (Brasil)', ko: '한국어' };
 
 function seg(label: string, options: [string, string, boolean][], pick: (value: string) => void, disabled = false): HTMLElement {
   return h(

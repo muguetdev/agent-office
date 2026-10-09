@@ -4,11 +4,12 @@
 // Add a language by adding its dictionary below and its tag to LOCALES.
 
 import { en } from './locales/en.js';
+import { ko } from './locales/ko.js';
 import { ptBR } from './locales/pt-BR.js';
 
 export type Messages = typeof en;
 
-export const LOCALES = ['en', 'pt-BR'] as const;
+export const LOCALES = ['en', 'pt-BR', 'ko'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 /**
@@ -24,7 +25,7 @@ function bare<T>(o: T): T {
   return o;
 }
 
-const DICTIONARIES: Record<Locale, Messages> = { en: bare(en), 'pt-BR': bare(ptBR) };
+const DICTIONARIES: Record<Locale, Messages> = { en: bare(en), 'pt-BR': bare(ptBR), ko: bare(ko) };
 
 export function messages(locale: Locale): Messages {
   return DICTIONARIES[locale];
