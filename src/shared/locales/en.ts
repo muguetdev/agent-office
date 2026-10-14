@@ -961,6 +961,11 @@ Options:
     piInvalid: 'Use a Pi model name or provider/model: letters, digits and . _ : / @ + - (up to 256 characters).',
   },
   terminal: {
+    copy: '📋 Copy',
+    copyTip: "Copy the agent's last reply as plain text (or what you've selected; Shift: the whole screen). To select inside Claude Code, drag with Option held (Shift on Windows and Linux)",
+    copied: '📋 Reply copied',
+    copiedSelection: '📋 Selection copied',
+    copyFailed: "Couldn't copy: nothing to copy, or the browser said no",
     typing1: (a: string) => `${a} is typing…`,
     typing2: (a: string, b: string) => `${a} and ${b} are typing…`,
     typingN: (a: string, others: number) => `${a} and ${others} others are typing…`,

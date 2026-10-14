@@ -963,6 +963,11 @@ GitHub CLI 로그인, 층으로 복제할 저장소 선택. --projects나 --proj
     piInvalid: 'Pi 모델 이름 또는 provider/model을 입력하세요: 영문자, 숫자와 . _ : / @ + - (최대 256자).',
   },
   terminal: {
+    copy: '📋 복사',
+    copyTip: '에이전트의 마지막 답변을 일반 텍스트로 복사합니다 (선택한 부분이 있으면 그 부분, Shift를 누르면 화면 전체). Claude Code 안에서 선택하려면 Option을 누른 채 드래그하세요 (Windows·Linux는 Shift)',
+    copied: '📋 답변을 복사했습니다',
+    copiedSelection: '📋 선택한 내용을 복사했습니다',
+    copyFailed: '복사할 수 없습니다: 복사할 내용이 없거나 브라우저가 허용하지 않았습니다',
     typing1: (a: string) => `${a}님이 입력 중…`,
     typing2: (a: string, b: string) => `${a}님과 ${b}님이 입력 중…`,
     typingN: (a: string, others: number) => `${a}님 외 ${others}명이 입력 중…`,

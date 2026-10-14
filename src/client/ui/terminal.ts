@@ -15,6 +15,7 @@ import { engineLabel, providerUsageNote, providerUsageState, providerWaitingLabe
 import { keyLabels, naturalKey } from './termkeys';
 import { L } from '../i18n';
 import { termTabs } from './termtabs';
+import { lastReply, selection, toClipboard } from './termcopy';
 import { dictateField, dictation } from './dictate';
 import { openWorkerConfig } from './worker-config';
 
@@ -181,6 +182,14 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     'aria-label': L.term2.escLabel,
   }, '⎋ Esc');
   const changesBtn = h('button.btn', { type: 'button', title: L.terminal.changesTip }, L.terminal.changes);
+  // 📋 The agent's last reply as plain text (or what's selected, or with Shift the whole screen).
+  const copyBtn = h('button.btn', { type: 'button', title: L.terminal.copyTip, 'aria-label': L.terminal.copyTip }, L.terminal.copy);
+  copyBtn.addEventListener('click', (e) => {
+    const picked = selection(term);
+    const text = picked || (e.shiftKey ? undefined : lastReply(term)) || selection((term.selectAll(), term)) || '';
+    if (!picked) term.clearSelection();
+    void toClipboard(text).then((ok) => toast(ok && text ? (picked ? L.terminal.copiedSelection : L.terminal.copied) : L.terminal.copyFailed, ok && text ? 'info' : 'warn'));
+  });
   const closeBtn = h('button.btn.close', { title: keyLabels(L.term2.leaveTip), 'aria-label': L.common.close }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
@@ -203,7 +212,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -215,6 +224,9 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     scrollback: 5000,
     allowProposedApi: true,
     macOptionIsMeta: true,
+    // An agent that tracks the mouse (Claude Code) keeps a drag for itself: with Option (Shift
+    // elsewhere) held, the drag selects text instead.
+    macOptionClickForcesSelection: true,
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -420,6 +432,18 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   });
 
   term.open(host);
+  // ⌘C / Ctrl+C on a selection copies it as plain text too (see termcopy.ts), not as the screen drew it.
+  host.addEventListener(
+    'copy',
+    (e) => {
+      const text = selection(term);
+      if (!text || !e.clipboardData) return;
+      e.clipboardData.setData('text/plain', text);
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    true,
+  );
   touchScroll(term, host);
   const sendEsc = () => {
     sendSize(true);

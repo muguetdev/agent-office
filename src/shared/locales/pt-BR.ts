@@ -953,6 +953,11 @@ Opções:
     piInvalid: 'Use um nome de modelo do Pi ou provedor/modelo: letras, números e . _ : / @ + - (até 256 caracteres).',
   },
   terminal: {
+    copy: '📋 Copiar',
+    copyTip: 'Copia a última resposta do agente como texto limpo (ou o que estiver selecionado; com Shift, a tela toda). Pra selecionar dentro do Claude Code, arraste segurando Option (Shift no Windows e Linux)',
+    copied: '📋 Resposta copiada',
+    copiedSelection: '📋 Seleção copiada',
+    copyFailed: 'Não deu pra copiar: nada pra copiar, ou o navegador não deixou',
     typing1: (a: string) => `${a} está digitando…`,
     typing2: (a: string, b: string) => `${a} e ${b} estão digitando…`,
     typingN: (a: string, others: number) => `${a} e mais ${others} estão digitando…`,
