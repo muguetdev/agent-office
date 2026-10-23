@@ -179,3 +179,29 @@
   max-width: none;
   max-height: none;
 }
+/* Files dragged in from the desktop (code-upload.ts): the folder they'd go into, lit up as in VS Code. */
+.code-row.drop-in,
+.code-tree.drop-in {
+  background: color-mix(in srgb, var(--code-dir) 22%, transparent);
+}
+.code-tree.drop-in {
+  outline: 2px dashed var(--code-dir);
+  outline-offset: -3px;
+}
+/* Over the editor: a frame drawn on top of Monaco, which would cover an outline. */
+.code-main.drop-in {
+  position: relative;
+}
+.code-main.drop-in::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: 20;
+  border: 2px dashed var(--code-dir);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.code-tool:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}

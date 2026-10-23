@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process';
-import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { insideCheckout } from './changes.js';
+import { UPLOAD_MAX_BYTES } from '../shared/uploads.js';
 
 // The code editor beside a worker's terminal (the client's ui/code.ts): the files in the folder the
 // worker works in, to read and edit. Only what's inside that folder (no `..` out of it, no links out
@@ -60,6 +62,25 @@ async function walk(dir: string): Promise<string[]> {
 /** Whether a path is somewhere the editor stays out of: git's own folder. */
 const forbidden = (rel: string) => rel.split(/[\\/]/).includes('.git');
 
+/** Whether `abs` is `root` or inside it. */
+const within = (root: string, abs: string) => {
+  const rel = path.relative(root, abs);
+  return rel !== '..' && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel);
+};
+
+/**
+ * The parts of a path an upload may go to, or undefined: relative, no `.`, `..` or empty parts, no
+ * NULs, and nowhere under git's own folder or the office's (.agent-office), whatever their case
+ * (a Mac's disk doesn't tell .GIT from .git).
+ */
+export function uploadParts(rel: string): string[] | undefined {
+  if (!rel || rel.includes('\0') || path.isAbsolute(rel) || /^[a-z]:/i.test(rel)) return undefined;
+  const parts = rel.split(/[\\/]/);
+  if (parts.some((p) => !p || p === '.' || p === '..' || p.length > 255)) return undefined;
+  if (parts.some((p) => ['.git', '.agent-office'].includes(p.toLowerCase()))) return undefined;
+  return parts;
+}
+
 export class CodeFiles {
   constructor(
     /** The folder `workerId` works in, or undefined when there's no such worker. */
@@ -113,5 +134,49 @@ export class CodeFiles {
     if (versionOf(s) !== base) return { status: 409, error: 'The file changed since you opened it', version: versionOf(s) };
     await writeFile(abs, text, 'utf8');
     return { version: versionOf(await stat(abs)) };
+  }
+
+  /**
+   * Puts `bytes` (any file, text or not) at `file` in the worker's folder, making the folders on the
+   * way. Never over a file that's there unless `replace` (409 with `exists` if it's there). Each
+   * folder is made or checked one at a time, so a link on the way out of the folder is caught before
+   * anything's made past it; the file goes in under a name of its own and is renamed into place, so
+   * a link at its name is replaced, never written through.
+   */
+  async upload(workerId: string, file: string, bytes: Buffer, replace: boolean): Promise<{ path: string; version: string } | (CodeError & { exists?: true })> {
+    const dir = this.dirOf(workerId);
+    if (!dir) return { status: 404, error: 'No such worker' };
+    if (bytes.length > UPLOAD_MAX_BYTES) return { status: 413, error: 'Too big to upload' };
+    const parts = uploadParts(file);
+    if (!parts) return { status: 403, error: 'Not somewhere in this worker’s folder you can upload to' };
+    try {
+      const root = await realpath(dir);
+      let at = root;
+      for (const part of parts.slice(0, -1)) {
+        const next = path.join(at, part);
+        const s = await lstat(next).catch(() => undefined);
+        if (!s) await mkdir(next);
+        const real = await realpath(next);
+        if (!within(root, real)) return { status: 403, error: 'That folder leads out of this worker’s folder' };
+        if (!(await stat(real)).isDirectory()) return { status: 409, error: 'There’s a file where that folder would go' };
+        at = real;
+      }
+      const abs = path.join(at, parts[parts.length - 1]);
+      const there = await lstat(abs).catch(() => undefined);
+      if (there?.isDirectory()) return { status: 409, error: 'There’s a folder by that name' };
+      if (there && !replace) return { status: 409, error: 'A file by that name is already there', exists: true };
+      const tmp = path.join(at, `.upload-${randomBytes(8).toString('hex')}`);
+      try {
+        await writeFile(tmp, bytes, { flag: 'wx' });
+        // Not replacing: something that turned up there meanwhile still isn't overwritten.
+        if (!replace && (await lstat(abs).catch(() => undefined))) return { status: 409, error: 'A file by that name is already there', exists: true };
+        await rename(tmp, abs);
+      } finally {
+        await rm(tmp, { force: true });
+      }
+      return { path: parts.join('/'), version: versionOf(await stat(abs)) };
+    } catch (err) {
+      return { status: 500, error: (err as Error).message };
+    }
   }
 }

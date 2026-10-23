@@ -2,7 +2,8 @@
 // folder it works in down the side, and Monaco (VS Code's editor) for the one you open. Ctrl+S
 // saves, Ctrl+P finds a file by name. While you have a file open it keeps an eye on it: if the
 // worker (or someone else) changes it and you haven't touched it, it reloads by itself; if you have,
-// it says so and lets you pick, so nobody's work is lost. Loaded only when the tab's first opened.
+// it says so and lets you pick, so nobody's work is lost. Files dragged in from the desktop, or
+// picked with ⬆️ Upload, go into the worker's folder (code-upload.ts). Loaded only when the tab's first opened.
 import './code-editor.css';
 import * as monaco from 'monaco-editor/editor/editor.api';
 import 'monaco-editor/basic-languages/monaco.contribution';
@@ -10,6 +11,7 @@ import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import { h, toast } from './dom';
 import { L } from '../i18n';
 import { keyLabels } from './termkeys';
+import { codeUploads } from './code-upload';
 
 (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment = { getWorker: () => new EditorWorker() };
 // Dark: Dracula's colours (draculatheme.com, MIT). Light: GitHub's light colours.
@@ -179,9 +181,11 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const themeBtn = h('button.code-tool', { type: 'button', title: L.code.theme });
   const split = h('div.code-split', { title: L.code.resize });
   const banner = h('div.code-banner.hidden');
+  const askBar = h('div.code-banner.hidden');
+  const uploadBtn = h('button.code-tool', { type: 'button', title: L.code.uploadTip }, L.code.upload) as HTMLButtonElement;
   // Esc is the editor's while you're in it (its suggestions, its find box): see openModal.
   const surface = h('div.code-surface', { 'data-own-esc': '' });
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), banner, surface);
+  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, banner, surface);
   host.replaceChildren(side, split, main);
 
   const editor = monaco.editor.create(surface, {
@@ -247,6 +251,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
             'button.code-row.dir',
             {
               type: 'button',
+              'data-dir': full,
               style: `padding-left:${8 + depth * 14}px`,
               onclick: () => {
                 if (on) expanded.delete(full);
@@ -265,7 +270,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     list.replaceChildren(...rows);
   }
   function fileRow(file: string, label: string, depth: number): HTMLElement {
-    return h('button.code-row', { type: 'button', class: open?.path === file ? 'on' : '', style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
+    return h('button.code-row', { type: 'button', 'data-file': file, class: open?.path === file ? 'on' : '', style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
   }
 
   async function loadTree() {
@@ -440,6 +445,22 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   host.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !e.defaultPrevented && surface.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
     e.stopPropagation();
+  });
+  codeUploads({
+    host,
+    list,
+    main,
+    button: uploadBtn,
+    ask: askBar,
+    q,
+    files: () => files,
+    openPath: () => open?.path,
+    async uploaded(paths, one) {
+      // The folders they went into open, so you can see them.
+      for (const p of paths) for (let i = p.indexOf('/'); i >= 0; i = p.indexOf('/', i + 1)) expanded.add(p.slice(0, i + 1));
+      await loadTree();
+      if (one) await openFile(one);
+    },
   });
   void loadTree();
 }

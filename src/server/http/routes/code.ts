@@ -1,11 +1,12 @@
 import type { Route } from '../router.js';
 import { MAX_CODE_BYTES } from '../../code.js';
+import { UPLOAD_MAX_BYTES } from '../../../shared/uploads.js';
 import { str } from '../../office/input.js';
 import { floorParam } from './files.js';
 import { readBytes, sameOrigin, send } from '../util.js';
 
 // The code editor beside a worker's terminal (see code.ts): its files, one file to read, its version
-// now (to see whether it changed under you), and saving one.
+// now (to see whether it changed under you), saving one, and uploading any file into the folder.
 export const codeRoutes = {
   code: {
     prefix: '/api/code/',
@@ -30,6 +31,19 @@ export const codeRoutes = {
           return send(res, 413, { error: 'Too big to save here' });
         }
         return answer(await floor.code.write(workerId, file, body.toString('utf8'), str(url.searchParams.get('base'), 64)));
+      }
+      if (p === '/api/code/upload' && req.method === 'POST') {
+        // A file dragged in from the desktop or picked with ⬆️ Upload: its bytes as they are, text or not.
+        if (!sameOrigin(req, ctx.cfg)) return send(res, 403, { error: 'Forbidden' });
+        const tooBig = { error: `Too big to upload (${UPLOAD_MAX_BYTES / 1024 / 1024} MB at most)` };
+        if (Number(req.headers['content-length']) > UPLOAD_MAX_BYTES) return send(res, 413, tooBig);
+        let body: Buffer;
+        try {
+          body = await readBytes(req, UPLOAD_MAX_BYTES);
+        } catch (err) {
+          return (err as Error).message === 'too large' ? send(res, 413, tooBig) : send(res, 400, { error: 'Bad request' });
+        }
+        return answer(await floor.code.upload(workerId, file, body, url.searchParams.get('replace') === '1'));
       }
       return send(res, 404, { error: 'Not found' });
     },

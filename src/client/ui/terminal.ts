@@ -18,6 +18,7 @@ import { termTabs } from './termtabs';
 import { lastReply, selection, toClipboard } from './termcopy';
 import { dictateField, dictation } from './dictate';
 import { openWorkerConfig } from './worker-config';
+import { pickFiles } from './pickfiles';
 
 /** A line to scroll to once the terminal has loaded: a search hit (see search.ts). */
 export interface TerminalFind {
@@ -190,6 +191,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     if (!picked) term.clearSelection();
     void toClipboard(text).then((ok) => toast(ok && text ? (picked ? L.terminal.copiedSelection : L.terminal.copied) : L.terminal.copyFailed, ok && text ? 'info' : 'warn'));
   });
+  const attachBtn = h('button.btn', { type: 'button', title: L.terminal.attachTip, 'aria-label': L.terminal.attachTip }, '📎');
   const closeBtn = h('button.btn.close', { title: keyLabels(L.term2.leaveTip), 'aria-label': L.common.close }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
@@ -212,7 +214,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, attachBtn, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -506,6 +508,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       el.classList.toggle('uploading', --uploading > 0);
     }
   };
+  attachBtn.addEventListener('click', () => pickFiles((files) => void insertFiles(files)));
   const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes('Files');
   // The whole screen is the drop zone while the terminal is open, so a near miss doesn't open the file in the browser.
   let dragDepth = 0;
@@ -531,7 +534,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     if (!hasFiles(e)) return;
     e.preventDefault();
     dragEnd();
-    void insertFiles([...e.dataTransfer!.files]);
+    // Only into the terminal when it's the tab showing: the Code tab takes its own drops (code-upload.ts).
+    if (!host.classList.contains('hidden')) void insertFiles([...e.dataTransfer!.files]);
   });
   // A picture on the clipboard with no text (a screenshot) pastes like a dropped file. Caught on the
   // way down, before xterm would paste it as nothing.
