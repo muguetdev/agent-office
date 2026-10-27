@@ -63,4 +63,6 @@ agent-office tunnel [office@address | url] [--port <n>] [--office-port <n>] [--n
   See docs/tunnel.md.
 ```
 
+The building holds up to **32 project floors**. That's separate from `--max-workers`, which caps the workers running at once across the building.
+
 **Language.** The office speaks the language in `AGENT_OFFICE_LANG` (`en`, `pt-BR` or `ko`), else English (not the terminal's `LANG`, so an office already running doesn't switch on an upgrade), in its notices and errors, its console and what it posts to Slack or Discord. An admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or else their browser's.

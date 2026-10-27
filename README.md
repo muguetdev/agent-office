@@ -33,7 +33,7 @@ Everything you'd want from an AI agent office is here too: floors per repo, work
 
 ## What it is
 
-- **A floor per project.** Ride the elevator, pick one of your GitHub repos, and the office clones it (showing how far along it is) and opens a floor for it. Every worker, board and queue on that floor works in that checkout. Or make a floor a **server** you manage over SSH (**🖥️ Add a server** on the elevator, admins): the office makes it a key of its own, and its workers reach the server as `ssh <floor>`.
+- **A floor per project, up to 32 projects.** Ride the elevator, pick one of your GitHub repos, and the office clones it (showing how far along it is) and opens a floor for it. Every worker, board and queue on that floor works in that checkout. Or make a floor a **server** you manage over SSH (**🖥️ Add a server** on the elevator, admins): the office makes it a key of its own, and its workers reach the server as `ssh <floor>`.
 - **Workers at desks.** Walk up to an empty desk, press **E**, and pick Claude Code, Codex, OpenCode, Grok, Muse, DeepSeek Harness, Pi or Cursor, each with its model and reasoning effort (changed later with **⚙️** in its terminal). The agent's live terminal shows on its laptop, and anyone can open it and type.
 - **Talk instead of typing.** Hold **Ctrl+Space** (or the **🎤**) in a worker's terminal or a prompt box and say what you want: it's typed in for you to send. Your browser does the listening, so there's nothing to install.
 - **You can't miss who needs you.** A worker that stops to ask you something lights a red beacon over its desk, puts a banner on your screen saying who and what for, and sounds an alarm. One that has finished jumps up and down and dings. Press **N** to go straight to whoever is waiting.
@@ -62,7 +62,7 @@ Install the latest release and start the office:
 curl -fsSL https://raw.githubusercontent.com/muguetdev/command-express/main/install.sh | bash
 ```
 
-On Windows, in PowerShell:
+On Windows, in PowerShell (Codex workers' lifecycle hooks work from PowerShell and Command Prompt, install paths with spaces included):
 
 ```powershell
 irm https://raw.githubusercontent.com/muguetdev/command-express/main/install.ps1 | iex

@@ -87,13 +87,27 @@ function shellQuote(value: string): string {
 }
 
 /**
+ * A hook command for Windows, which Codex runs through cmd.exe or PowerShell: a quoted executable isn't
+ * invoked by PowerShell without &, and cmd.exe doesn't know POSIX single quotes. An encoded PowerShell
+ * command works from either shell and keeps paths (spaces, apostrophes, metacharacters) literal. It
+ * hands the hook its stdin as UTF-8, without PowerShell's progress output, and exits as the hook did.
+ */
+export function windowsHookCommand(argv: string[]): string {
+  const script =
+    "$ProgressPreference = 'SilentlyContinue'; $OutputEncoding = [Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false); " +
+    `[Console]::In.ReadToEnd() | & ${argv.map((arg) => `'${arg.replaceAll("'", "''")}'`).join(' ')}; exit $LASTEXITCODE`;
+  return `powershell.exe -NoProfile -NonInteractive -EncodedCommand ${Buffer.from(script, 'utf16le').toString('base64')}`;
+}
+
+/**
  * Build the CLI config overrides for all lifecycle hooks. The command is encoded as a TOML basic
  * string so paths containing spaces remain valid; the command itself is shell-quoted.
  */
-export function codexHookArgs(hookPath: string): string[] {
+export function codexHookArgs(hookPath: string, platform: NodeJS.Platform = process.platform): string[] {
   const args: string[] = [];
   for (const event of CODEX_HOOK_EVENTS) {
-    const command = [process.execPath, hookPath, event].map(shellQuote).join(' ');
+    const argv = [process.execPath, hookPath, event];
+    const command = platform === 'win32' ? windowsHookCommand(argv) : argv.map(shellQuote).join(' ');
     const config = `hooks.${event}=[{hooks=[{type="command",command=${JSON.stringify(command)},timeout=3}]}]`;
     args.push('-c', config);
   }
