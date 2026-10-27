@@ -192,7 +192,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     void toClipboard(text).then((ok) => toast(ok && text ? (picked ? L.terminal.copiedSelection : L.terminal.copied) : L.terminal.copyFailed, ok && text ? 'info' : 'warn'));
   });
   const attachBtn = h('button.btn', { type: 'button', title: L.terminal.attachTip, 'aria-label': L.terminal.attachTip }, '📎');
-  const closeBtn = h('button.btn.close', { title: keyLabels(L.term2.leaveTip), 'aria-label': L.common.close }, '✕');
+  const hideBtn = h('button.btn.term-hide', { type: 'button', title: L.term2.hideTip, 'aria-label': L.term2.hideLabel }, L.term2.hide);
+  const closeBtn = h('button.btn.close', { title: keyLabels(L.term2.leaveTip), 'aria-label': L.term2.hideLabel }, '✕');
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
   const say = h('input', { type: 'text', placeholder: L.term2.reply, 'aria-label': L.hints.prompt, enterkeyhint: 'send', autocomplete: 'off' }) as HTMLInputElement;
@@ -214,7 +215,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, attachBtn, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, attachBtn, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, hideBtn, closeBtn), tabs.bar, host, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -427,6 +428,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       else pendingFind = f;
     },
   };
+  hideBtn.addEventListener('click', () => modal.close());
+  hideBtn.addEventListener('click', () => modal.close());
   closeBtn.addEventListener('click', () => modal.close());
   changesBtn.addEventListener('click', () => {
     onChanges?.();

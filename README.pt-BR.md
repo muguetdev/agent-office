@@ -57,7 +57,7 @@ Pra colocar num servidor e dividir com o time (AWS, Azure, Railway, Fly.io, Dokp
 | T / Enter | Chat |
 | V | Entrar na voz; depois segure V pra falar |
 | Tab | O menu ☰ com todas as janelas |
-| Esc | Fecha qualquer janela |
+| Esc | Fecha qualquer janela. Num terminal, **Ocultar**, **✕** e Esc só escondem o terminal; o worker continua trabalhando |
 
 A lista completa está em [docs/controls.md](docs/controls.md).
 
