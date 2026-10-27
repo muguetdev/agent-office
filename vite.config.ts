@@ -34,10 +34,23 @@ function excalidrawFonts(): Plugin {
   };
 }
 
+// Monaco ships its own copy of DOMPurify (monaco-editor/esm/vs/base/browser/dompurify/dompurify.js),
+// which npm's overrides (package.json) can't reach. Hand it the office's own, patched one instead.
+function monacoDompurify(): Plugin {
+  return {
+    name: 'monaco-dompurify',
+    enforce: 'pre',
+    resolveId(source, importer) {
+      if (source === './dompurify/dompurify.js' && importer?.replaceAll('\\', '/').includes('/monaco-editor/esm/vs/base/browser/')) return this.resolve('dompurify', importer, { skipSelf: true });
+      return null;
+    },
+  };
+}
+
 export default defineConfig({
   root: resolve(import.meta.dirname, 'src/client'),
   publicDir: resolve(import.meta.dirname, 'src/client/public'),
-  plugins: [excalidrawFonts()],
+  plugins: [excalidrawFonts(), monacoDompurify()],
   define: {
     __EXCALIDRAW_ASSETS__: JSON.stringify(EXCALIDRAW_ASSETS),
   },
