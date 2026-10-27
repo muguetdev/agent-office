@@ -15,6 +15,7 @@ import { engineLabel, providerUsageNote, providerUsageState, providerWaitingLabe
 import { keyLabels, naturalKey } from './termkeys';
 import { L } from '../i18n';
 import { termTabs } from './termtabs';
+import { chatPane } from './transcript';
 import { lastReply, selection, toClipboard } from './termcopy';
 import { dictateField, dictation } from './dictate';
 import { openWorkerConfig } from './worker-config';
@@ -200,7 +201,9 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const sayBtn = h('button.btn.primary', { type: 'submit' }, 'Send');
   const sayForm = h('form.term-say', {}, dictateField(say), sayBtn);
   const keypad = opts.keypad ? h('div.term-keypad', {}, keys, sayForm) : null;
-  const tabs = termTabs(workerId, { host, keypad, focusTerm: () => term.focus() });
+  // A Claude Code worker's conversation as a chat, a tab beside the terminal: the one a phone opens on (see transcript.ts).
+  const chat = chatPane(net, info, { key: (data) => (sendSize(true), sayTyping(), term.input(data)), toTerminal: () => tabs.show('main') });
+  const tabs = termTabs(workerId, { host, keypad, focusTerm: () => term.focus(), chat, start: chat && opts.keypad ? 'chat' : 'main' });
   // What you say is typed in at the terminal's cursor, as a paste, for you to read over and send (see dictate.ts).
   const mic = dictation(
     {
@@ -215,7 +218,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   );
   host.append(mic.live);
   // The keypad has an Esc of its own, and a 🎤 on its prompt box.
-  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, attachBtn, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, hideBtn, closeBtn), tabs.bar, host, tabs.pages, keypad);
+  const el = h('div.modal.term', { role: 'dialog', 'aria-label': L.terminal.label(info.name) }, h('header', {}, dot, title, pill, cost, viewers, typed, attachBtn, copyBtn, configBtn, modelsBtn, keypad ? null : mic.button, keypad ? null : escBtn, onChanges ? changesBtn : null, hideBtn, closeBtn), tabs.bar, host, chat?.el ?? null, tabs.pages, keypad);
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
@@ -331,6 +334,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
     cost.textContent = w.kind !== 'agent' ? '' : usageState === 'tracked' && w.usage ? usageLabel(w.usage, workerProvider) : waiting ? waiting : usageState === 'untracked' ? L.hud.untracked : '';
     cost.title = w.kind === 'agent' && w.usage ? usageTitle(w.usage, workerProvider) : w.kind === 'agent' ? providerUsageNote(workerProvider!) : '';
     renderPresence(w);
+    chat?.refresh(w);
     const openCode = w.kind === 'agent' && resolvedProvider(w.provider, store.project) === 'opencode';
     modelsBtn.classList.toggle('hidden', !openCode);
     modelsBtn.toggleAttribute('disabled', !openCode || !ready || isAsleep(w.status));
@@ -376,7 +380,8 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   let pendingFind = find;
 
   const onMsg = (msg: ServerMsg) => {
-    if (msg.t === 'term.data' && msg.workerId === workerId) term.write(msg.data);
+    if (msg.t === 'transcript.items' || msg.t === 'transcript.none') chat?.onMsg(msg);
+    else if (msg.t === 'term.data' && msg.workerId === workerId) term.write(msg.data);
     else if (msg.t === 'term.typing' && msg.workerId === workerId) {
       typing.set(msg.id, Date.now() + TYPING_SHOWS_MS);
       const w = store.workers.get(workerId);
@@ -415,6 +420,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
       clearInterval(typingTimer);
       ro.disconnect();
       mic.drop();
+      chat?.dispose();
       net.send({ t: 'worker.detach', workerId });
       term.dispose();
       if (current?.modal === modal) current = null;

@@ -30,10 +30,14 @@ export interface TermTabsOptions {
   keypad: HTMLElement | null;
   /** Back on the terminal's tab. */
   focusTerm(): void;
+  /** The worker's chat (ui/transcript.ts), a tab of its own beside the terminal, for a worker that has one. */
+  chat?: { el: HTMLElement; show(): void; hide(): void } | null;
+  /** The tab open at first (the terminal, unless said otherwise). */
+  start?: 'main' | 'chat';
 }
 
-/** The tab bar (above the terminal) and where the pages show (beside it). */
-export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLElement; pages: HTMLElement } {
+/** The tab bar (above the terminal) and where the pages show (beside it); `show('main')` is back to the terminal. */
+export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLElement; pages: HTMLElement; show(id: 'main' | 'chat'): void } {
   const tabsBar = h('div.term-tabs', { role: 'tablist', 'aria-label': L.termTabs.tabs });
   const tabName = h('input', { type: 'text', placeholder: L.termTabs.namePlaceholder, 'aria-label': L.termTabs.name, maxlength: '40', autocomplete: 'off' }) as HTMLInputElement;
   const tabUrl = h('input', { type: 'url', placeholder: 'https://…', 'aria-label': L.termTabs.address, autocomplete: 'off' }) as HTMLInputElement;
@@ -48,7 +52,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   const tabs = tabsByWorker.get(workerId) ?? [];
   tabsByWorker.set(workerId, tabs);
   const frames = new Map<string, HTMLIFrameElement>();
-  let active = 'main';
+  let active = opts.chat && opts.start === 'chat' ? 'chat' : 'main';
   /** Where the code editor goes, put there the first time its tab's opened. */
   const codeHost = h('div.term-codehost.hidden');
   pages.append(codeHost);
@@ -57,8 +61,9 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   const render = () => {
     const mainTab = h('div.term-tab', { class: active === 'main' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'main'), onclick: () => show('main') }, L.termTabs.terminal));
     const codeTab = h('div.term-tab', { class: active === 'code' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'code'), title: keyLabels(L.termTabs.codeTip), onclick: () => show('code') }, L.termTabs.code));
+    const chatTab = opts.chat ? h('div.term-tab', { class: active === 'chat' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'chat'), onclick: () => show('chat') }, L.termTabs.chat)) : null;
     tabsBar.replaceChildren(
-      mainTab,
+      ...(chatTab ? [chatTab, mainTab] : [mainTab]),
       codeTab,
       ...tabs.map((t) =>
         h(
@@ -84,11 +89,13 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     openOut.classList.toggle('hidden', !page);
     if (page) openOut.href = page.url;
   };
-  const show = (id: string) => {
+  const show = (id: string, focus = true) => {
+    const wasChat = active === 'chat';
     active = id;
     const onMain = id === 'main';
+    const onChat = id === 'chat';
     opts.host.classList.toggle('hidden', !onMain);
-    pages.classList.toggle('hidden', onMain);
+    pages.classList.toggle('hidden', onMain || onChat);
     opts.keypad?.classList.toggle('hidden', !onMain);
     for (const [tid, frame] of frames) frame.classList.toggle('hidden', tid !== id);
     codeHost.classList.toggle('hidden', id !== 'code');
@@ -98,7 +105,9 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
       void import('./code-editor').then((m) => m.mountCode(codeHost, workerId, store.floor ?? ''));
     }
     render();
-    if (onMain) opts.focusTerm();
+    if (onChat) opts.chat?.show();
+    else if (wasChat) opts.chat?.hide();
+    if (onMain && focus) opts.focusTerm();
   };
   const close = (id: string) => {
     const i = tabs.findIndex((t) => t.id === id);
@@ -115,7 +124,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     pages.append(frame);
   };
   for (const t of tabs) frameFor(t);
-  render();
+  show(active, false);
 
   addBtn.addEventListener('click', () => {
     form.classList.remove('hidden');
@@ -145,5 +154,5 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     closeForm();
     show(tab.id);
   });
-  return { bar, pages };
+  return { bar, pages, show };
 }
