@@ -66,3 +66,15 @@ agent-office tunnel [office@address | url] [--port <n>] [--office-port <n>] [--n
 The building holds up to **32 project floors**. That's separate from `--max-workers`, which caps the workers running at once across the building.
 
 **Language.** The office speaks the language in `AGENT_OFFICE_LANG` (`en`, `pt-BR` or `ko`), else English (not the terminal's `LANG`, so an office already running doesn't switch on an upgrade), in its notices and errors, its console and what it posts to Slack or Discord. An admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or else their browser's.
+
+## Windows GitHub setup
+
+Install GitHub CLI on the machine running the office, and sign in as the user running it:
+
+```powershell
+winget install --id GitHub.cli --source winget
+gh auth login
+gh auth status
+```
+
+A terminal or desktop app opened before installation may keep an older PATH. The office checks PATH first, then the standard `ProgramFiles` and `ProgramFiles(x86)` GitHub CLI folders, and the per-user `LOCALAPPDATA\Programs\GitHub CLI` and `LOCALAPPDATA\Microsoft\WinGet\Links` folders. This lookup applies to repository listing, cloning, terminal setup and account sign-in. Custom installation locations still need to be on the server process's PATH; reopen the launcher after updating PATH. A GitHub sign-in in another user's session or on your browser's machine does not sign in the office server. After signing in, use the elevator's refresh button to reload repositories.

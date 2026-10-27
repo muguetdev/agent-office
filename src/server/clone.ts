@@ -3,6 +3,7 @@ import { closeSync, fstatSync, openSync, readSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { CloneProgress } from '../shared/protocol.js';
 import { L } from './i18n.js';
+import { githubCli } from './github-cli.js';
 
 // One `gh repo clone`, run so the office can see how it's getting on. git's progress goes to a log
 // file, which the office reads every second: that says how far along it is, and a log that stops
@@ -108,7 +109,7 @@ export class CloneRun {
     return new Promise((resolve) => {
       let child: ChildProcess;
       try {
-        child = spawn('gh', ['repo', 'clone', repo, dest, '--', '--progress'], {
+        child = spawn(githubCli(), ['repo', 'clone', repo, dest, '--', '--progress'], {
           cwd: path.dirname(dest),
           detached: GROUPS,
           stdio: ['ignore', fd, fd],

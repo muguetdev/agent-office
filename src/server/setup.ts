@@ -10,6 +10,7 @@ import type { RepoChoice } from '../shared/protocol.js';
 import { Building, tildify } from './building.js';
 import { officeHome, type Config } from './config.js';
 import { L } from './i18n.js';
+import { githubCli } from './github-cli.js';
 
 // Setting up an office from its terminal: where projects are cloned, signing the GitHub CLI in, and
 // picking the first repositories to clone as floors. A new office walks you through it the first time
@@ -190,13 +191,13 @@ async function githubLogin(cwd: string): Promise<string | undefined> {
     }
     console.log(m.ghSignedOut);
     if (m.no.test(await ask(m.signInNow))) return undefined;
-    spawnSync('gh', ['auth', 'login'], { stdio: 'inherit' });
+    spawnSync(githubCli(), ['auth', 'login'], { stdio: 'inherit' });
   }
 }
 
 function ghUser(cwd: string): Promise<{ login?: string; missing?: boolean; signedOut?: boolean; error?: string }> {
   return new Promise((resolve) => {
-    execFile('gh', ['api', 'user', '--jq', '.login'], { cwd, timeout: 30_000 }, (err, stdout, stderr) => {
+    execFile(githubCli(), ['api', 'user', '--jq', '.login'], { cwd, timeout: 30_000 }, (err, stdout, stderr) => {
       if (!err && stdout.trim()) return resolve({ login: stdout.trim() });
       if ((err as NodeJS.ErrnoException | null)?.code === 'ENOENT') return resolve({ missing: true });
       const why = String(stderr || err?.message || '').trim();

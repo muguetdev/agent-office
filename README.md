@@ -68,6 +68,8 @@ On Windows, in PowerShell (Codex workers' lifecycle hooks work from PowerShell a
 irm https://raw.githubusercontent.com/muguetdev/command-express/main/install.ps1 | iex
 ```
 
+On Windows, repository listing, cloning and GitHub sign-in also look for `gh.exe` in the standard GitHub CLI and per-user WinGet installation folders when the terminal or desktop launcher has an older PATH. Install it with `winget install --id GitHub.cli --source winget`, then run `gh auth login` as the user running the office. See [Windows GitHub setup](docs/configuration.md#windows-github-setup) if repositories do not load.
+
 This puts an `agent-office` command on your PATH, so next time just run `agent-office`. Run the install line again to update. The installer's settings (a particular release, install without starting) are listed at the top of [`install.sh`](install.sh) and [`install.ps1`](install.ps1).
 
 The first time it starts, it walks you through setting up, right in the terminal:
