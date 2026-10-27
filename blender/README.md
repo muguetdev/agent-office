@@ -12,6 +12,7 @@ changing its script and running it again.
 | `scripts/build_traffic.py` | The cars that drive round by themselves (police car, taxi, SUV, two everyday cars), Quaternius's CC0 ones as they come, exported as `src/client/models/traffic.glb` |
 | `scripts/build_cars.py` | The garage's Lambos and Ferraris and the BMW out front, fitted from Quaternius's CC0 low-poly cars (`assets/cars/`) and exported as `src/client/models/cars.glb`: each car's body, cabin, roof-off interior and front wheels as roots of their own |
 | `scripts/build_dog.py`, `scripts/dog_breeds.py` | The office dog in every breed (the presets are in `dog_breeds.py`), each exported as `src/client/models/dog-<breed>.glb` with the same bones, sockets, materials and clips |
+| `scripts/build_cat.py` | The cat, a breed as far as the office goes: the dog's script with the cat's shape and clips swapped in, exported as `src/client/models/dog-cat.glb` with the dog's bones, sockets, materials and clip names |
 
 A helper only one model needs lives in that model's script. One that several need can join the kit, as a new
 function: the kit's existing functions are what every script already counts on, so change them only with

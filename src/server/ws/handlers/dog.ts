@@ -2,7 +2,7 @@
 import type { DogClientMsg } from '../../../shared/protocol.js';
 import { str } from '../../office/input.js';
 import { here } from './common.js';
-import { DOG_BREED_NAMES, DOG_COAT_NAMES } from '../../../shared/dog.js';
+import { DOG_BREED_NAMES, DOG_COAT_NAMES, petEmoji } from '../../../shared/dog.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
 
@@ -23,7 +23,7 @@ export const dogHandlers = {
     const floor = here(ctx, c);
     if (!floor) return;
     const breed = floor.dog.setBreed(msg.breed);
-    if (breed) ctx.toastFloor(floor, L.srv.dogBreed(c.peer.name, floor.dog.dogName, L.settings.dogBreeds[breed] ?? DOG_BREED_NAMES[breed]));
+    if (breed) ctx.toastFloor(floor, L.srv.dogBreed(c.peer.name, floor.dog.dogName, L.settings.dogBreeds[breed] ?? DOG_BREED_NAMES[breed], petEmoji(breed)));
   },
   'dog.coat'(ctx, c, msg) {
     const floor = here(ctx, c);

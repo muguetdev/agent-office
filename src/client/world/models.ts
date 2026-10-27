@@ -10,6 +10,7 @@ import dogDachshundUrl from '../models/dog-dachshund.glb?url';
 import dogPugUrl from '../models/dog-pug.glb?url';
 import dogPupUrl from '../models/dog-pup.glb?url';
 import dogPomeranianUrl from '../models/dog-pomeranian.glb?url';
+import dogCatUrl from '../models/dog-cat.glb?url';
 import dogShibaUrl from '../models/dog-shiba.glb?url';
 import kitchenUrl from '../models/kitchen.glb?url';
 import loungeUrl from '../models/lounge.glb?url';
@@ -33,6 +34,7 @@ const MODELS = {
   'dog-pomeranian': { url: dogPomeranianUrl, preload: false },
   avatar: { url: avatarUrl, preload: true },
   cars: { url: carsUrl, preload: true, smooth: 40 },
+  'dog-cat': { url: dogCatUrl, preload: false },
   desk_props: { url: deskPropsUrl, preload: true },
   kitchen: { url: kitchenUrl, preload: true },
   lounge: { url: loungeUrl, preload: true },

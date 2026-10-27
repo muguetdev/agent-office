@@ -19,8 +19,9 @@ export function dogSetting(net: Net, frame: (body: Node[]) => HTMLElement): { se
     dogSection.classList.toggle('hidden', !dog);
     if (!dog) return;
     dogInput.placeholder = dog.name;
-    dogNote.textContent = L.settings.dogNote(dog.name);
     const breed = dogBreed(dog.breed);
+    dogNote.textContent = breed === 'cat' ? L.settings.catNote(dog.name) : L.settings.dogNote(dog.name);
+    dogNote.textContent = `${dog.name} lives on this floor. When a worker needs input, ${dog.name} runs to its desk and ${breed === 'cat' ? 'meows' : 'barks'}. Walk up and press E to pet it. Its name, breed and coat are for everyone on this floor.`;
     breedRow.replaceChildren(
       ...DOG_BREEDS.map((b) =>
         h(
