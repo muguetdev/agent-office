@@ -54,7 +54,7 @@ DEFAULTS = {
     "image": "command-express/machine:latest",
     # Per-machine defaults (overridable per create with --mem / --cpus).
     "defaultMem": "4g",
-    "defaultCpus": "2",
+    "defaultCpus": "4",
     "pidsLimit": 4096,
     "shmSize": "2g",
     # Memory kept free for the host itself when computing capacity.

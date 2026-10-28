@@ -78,7 +78,7 @@ bypass ufw, which is why every machine port is bound to `127.0.0.1`.
 ```json
 {
   "defaultMem": "4g",
-  "defaultCpus": "2",
+  "defaultCpus": "4",
   "pidsLimit": 4096,
   "shmSize": "2g",
   "reserveMem": "3g",

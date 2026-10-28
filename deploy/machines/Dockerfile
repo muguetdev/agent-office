@@ -77,6 +77,11 @@ RUN set -eux; \
 ENV LANG=${DEFAULT_LANG} \
     LANGUAGE=${DEFAULT_LANGUAGE}
 
+# The desktop's video, encoded on the CPU (there's no GPU): at most 30 frames a
+# second, enough to watch an agent work, so the stream doesn't take the CPU the
+# agent and its Chrome need. The viewer can still pick less in Selkies' panel.
+ENV SELKIES_FRAMERATE=8-30
+
 # s6 services: svc-chrome (Chrome + restart loop) and svc-cdp-proxy (socat),
 # and the bwrap wrapper.
 COPY rootfs/ /
