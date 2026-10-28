@@ -4,7 +4,7 @@
 import './machines.css';
 import type { Net } from '../../net';
 import { store } from '../../state';
-import { MACHINES_PER_FLOOR_MAX, MACHINE_CPUS_MAX, MACHINE_CPUS_MIN, authorizeLine } from '../../../shared/machines';
+import { MACHINES_PER_FLOOR_MAX, MACHINE_MEM_DEFAULT, MACHINE_CPUS_MAX, MACHINE_CPUS_MIN, authorizeLine } from '../../../shared/machines';
 import { h, toast } from '../dom';
 import { confirmDialog } from '../prompt';
 import { toClipboard } from '../termcopy';
@@ -15,7 +15,7 @@ export function machinesSetting(net: Net, frame: (body: Node[]) => HTMLElement):
   const input = (attrs: Record<string, string | number>) => h('input', { autocomplete: 'off', spellcheck: 'false', ...attrs }) as HTMLInputElement;
   const host = input({ type: 'text', placeholder: L.machines.hostPlaceholder, maxlength: 300, 'aria-label': L.machines.host });
   const office = input({ type: 'text', maxlength: 40, 'aria-label': L.machines.office });
-  const mem = input({ type: 'text', maxlength: 8, placeholder: '2g', 'aria-label': L.machines.mem });
+  const mem = input({ type: 'text', maxlength: 8, placeholder: MACHINE_MEM_DEFAULT, 'aria-label': L.machines.mem });
   const cpus = input({ type: 'number', min: MACHINE_CPUS_MIN, max: MACHINE_CPUS_MAX, step: 0.5, 'aria-label': L.machines.cpus });
   const perFloor = input({ type: 'number', min: 1, max: MACHINES_PER_FLOOR_MAX, step: 1, 'aria-label': L.machines.perFloor });
   const members = h('input', { type: 'checkbox' }) as HTMLInputElement;

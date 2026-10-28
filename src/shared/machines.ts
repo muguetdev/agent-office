@@ -10,9 +10,9 @@ export const MACHINE_ID_MAX = 40;
 /** The machines host's SSH port, unless its address says otherwise. */
 export const MACHINES_SSH_PORT = 22;
 
-/** How much memory a machine gets: a number and m or g, as `docker --memory` takes it ("2g"). */
+/** How much memory a machine gets: a number and m or g, as `docker --memory` takes it ("4g"). A desktop with Chrome needs about 4 GB. */
 export const MACHINE_MEM_RE = /^[1-9][0-9]{0,5}[mg]$/;
-export const MACHINE_MEM_DEFAULT = '2g';
+export const MACHINE_MEM_DEFAULT = '4g';
 export const MACHINE_CPUS_DEFAULT = 2;
 /** What the host lets a machine have: 1 to 4 CPUs (and 512m to 8g of memory). */
 export const MACHINE_CPUS_MIN = 1;

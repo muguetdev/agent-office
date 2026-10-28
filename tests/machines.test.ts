@@ -214,7 +214,7 @@ test('giving a worker a machine starts it again with it; sending it home deletes
   const w = f.map.get('a1b2c3d4e5f6')!;
   assert.equal(w.machine?.id, 'acme-app-a1b2c3d4e5f6');
   assert.equal(w.machine?.host, 'root@machines.example.com');
-  assert.deepEqual(host.asked[0], ['create', 'acme-app-a1b2c3d4e5f6', '--mem', '2g', '--cpus', '2']);
+  assert.deepEqual(host.asked[0], ['create', 'acme-app-a1b2c3d4e5f6', '--mem', '4g', '--cpus', '2']);
   assert.deepEqual(f.relaunched.at(-1), ['a1b2c3d4e5f6', true], 'started again, with its browser');
   assert.ok(host.spawned[0].includes(`127.0.0.1:${w.machine!.desktopLocalPort}:127.0.0.1:32768`));
   assert.equal(m.desktopOf('a1b2c3d4e5f6')?.port, w.machine!.desktopLocalPort);

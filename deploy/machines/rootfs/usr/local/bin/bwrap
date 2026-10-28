@@ -1,0 +1,17 @@
+#!/bin/sh
+# bubblewrap, as the image's image loaders (glycin, which XFCE's panel and
+# desktop load their icons with) call it: by name, from the PATH.
+#
+# Machines may create namespaces (Chrome's sandbox needs them; see
+# seccomp/chrome.json) but not mount anything, so the real bwrap gets as far
+# as "Failed to make / slave" and stops. glycin doesn't know that message, so
+# it would keep using bwrap, every icon would fail to load, and the panel and
+# the desktop would crash at start (a black screen with only Chrome on it).
+# When bwrap can't work here, this says so in words glycin knows, and glycin
+# loads images without its extra sandbox, as it does under Docker's default
+# profile. Where bwrap does work, it runs as it is.
+if ! /usr/bin/bwrap --unshare-all --die-with-parent --ro-bind / / /bin/true 2>/dev/null; then
+  echo "bwrap: No permissions to create a new namespace (this machine allows no mounts)" >&2
+  exit 1
+fi
+exec /usr/bin/bwrap "$@"

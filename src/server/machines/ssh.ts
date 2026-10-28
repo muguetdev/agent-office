@@ -28,9 +28,12 @@ export const execRunner: Runner = (file, args, timeoutMs) =>
     });
   });
 
-/** A word the host may be sent: nothing a shell or shlex would split, quote or expand; and the options create takes. */
-const WORD_RE = /^(?:--(?:mem|cpus)|[A-Za-z0-9][A-Za-z0-9._-]{0,63})$/;
-const SUBCOMMANDS = new Set(['ping', 'status', 'list', 'create', 'delete']);
+/**
+ * A word the host may be sent: nothing a shell or shlex would split, quote or expand. The options
+ * create, exec, put and get take, and base64 (how a command line or a path goes, see shell.ts).
+ */
+const WORD_RE = /^(?:--(?:mem|cpus|root|timeout|cwd-b64|command-b64|path-b64)|[A-Za-z0-9][A-Za-z0-9._-]{0,63}|[A-Za-z0-9+/]{1,160000}={0,2})$/;
+const SUBCOMMANDS = new Set(['ping', 'status', 'list', 'create', 'delete', 'exec', 'put', 'get']);
 
 /**
  * ssh's options for the host: the office's key and nobody else's (not the agent's, not the user's

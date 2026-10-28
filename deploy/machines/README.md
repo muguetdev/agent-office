@@ -9,7 +9,13 @@ desktop computer:
 - Google Chrome, started with the desktop and restarted if it is closed, with
   the Chrome DevTools Protocol (CDP) on container port 9223;
 - git, curl, build-essential, Python 3 + pip + venv, Node.js LTS + npm, VS Code,
-  pt_BR/en_US UTF-8 locales and Noto fonts (including colour emoji).
+  pt_BR/en_US UTF-8 locales and Noto fonts (including colour emoji);
+- passwordless `sudo` for the desktop's user `abc`, so an agent can install
+  what it needs (`sudo apt-get install -y golang-go`), and a shell in the
+  machine for its office (`ce-machines exec`, `put`, `get`).
+
+A desktop with Chrome needs about **4 GB** of memory (Chrome is killed for
+memory at 2 GB), which is the default size.
 
 Offices never get a shell on the host. They run one command,
 `ce-machines`, over SSH with their own key, and reach their machines' desktop
@@ -28,6 +34,7 @@ office ──ssh -L 127.0.0.1:<port> (whitelisted ports only)──▶ machine d
 | `Dockerfile` | The machine image, `command-express/machine:latest`. |
 | `rootfs/etc/s6-overlay/s6-rc.d/svc-chrome` | s6 service: Chrome with CDP on 127.0.0.1:9222, restarted by s6 when it exits. |
 | `rootfs/etc/s6-overlay/s6-rc.d/svc-cdp-proxy` | s6 service: socat relaying 0.0.0.0:9223 → 127.0.0.1:9222. |
+| `rootfs/usr/local/bin/bwrap` | Keeps XFCE's panel and desktop from crashing on their icons under the seccomp profile (see below). |
 | `seccomp/chrome.json` | Seccomp profile for machines (Docker's default plus namespace syscalls). |
 | `seccomp/make-profile.py` | Regenerates `chrome.json` from Docker's default profile. |
 | `bin/ce-machines` | The control command (Python 3, standard library only). |
@@ -70,16 +77,27 @@ bypass ufw, which is why every machine port is bound to `127.0.0.1`.
 
 ```json
 {
-  "defaultMem": "2g",
+  "defaultMem": "4g",
   "defaultCpus": "2",
-  "pidsLimit": 1024,
-  "shmSize": "1g",
+  "pidsLimit": 4096,
+  "shmSize": "2g",
   "reserveMem": "3g",
   "subfolder": "/api/machines/{id}/desktop/",
   "tz": "America/Sao_Paulo",
-  "readyTimeout": 90
+  "readyTimeout": 90,
+  "execTimeout": 600,
+  "execMaxTimeout": 3600,
+  "execOutputMax": 1048576,
+  "fileMax": 104857600
 }
 ```
+
+`install.sh` never overwrites an existing `/etc/ce-machines.json`.
+
+**Updating.** Re-running `install.sh` rebuilds the image, but a machine that
+already exists keeps running the image it was created with. It gets the new
+one when it is made again (`delete` + `create`; from an office: take the
+worker's machine away and give it back).
 
 ## CLI contract
 
@@ -108,7 +126,7 @@ offices should prefix their ids (e.g. `<office>-<agent>`).
 `machines` counts every machine on the host (all offices).
 `maxMachines = floor((memTotal - reserveMem) / defaultMem)`.
 
-### `ce-machines create <id> [--mem 2g] [--cpus 2]`
+### `ce-machines create <id> [--mem 4g] [--cpus 2]`
 
 Creates the machine, or starts it if it already exists (and belongs to the
 caller's office), then waits until the desktop answers HTTP 200 at its
@@ -130,8 +148,8 @@ Run as root on the host, `--office NAME` sets the owner (default `default`).
 Over SSH the office is always the key's office and `--office` is refused.
 
 Container settings: name `ce-<id>`, labels `ce.machine=1`, `ce.id`, `ce.office`;
-`--memory`/`--memory-swap` = `--mem`, `--cpus`, `--pids-limit 1024`,
-`--shm-size 1g`, `--restart unless-stopped`, volume `ce-<id>-config` on
+`--memory`/`--memory-swap` = `--mem`, `--cpus`, `--pids-limit 4096`,
+`--shm-size 2g`, `--restart unless-stopped`, volume `ce-<id>-config` on
 `/config` (home directory, Chrome profile; survives restarts),
 `-p 127.0.0.1::3000 -p 127.0.0.1::9223`, env `SUBFOLDER`, `TITLE`, `TZ`,
 seccomp profile `seccomp-chrome.json`. No `--privileged`, no Docker socket,
@@ -155,6 +173,36 @@ The caller's office's machines (as root: all machines, or `list --office NAME`):
 ```
 
 `memUsage` is bytes from `docker stats` (null when the machine is not running).
+
+### `ce-machines exec <id> [--root] [--timeout S] [--cwd DIR] -- <command…>`
+
+Runs one command line with bash inside a running machine of the caller's
+office: `docker exec -u abc|root -w <cwd> -e DISPLAY=:1 ce-<id> timeout -k 10
+<S> bash -lc <command>` (an argument vector; the line is read by bash in the
+container, never by a shell on the host). Defaults: user `abc`, cwd `/config`
+(its home), timeout 600 s (at most `execMaxTimeout`, 3600). Instead of
+`-- <command…>`, `--command-b64 <base64>` (and `--cwd-b64`) carry it as base64,
+which is what offices send: it passes SSH's command line and shlex unchanged.
+
+```json
+{"exitCode": 0, "stdout": "go version go1.26.8 linux/amd64\n", "stderr": "",
+ "truncated": false, "timedOut": false}
+```
+
+stdout and stderr keep their last `execOutputMax` bytes (1 MB) each;
+`truncated` says one was cut. On timeout, the command's whole process group
+gets SIGTERM (SIGKILL 10 s later), `exitCode` is 124 and `timedOut` true. A
+command the machine couldn't start (a `--cwd` that isn't there) comes back as
+exit code 126/127 with docker's message in `stderr`. Something started in the
+background (`nohup npm run dev > dev.log 2>&1 &`) keeps running after it.
+
+### `ce-machines put <id> <dest-path> [--root]` / `get <id> <path> [--root]`
+
+`put` writes its stdin to `<dest-path>` in the machine (folders made as
+needed) and answers `{"id", "path", "bytes"}`; `get` writes the file to
+stdout, raw (the one command that doesn't answer in JSON, unless it fails).
+Paths are absolute, with no control characters (`--path-b64 <base64>` too);
+files up to `fileMax` (100 MB). They run as `abc` unless `--root`.
 
 ### Root-only commands (not available over SSH)
 
@@ -209,16 +257,22 @@ machines are not deleted; delete them first if wanted).
   `permitopen="127.0.0.1:*"` also works on OpenSSH 9.6 if a host prefers a
   looser rule, but it would let an office reach every loopback port.
 - **No shell parsing.** `ce-machines-ssh` splits `$SSH_ORIGINAL_COMMAND` with
-  `shlex` into argv, allows only `ping|status|list|create|delete`, rejects
-  `--office`, control characters and commands over 1 KiB, and calls
+  `shlex` into argv, allows only `ping|status|list|create|delete|exec|put|get`,
+  rejects `--office` (before exec's `--`), control characters and commands
+  over 1 KiB (120 000 characters for `exec`, whose command line is there), and calls
   `ce-machines` in-process with the office name. `ce-machines` validates every
   value and calls Docker with argument vectors only.
-- **Office scoping.** `list` shows only the office's machines; `create` and
-  `delete` refuse ids owned by another office.
+- **Office scoping.** `list` shows only the office's machines; `create`,
+  `delete`, `exec`, `put` and `get` refuse ids owned by another office. The
+  office itself only ever runs `exec`/`put`/`get` in the machine of the worker
+  whose hook token asked (see the office's `machine` command).
 - **Containers.** No `--privileged`, no Docker socket, no host network,
-  memory/CPU/PID limits, default capabilities. The desktop's user `abc` can
-  `sudo` inside its own container (webtop default), which is fine because the
-  container is the agent's machine.
+  memory/CPU/PID limits, default capabilities. The desktop's user `abc` has
+  passwordless `sudo` (`/etc/sudoers.d/abc`, checked with `visudo -c` at
+  build), and `exec --root` runs as root, which is fine because the container
+  is the agent's machine: root there is root in that container only, under the
+  same seccomp profile, AppArmor profile and capabilities. `apt-get` works
+  (tested: `sudo apt-get install -y golang-go`).
 - **Seccomp.** Chrome's sandbox needs user/PID/network namespaces. With
   Docker's default seccomp profile Chrome aborts ("Failed to move to new
   namespace ... Operation not permitted"). Rather than `seccomp=unconfined`
@@ -227,12 +281,28 @@ machines are not deleted; delete them first if wanted).
   with only `clone`, `unshare` and `setns` allowed unconditionally. Chrome then
   runs with its full sandbox. Trade-off: processes in a machine can create
   user namespaces, a known kernel attack surface; keep the host kernel
-  patched (unattended-upgrades).
+  patched (unattended-upgrades). Mounting stays forbidden (seccomp and
+  Docker's AppArmor profile), so `bwrap` gets as far as "Failed to make /
+  slave". The image's image loaders (glycin, used by XFCE's panel and desktop
+  for every icon) don't recognise that message and keep trying bwrap, so
+  without help the panel and desktop crash at start, leaving a black screen
+  with only Chrome. `rootfs/usr/local/bin/bwrap` answers the way glycin
+  expects when bwrap can't work, and it then loads images unsandboxed, as it
+  does under Docker's default profile.
 - **No passwords** anywhere; the desktop has no login of its own and is only
   reachable through the office's SSH forward (and the office's own auth in
   front of its proxy).
 - **Not isolated:** disk usage (no per-container quota on overlay2) and
   outbound network (machines can reach the internet, by design).
+
+## The desktop's size
+
+Selkies resizes the desktop to the size of the browser window (or iframe)
+showing it, and follows it when that changes (its `enable_resize` setting,
+on by default; don't set `SELKIES_MANUAL_WIDTH`/`HEIGHT`, which lock it,
+1024×768 when only one is given). Chrome starts maximized (`--start-maximized`
+in `svc-chrome`) and the window manager keeps it so as the desktop grows or
+shrinks, so the desktop and Chrome fill whatever shows them.
 
 ## Putting the desktop behind a reverse proxy
 

@@ -79,20 +79,27 @@ export function shq(s: string) {
   return `'${s.replace(/'/g, `'\\''`)}'`;
 }
 
+/** The office's commands on every worker's PATH: each one's name, its script in bin/, and what it's for. */
+const OFFICE_COMMANDS: readonly (readonly [string, string, string])[] = [
+  ['office-queue', 'office-queue.js', "Agent Office's task queue, for the board agents"],
+  ['office-workers', 'office-workers.js', "Agent Office's workers, for every worker"],
+  ['machine', 'office-machine.js', "a shell and files in the worker's own machine (see server/machines/)"],
+];
+
 /**
- * Writes the office-queue and office-workers commands into the data dir's bin/, each running its
- * script in bin/ with the office's own node, and returns that directory. Rewritten on every start,
- * so after an upgrade they run the new install's scripts.
+ * Writes the office's commands (OFFICE_COMMANDS) into the data dir's bin/, each running its script
+ * in bin/ with the office's own node, and returns that directory. Rewritten on every start, so
+ * after an upgrade they run the new install's scripts.
  */
 export function writeOfficeCommands(dataDir: string): string | undefined {
   const dir = path.join(dataDir, 'bin');
   let wrote = false;
-  for (const [name, what] of [['office-queue', "Agent Office's task queue, for the board agents"], ['office-workers', "Agent Office's workers, for every worker"]]) {
-    const script = binScript(`${name}.js`);
+  for (const [name, js, what] of OFFICE_COMMANDS) {
+    const script = binScript(js);
     if (!script) continue;
     mkdirSync(dir, { recursive: true, mode: 0o700 });
     const file = path.join(dir, name);
-    writeFileSync(file, `#!/bin/sh\n# ${what} (see bin/${name}.js).\nexec ${shq(process.execPath)} ${shq(script)} "$@"\n`, { mode: 0o700 });
+    writeFileSync(file, `#!/bin/sh\n# ${what} (see bin/${js}).\nexec ${shq(process.execPath)} ${shq(script)} "$@"\n`, { mode: 0o700 });
     chmodSync(file, 0o700);
     // cmd.exe and PowerShell find it by PATHEXT; Git Bash (Claude Code's shell there) runs the sh one.
     if (WIN) writeFileSync(`${file}.cmd`, `@"${process.execPath}" "${script}" %*\r\n`);

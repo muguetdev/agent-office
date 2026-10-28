@@ -17,6 +17,8 @@ chown abc:abc "${PROFILE_DIR}"
 # container stop) can never belong to a live Chrome.
 rm -f "${PROFILE_DIR}"/Singleton*
 
+# Maximized, so its window fills the desktop (and keeps filling it as the
+# desktop follows the size of whoever watches it).
 # CHROME_EXTRA_FLAGS (container env) appends flags, e.g. --no-sandbox.
 # shellcheck disable=SC2086
 exec s6-setuidgid abc /usr/bin/google-chrome \
@@ -24,6 +26,7 @@ exec s6-setuidgid abc /usr/bin/google-chrome \
   --remote-debugging-address=127.0.0.1 \
   --user-data-dir="${PROFILE_DIR}" \
   --no-first-run \
+  --start-maximized \
   --no-default-browser-check \
   --hide-crash-restore-bubble \
   --password-store=basic \

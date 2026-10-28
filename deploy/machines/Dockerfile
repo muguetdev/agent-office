@@ -13,7 +13,11 @@
 #     publish it (the host binds it to 127.0.0.1 only);
 #   - developer tools: git, curl, build-essential, Python 3 + pip + venv,
 #     Node.js LTS (NodeSource) + npm, VS Code;
-#   - pt_BR.UTF-8 + en_US.UTF-8 locales and Noto fonts (incl. colour emoji).
+#   - pt_BR.UTF-8 + en_US.UTF-8 locales and Noto fonts (incl. colour emoji);
+#   - passwordless sudo for the desktop's user abc (/etc/sudoers.d/abc), so an
+#     agent can `sudo apt-get install` what its work needs, inside its machine;
+#   - a bwrap wrapper (rootfs/usr/local/bin/bwrap) that keeps XFCE's panel and
+#     desktop from crashing on their icons under the machines' seccomp profile.
 #
 # Build:  docker build -t command-express/machine:latest .
 FROM lscr.io/linuxserver/webtop:ubuntu-xfce
@@ -73,8 +77,18 @@ RUN set -eux; \
 ENV LANG=${DEFAULT_LANG} \
     LANGUAGE=${DEFAULT_LANGUAGE}
 
-# s6 services: svc-chrome (Chrome + restart loop) and svc-cdp-proxy (socat).
+# s6 services: svc-chrome (Chrome + restart loop) and svc-cdp-proxy (socat),
+# and the bwrap wrapper.
 COPY rootfs/ /
+
+# The desktop's user abc may sudo without a password: the machine is the
+# agent's own computer (no Docker socket, no --privileged, so root in it is
+# root in this container only). The wrapper must run before the real bwrap.
+RUN set -eux; \
+    echo 'abc ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/abc; \
+    chmod 0440 /etc/sudoers.d/abc; \
+    visudo -c; \
+    chmod 0755 /usr/local/bin/bwrap
 
 # 3000 = web desktop (HTTP + websocket under SUBFOLDER), 9223 = Chrome DevTools.
 EXPOSE 3000 9223

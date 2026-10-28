@@ -48,7 +48,7 @@ export interface MachinesSettings {
   host: string;
   /** What the host calls this office (a slug). */
   office: string;
-  /** Each machine's memory ("2g") and CPUs. */
+  /** Each machine's memory ("4g") and CPUs. */
   mem: string;
   cpus: number;
   /** The most machines one floor may have at once. */

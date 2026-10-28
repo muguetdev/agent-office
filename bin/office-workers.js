@@ -10,6 +10,7 @@
 import { realpathSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { machineTools, runMachineTool } from './office-machine.js';
 
 const USAGE = `Usage:
   office-workers list [--json]                  everyone at a desk on this floor: status, task,
@@ -463,13 +464,15 @@ export async function handleMcp(msg, io) {
     }
     case 'ping':
       return ok({});
+    // A worker with a machine of its own also gets its shell and files (see office-machine.js).
     case 'tools/list':
-      return ok({ tools: TOOLS });
+      return ok({ tools: [...TOOLS, ...(await machineTools(io))] });
     case 'tools/call': {
       const name = msg.params?.name;
-      if (!TOOLS.some((t) => t.name === name)) return { jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: `Unknown tool: ${name}` } };
+      const machine = typeof name === 'string' && name.startsWith('machine_');
+      if (!TOOLS.some((t) => t.name === name) && !(machine && (await machineTools(io)).some((t) => t.name === name))) return { jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: `Unknown tool: ${name}` } };
       try {
-        const { text, isError } = await runTool(name, msg.params?.arguments, io);
+        const { text, isError } = await (machine ? runMachineTool : runTool)(name, msg.params?.arguments, io);
         return ok({ content: [{ type: 'text', text }], ...(isError ? { isError: true } : {}) });
       } catch (e) {
         return ok({ content: [{ type: 'text', text: e.message }], isError: true });

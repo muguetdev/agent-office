@@ -15,7 +15,13 @@ export const MACHINE_MCP_PACKAGE = 'chrome-devtools-mcp@latest';
 export const MACHINE_NOTE =
   `You have your own computer: a Linux desktop with Google Chrome, which you control with the "${MACHINE_MCP_NAME}" MCP tools ` +
   '(chrome-devtools: open pages, click, type, take screenshots). A person may be watching its screen live. ' +
+  'You also have a shell in that same computer: `machine run -- <command>` (or the machine_run tool) runs a command line with bash there, as its user with passwordless sudo ' +
+  '(`machine run -- sudo apt-get install -y golang-go`); `machine put <local> <remote>` and `machine get <remote> <local>` copy files in and out; `machine info` says what is installed. ' +
+  "Its desktop and Chrome run in that computer too, so a server you start there (`machine run -- 'cd ~/app && nohup npm run dev > dev.log 2>&1 &'`) is at localhost in its Chrome. " +
   'Never type passwords or other credentials into it that you were not given for the task.';
+
+/** Claude Code's rules for running commands in its machine without asking: `machine run`, `machine info`, the machine_run tool. */
+export const MACHINE_SHELL_ALLOWED = ['Bash(machine run:*)', 'Bash(machine info)', 'mcp__agent-office__machine_run'];
 
 /** npx beside the node the office runs on, else whichever is on the PATH. */
 function npx(): string {
@@ -46,8 +52,10 @@ export function claudeMachineArgs(info: Pick<WorkerInfo, 'machine' | 'kind'>): {
   if (!m) return { append: [] };
   return {
     mcp: JSON.stringify({ mcpServers: { [MACHINE_MCP_NAME]: { type: 'stdio', command: m.command, args: m.args, env: m.env } } }),
-    // Its own browser, on its own computer, without asking each time (anyone on its floor can watch it).
-    append: ['--allowedTools', `mcp__${MACHINE_MCP_NAME}`, '--append-system-prompt', MACHINE_NOTE],
+    // Its own browser, and commands in its own computer, without asking each time (anyone on its
+    // floor can watch it; the computer is a container of its own). Copying files to and from the
+    // office's disk (machine put/get) still asks.
+    append: ['--allowedTools', `mcp__${MACHINE_MCP_NAME}`, ...MACHINE_SHELL_ALLOWED, '--append-system-prompt', MACHINE_NOTE],
   };
 }
 

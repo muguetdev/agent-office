@@ -15,6 +15,10 @@ and exits non-zero.
   ce-machines list                         [--office NAME]
   ce-machines create ID [--mem 2g] [--cpus 2] [--office NAME]
   ce-machines delete ID                    [--office NAME]
+  ce-machines exec ID [--root] [--timeout S] [--cwd DIR] -- COMMAND...
+                                           [--office NAME]
+  ce-machines put ID DEST-PATH [--root]    (file bytes on stdin)
+  ce-machines get ID PATH [--root]         (file bytes on stdout)
   ce-machines authorize "SSH-PUBLIC-KEY" OFFICE      (root only, not via SSH)
   ce-machines revoke OFFICE                          (root only, not via SSH)
   ce-machines sync-keys                              (root only, not via SSH)
@@ -26,6 +30,9 @@ validated before use.
 Settings can be overridden in /etc/ce-machines.json (see DEFAULTS).
 """
 
+import base64
+import binascii
+import collections
 import fcntl
 import json
 import math
@@ -33,6 +40,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -45,10 +53,10 @@ DEFAULTS = {
     # Docker image every machine runs.
     "image": "command-express/machine:latest",
     # Per-machine defaults (overridable per create with --mem / --cpus).
-    "defaultMem": "2g",
+    "defaultMem": "4g",
     "defaultCpus": "2",
-    "pidsLimit": 1024,
-    "shmSize": "1g",
+    "pidsLimit": 4096,
+    "shmSize": "2g",
     # Memory kept free for the host itself when computing capacity.
     "reserveMem": "3g",
     # Web desktop path prefix; {id} is replaced by the machine id. It must
@@ -69,6 +77,15 @@ DEFAULTS = {
     "authorizedKeys": "/root/.ssh/authorized_keys",
     # Wrapper used as the forced command for office keys.
     "sshWrapper": "/usr/local/bin/ce-machines-ssh",
+    # exec: where a command starts, how long it may run (seconds) unless
+    # --timeout says otherwise, the most --timeout may be, and how much of
+    # its stdout and of its stderr is kept (the tail, in bytes).
+    "execCwd": "/config",
+    "execTimeout": 600,
+    "execMaxTimeout": 3600,
+    "execOutputMax": 1024 * 1024,
+    # put/get: the largest file moved in or out of a machine, in bytes.
+    "fileMax": 100 * 1024 * 1024,
 }
 
 LOCK_PATH = "/run/ce-machines.lock"
@@ -384,6 +401,261 @@ def cmd_ping(cfg, office, args):
 
 
 # --------------------------------------------------------------------------
+# a shell and files inside a machine
+#
+# exec runs one command line with bash inside the machine (the line is read
+# by bash in the container, never by a shell on the host); put and get move
+# one file in or out. All three run as the desktop's user abc unless --root,
+# and only in a running machine of the caller's own office.
+
+def running_machine(office, mid):
+    c = find(check_id(mid))
+    if c is None:
+        raise Fail("no machine %s" % mid)
+    if office is not None and c["Config"]["Labels"].get("ce.office") != office:
+        raise Fail("machine id %s is in use by another office" % mid)
+    if c["State"]["Status"] != "running":
+        raise Fail("machine %s is not running (%s)" % (mid, c["State"]["Status"]))
+    return "ce-" + mid
+
+
+def check_path(value, what="path"):
+    """An absolute path inside the machine: no NUL or other control characters."""
+    if not isinstance(value, str) or not value.startswith("/") or len(value) > 4096:
+        raise Fail("%s must be an absolute path inside the machine" % what)
+    if any(ord(ch) < 32 or ord(ch) == 127 for ch in value):
+        raise Fail("%s has control characters" % what)
+    return value
+
+
+def from_b64(value, what):
+    try:
+        return base64.b64decode(value.encode("ascii"), validate=True).decode("utf-8")
+    except (binascii.Error, ValueError, UnicodeError):
+        raise Fail("%s is not base64 of UTF-8 text" % what)
+
+
+def parse_exec(cfg, args):
+    """exec's arguments: the id, the options, and the command line (after --,
+    or base64 in --command-b64). The *-b64 forms are what offices send, since
+    they survive SSH's command line and shlex unchanged."""
+    opts = {"root": False, "timeout": int(cfg["execTimeout"]), "cwd": cfg["execCwd"]}
+    mid, command, i = None, None, 0
+    while i < len(args):
+        a = args[i]
+        if a == "--":
+            if command is not None:
+                raise Fail("give the command after -- or in --command-b64, not both")
+            command = " ".join(args[i + 1:])
+            break
+        if a == "--root":
+            opts["root"] = True
+            i += 1
+            continue
+        if a in ("--timeout", "--cwd", "--cwd-b64", "--command-b64", "--office"):
+            if i + 1 >= len(args):
+                raise Fail("%s needs a value" % a)
+            v = args[i + 1]
+            if a == "--timeout":
+                if not re.match(r"^[0-9]{1,5}$", v) or not 1 <= int(v) <= int(cfg["execMaxTimeout"]):
+                    raise Fail("--timeout must be 1 to %s seconds" % cfg["execMaxTimeout"])
+                opts["timeout"] = int(v)
+            elif a == "--cwd":
+                opts["cwd"] = v
+            elif a == "--cwd-b64":
+                opts["cwd"] = from_b64(v, "--cwd-b64")
+            elif a == "--command-b64":
+                if command is not None:
+                    raise Fail("give the command after -- or in --command-b64, not both")
+                command = from_b64(v, "--command-b64")
+            else:
+                opts["office"] = v
+            i += 2
+            continue
+        if a.startswith("-") or mid is not None:
+            raise Fail("unexpected argument %r" % a)
+        mid = a
+        i += 1
+    if mid is None or command is None or not command.strip():
+        raise Fail("usage: exec <id> [--root] [--timeout S] [--cwd DIR] -- <command>")
+    check_id(mid)
+    check_path(opts["cwd"], "--cwd")
+    if "\0" in command:
+        raise Fail("the command has a NUL character")
+    return mid, command, opts
+
+
+def exec_argv(container, command, opts):
+    """The docker exec argument vector: bash -lc runs the line inside the
+    machine, under coreutils timeout (which kills the command's whole process
+    group when time is up, and KILLs what ignores that 10 s later)."""
+    return ["exec", "-u", "root" if opts["root"] else "abc", "-w", opts["cwd"],
+            "-e", "DISPLAY=:1", container,
+            "timeout", "-k", "10", str(opts["timeout"]), "bash", "-lc", command]
+
+
+class Tail:
+    """Reads a pipe to the end, keeping only its last `cap` bytes."""
+
+    def __init__(self, pipe, cap):
+        self.cap, self.total, self.chunks, self.kept = cap, 0, collections.deque(), 0
+        self.thread = threading.Thread(target=self.read, args=(pipe,), daemon=True)
+        self.thread.start()
+
+    def read(self, pipe):
+        for chunk in iter(lambda: pipe.read(65536), b""):
+            self.total += len(chunk)
+            self.chunks.append(chunk)
+            self.kept += len(chunk)
+            while self.kept - len(self.chunks[0]) >= self.cap:
+                self.kept -= len(self.chunks.popleft())
+
+    def text(self):
+        data = b"".join(self.chunks)[-self.cap:]
+        return data.decode("utf-8", "replace"), self.total > len(data)
+
+
+def cmd_exec(cfg, office, args):
+    mid, command, opts = parse_exec(cfg, args)
+    if "office" in opts:
+        if office is not None:
+            raise Fail("--office is set by the server for SSH callers")
+        office = check_id(opts["office"], "office")
+    container = running_machine(office, mid)
+    started = time.time()
+    try:
+        p = subprocess.Popen(["docker"] + exec_argv(container, command, opts),
+                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        raise Fail("docker is not installed")
+    cap = int(cfg["execOutputMax"])
+    so, se = Tail(p.stdout, cap), Tail(p.stderr, cap)
+    killed = False
+    try:
+        # timeout(1) in the machine ends it; this only guards against docker hanging.
+        p.wait(timeout=opts["timeout"] + 30)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        p.wait()
+        killed = True
+    # Something the command left running in the background may hold its
+    # output open: what it wrote so far is what's reported.
+    so.thread.join(2)
+    se.thread.join(2)
+    stdout, cut_out = so.text()
+    stderr, cut_err = se.text()
+    elapsed = time.time() - started
+    if p.returncode in (126, 127) and stdout.startswith("OCI runtime exec failed"):
+        # docker couldn't start it (a --cwd that isn't there, say): that's an error, not output.
+        stdout, stderr = "", stdout.strip() + ("\n" + stderr if stderr else "")
+    timed_out = killed or (p.returncode in (124, 137) and elapsed >= opts["timeout"] - 1)
+    truncated = cut_out or cut_err
+    if truncated:
+        stderr += "\n[ce-machines: output cut to its last %d bytes]" % cap
+    if timed_out:
+        stderr += "\n[ce-machines: timed out after %ds]" % opts["timeout"]
+    out({"exitCode": p.returncode if not killed else 124, "stdout": stdout, "stderr": stderr,
+         "truncated": truncated, "timedOut": timed_out})
+
+
+def parse_file_args(args, verb):
+    mid, path, root, office, i = None, None, False, None, 0
+    while i < len(args):
+        a = args[i]
+        if a == "--root":
+            root = True
+            i += 1
+        elif a in ("--path-b64", "--office"):
+            if i + 1 >= len(args):
+                raise Fail("%s needs a value" % a)
+            if a == "--office":
+                office = args[i + 1]
+            elif path is not None:
+                raise Fail("unexpected argument %r" % a)
+            else:
+                path = from_b64(args[i + 1], "--path-b64")
+            i += 2
+        elif a.startswith("-") or (mid is not None and path is not None):
+            raise Fail("unexpected argument %r" % a)
+        elif mid is None:
+            mid = a
+            i += 1
+        else:
+            path = a
+            i += 1
+    if mid is None or path is None:
+        raise Fail("usage: %s <id> <path> [--root]" % verb)
+    return check_id(mid), check_path(path), root, office
+
+
+def scoped_office(office, given):
+    if given is None:
+        return office
+    if office is not None:
+        raise Fail("--office is set by the server for SSH callers")
+    return check_id(given, "office")
+
+
+def cmd_put(cfg, office, args):
+    """Writes stdin to a file in the machine (its folders made as needed)."""
+    mid, path, root, given = parse_file_args(args, "put")
+    container = running_machine(scoped_office(office, given), mid)
+    cap = int(cfg["fileMax"])
+    # The path is an argument of sh, never part of its script.
+    script = 'mkdir -p -- "$(dirname -- "$1")" && cat > "$1"'
+    p = subprocess.Popen(["docker", "exec", "-i", "-u", "root" if root else "abc", container,
+                          "sh", "-c", script, "put", path],
+                         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    err = Tail(p.stderr, 4096)
+    total, too_big = 0, False
+    src = sys.stdin.buffer
+    try:
+        for chunk in iter(lambda: src.read(65536), b""):
+            total += len(chunk)
+            if total > cap:
+                too_big = True
+                break
+            p.stdin.write(chunk)
+        p.stdin.close()
+    except BrokenPipeError:
+        pass
+    if too_big:
+        p.kill()
+        p.wait()
+        docker("exec", "-u", "root" if root else "abc", container, "rm", "-f", "--", path, check=False)
+        raise Fail("file is larger than %d bytes" % cap)
+    p.wait()
+    err.thread.join(2)
+    if p.returncode != 0:
+        raise Fail("could not write %s: %s" % (path, err.text()[0].strip()[:500]))
+    out({"id": mid, "path": path, "bytes": total})
+
+
+def cmd_get(cfg, office, args):
+    """Writes a file of the machine to stdout, raw (the only command that
+    doesn't answer in JSON, unless it fails)."""
+    mid, path, root, given = parse_file_args(args, "get")
+    container = running_machine(scoped_office(office, given), mid)
+    user = "root" if root else "abc"
+    p = docker("exec", "-u", user, container, "stat", "-L", "-c", "%F\t%s", "--", path, check=False)
+    if p.returncode != 0:
+        raise Fail("cannot read %s: %s" % (path, (p.stderr or p.stdout).strip()[:300]))
+    kind, _, size = p.stdout.strip().partition("\t")
+    if kind not in ("regular file", "regular empty file"):
+        raise Fail("%s is not a file (%s)" % (path, kind))
+    if int(size or 0) > int(cfg["fileMax"]):
+        raise Fail("%s is larger than %d bytes" % (path, int(cfg["fileMax"])))
+    sys.stdout.flush()
+    p = subprocess.run(["docker", "exec", "-u", user, container, "cat", "--", path],
+                       stdout=sys.stdout.buffer, stderr=subprocess.PIPE)
+    if p.returncode != 0:
+        sys.stderr.write(p.stderr.decode("utf-8", "replace")[:500])
+        sys.exit(p.returncode or 1)
+    sys.stdout.buffer.flush()
+    sys.exit(0)
+
+
+# --------------------------------------------------------------------------
 # office keys (authorized_keys management, root only)
 #
 # Each office key is written as one line ending in the comment
@@ -512,18 +784,22 @@ COMMANDS = {
     "list": cmd_list,
     "create": cmd_create,
     "delete": cmd_delete,
+    "exec": cmd_exec,
+    "put": cmd_put,
+    "get": cmd_get,
     "authorize": cmd_authorize,
     "revoke": cmd_revoke,
     "sync-keys": cmd_sync_keys,
 }
 
 # Subcommands an office may run through ce-machines-ssh.
-OFFICE_COMMANDS = ("ping", "status", "list", "create", "delete")
+OFFICE_COMMANDS = ("ping", "status", "list", "create", "delete", "exec", "put", "get")
 
 
 def main(argv, office=None):
     """Run a subcommand. `office` is set (and trusted) only by the SSH
-    wrapper; it scopes list/create/delete to that office's machines."""
+    wrapper; it scopes list/create/delete/exec/put/get to that office's
+    machines."""
     try:
         if not argv or argv[0] not in COMMANDS:
             raise Fail("usage: ce-machines {%s} ..." % "|".join(COMMANDS))
