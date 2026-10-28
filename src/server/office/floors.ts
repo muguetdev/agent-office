@@ -10,7 +10,7 @@ import { SLOW_CLIENT_BYTES, type Client } from './client.js';
 import { L } from '../i18n.js';
 import { floorsToEveryone } from './access.js';
 import { prepareServer } from '../servers.js';
-import { watchServer } from '../ws/handlers/servers.js';
+import { cloneServerRepo, watchServer } from '../ws/handlers/servers.js';
 import { machinesOf } from '../machines/index.js';
 
 /** Finding floors, the elevator's list of them, and taking one off the building. */
@@ -141,12 +141,13 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
     }
     try {
       // A server's floor: its key, its way in, and its shells opening on the server (see servers.ts).
-      const shell = def.ssh && prepareServer(cfg.dataDir, def.id, def.ssh, def.dir, path.join(def.dir, '.agent-office', 'bin'));
+      const shell = def.ssh && prepareServer(cfg.dataDir, def.id, def.ssh, def.dir, path.join(def.dir, '.agent-office', 'bin'), def.repo);
       const floor = new Floor(def, floorContext);
       if (shell) {
         floor.workers.shellArgs = shell;
-        // Its boards show the repository it runs, once there's one; and how it's doing is watched.
+        // Its boards show the repository it runs, once there's one, whose code is cloned into its folder; and how it's doing is watched.
         floor.github.setRepo(def.repo ?? null);
+        cloneServerRepo(ctx, floor);
         watchServer(ctx, floor);
       }
       floors.set(def.id, floor);

@@ -537,7 +537,7 @@ export function originRepo(dir: string): string | undefined {
  * What's at `dest`: nothing yet ('none'), a checkout of `repo` ('ok'), or why it's in the way. A
  * clone that was cut off has its origin but no commit checked out; an `empty` repository has none to.
  */
-function checkoutAt(dest: string, repo: string, empty: boolean): 'none' | 'ok' | string {
+export function checkoutAt(dest: string, repo: string, empty: boolean): 'none' | 'ok' | string {
   if (!existsSync(dest)) return 'none';
   if (!statSync(dest).isDirectory()) return L.srvBuilding.notFolder(dest);
   if (!readdirSync(dest).length) return 'none';

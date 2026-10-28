@@ -31,6 +31,7 @@ import { officePrompt, type PromptSource } from './prompts.js';
 import { L } from './i18n.js';
 import { breakOver } from './workers/breaks.js';
 import { CodeFiles } from './code.js';
+import { serverCheckout } from './server-repo.js';
 import { crewOf } from '../shared/crew.js';
 
 type ToastLevel = 'info' | 'warn' | 'error';
@@ -297,10 +298,11 @@ export class Floor {
       toast: (text, level) => ctx.toast(this, text, level),
     });
 
-    // What each worker changed, for the Changes window at its desk (see changes.ts).
+    // What each worker changed, for the Changes window at its desk (see changes.ts). On a server's
+    // floor that's its linked repository's clone, in a folder of the floor's (see server-repo.ts).
     this.code = new CodeFiles((workerId) => {
       const w = this.workers.get(workerId);
-      return w ? (w.worktree ? path.join(def.dir, w.worktree.path) : def.dir) : undefined;
+      return w ? (w.worktree ? path.join(def.dir, w.worktree.path) : (serverCheckout(def)?.cwd ?? def.dir)) : undefined;
     });
     this.changes = new Changes(
       def.dir,
@@ -308,6 +310,8 @@ export class Floor {
       (workerId, repo) => {
         const w = this.workers.get(workerId);
         if (!w) return undefined;
+        const code = !repo && !w.worktree ? serverCheckout(def) : undefined;
+        if (code) return { name: w.name, ...code };
         if (!repo) return { name: w.name, cwd: w.worktree ? path.join(def.dir, w.worktree.path) : def.dir, rel: w.worktree?.path ?? '', worktreeBase: w.worktree?.base };
         // One of the other floors' repositories it works in: diffed against, and PRs opened against, that floor's branch.
         const r = w.repos?.find((x) => x.floor === repo);

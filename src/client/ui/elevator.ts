@@ -8,6 +8,7 @@ import { h, openModal, timeAgo, toast, type Modal } from './dom';
 import { confirmDialog } from './prompt';
 import { L } from '../i18n';
 import { openServerFloor } from './server-floor';
+import { enterPick, floorOfRepo, matchRepos, repoAction } from './repo-pick';
 
 // The elevator's panel: a button for every floor (every project), and "add a project", which clones
 // one of the repositories the office's gh login can see and makes it a new floor. The first time
@@ -236,32 +237,33 @@ export function openElevator(opts: ElevatorOptions): void {
   };
 
   const repoRow = (r: RepoChoice) => {
-    const floor = store.floors.find((f) => sameRepo(f.repo, r.name));
+    // Already on a floor (a server's floor may have it linked): listed all the same, and picking it offers to go there.
+    const floor = floorOfRepo(store.floors, r.name);
     const row = h(
       'div.repo',
       { role: 'option', class: selected && sameRepo(selected, r.name) ? 'sel' : '', 'aria-selected': String(!!selected && sameRepo(selected, r.name)), title: r.description ?? r.name },
       h('span.nm', {}, r.name),
       r.private ? h('span', { title: L.elevator.private } , '🔒') : null,
       h('span.desc', {}, r.description ?? ''),
-      floor ? h('span.pill', {}, floor.id === store.floor ? L.elevator.youAreHere : L.elevator.floorN(store.floors.indexOf(floor) + 1)) : r.pushedAt ? h('span.when', {}, timeAgo(r.pushedAt)) : null,
+      floor ? h('span.pill', {}, floor.id === store.floor ? L.elevator.youAreHere : L.elevator.alreadyOn(floor.name)) : r.pushedAt ? h('span.when', {}, timeAgo(r.pushedAt)) : null,
     );
     row.addEventListener('click', () => {
       if (adding) return;
-      if (floor) {
-        // Already a floor: the button takes you there.
-        if (floor.id !== store.floor && !floor.cloning) {
-          modal.close();
-          opts.ride(floor.id);
-        }
-        return;
-      }
       selected = r.name;
       renderAdd();
     });
-    row.addEventListener('dblclick', () => {
-      if (!floor) add(r.name);
-    });
+    row.addEventListener('dblclick', () => act(r.name));
     return row;
+  };
+
+  /** What the button does with `pick`: adds it as a floor, or takes you to the floor it's on already. */
+  const act = (pick: string | undefined) => {
+    const a = repoAction(store.floors, pick, opts.downstairs() ? null : store.floor);
+    if (a.kind === 'add') add(a.repo);
+    else if (a.kind === 'go' && a.can && !adding) {
+      modal.close();
+      opts.ride(a.floor.id);
+    }
   };
 
   /** 🖥️ A floor that's a server instead of a repository (see server-floor.ts). */
@@ -297,16 +299,18 @@ export function openElevator(opts: ElevatorOptions): void {
     const r = store.repos;
     const q = filter.trim().toLowerCase();
     const typed = normalizeRepo(filter);
-    const matches = r.list.filter((x) => !q || x.name.toLowerCase().includes(q) || (x.description ?? '').toLowerCase().includes(q));
+    const matches = matchRepos(r.list, filter);
     const rows: HTMLElement[] = [];
     // owner/name that isn't in the list (someone else's public repository): offer it anyway.
-    if (typed && !r.list.some((x) => sameRepo(x.name, typed))) rows.push(repoRow({ name: typed, private: false, description: L.elevator.notInList }));
+    if (typed && !r.list.some((x) => sameRepo(x.name, typed))) rows.push(repoRow({ name: typed, private: false, description: floorOfRepo(store.floors, typed) ? undefined : L.elevator.notInList }));
     rows.push(...matches.slice(0, SHOWN).map(repoRow));
     if (!rows.length) rows.push(h('p.empty', { style: 'padding:10px' }, r.loading ? L.elevator.asking : r.error ? '' : q ? L.elevator.noMatch : L.elevator.noRepos));
     if (matches.length > SHOWN) rows.push(h('p.empty', { style: 'padding:8px 10px' }, L.elevator.more(matches.length - SHOWN)));
     listEl.replaceChildren(...rows);
     const pick = choice();
     const dest = pick ? `${store.projectsDir.dir}/${pick}` : `${store.projectsDir.dir}/${L.elevator.ownerRepo}`;
+    // One already on a floor isn't added again: the button goes there instead.
+    const action = repoAction(store.floors, pick, opts.downstairs() ? null : store.floor);
     const change = store.me.admin ? h('button.btn.dir-change', { type: 'button', title: L.elevator.changeFolderTip }, L.elevator.changeFolder) : null;
     change?.addEventListener('click', () => editDir(true));
     // While it clones: how far it's got (the office asks GitHub about it first).
@@ -318,10 +322,10 @@ export function openElevator(opts: ElevatorOptions): void {
           on ? h('p.note', {}, [cloneStep(on.clone), on.clone?.detail].filter(Boolean).join(' · ')) : null,
           h('p.note', {}, L.elevator.carryOn),
         ]
-      : [h('p.note', {}, L.elevator.clonedInto(dest), change)];
+      : [h('p.note', {}, action.kind === 'go' ? L.elevator.onFloor(action.repo, action.floor.name) : L.elevator.clonedInto(dest), change)];
     statusEl.replaceChildren(...lines.filter((l): l is HTMLElement => !!l), ...[r.error, error].filter(Boolean).map((e) => h('p.err', {}, e)));
-    addBtn.disabled = !!adding || !pick || store.floors.some((f) => sameRepo(f.repo, pick));
-    addBtn.textContent = adding ? L.elevator.cloningShort : pick ? L.elevator.addRepo(pick) : L.elevator.addFloor;
+    addBtn.disabled = !!adding || action.kind === 'none' || (action.kind === 'go' && !action.can);
+    addBtn.textContent = adding ? L.elevator.cloningShort : action.kind === 'go' ? L.elevator.goToFloor(action.floor.name) : pick ? L.elevator.addRepo(pick) : L.elevator.addFloor;
     input.disabled = !!adding;
     if (!built) {
       built = true;
@@ -396,15 +400,9 @@ export function openElevator(opts: ElevatorOptions): void {
   input.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' || e.isComposing) return;
     e.preventDefault();
-    const q = filter.trim().toLowerCase();
-    const matches = store.repos.list.filter((x) => !store.floors.some((f) => sameRepo(f.repo, x.name)) && (x.name.toLowerCase().includes(q) || (x.description ?? '').toLowerCase().includes(q)));
-    const pick = choice() ?? (q && matches.length === 1 ? matches[0].name : undefined);
-    if (pick) add(pick);
+    act(enterPick(store.repos.list, filter, selected));
   });
-  addBtn.addEventListener('click', () => {
-    const pick = choice();
-    if (pick) add(pick);
-  });
+  addBtn.addEventListener('click', () => act(choice()));
   refreshBtn.addEventListener('click', () => {
     store.repos = { ...store.repos, loading: true, error: undefined };
     renderAdd();

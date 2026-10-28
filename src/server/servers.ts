@@ -80,8 +80,34 @@ const which = (cmd: string) => {
     return undefined;
   }
 };
-/** What the agents on a server's floor read first (AGENTS.md, and CLAUDE.md for Claude Code): a prompt, so it's in English whatever the office speaks. */
-const agentNote = (id: string, at: string) => `# This floor is a server
+
+/** What's the office's in a server's floor's folder: a repository named like one of these goes in `<name>-code`. */
+const RESERVED = new Set(['.agent-office', '.git', 'agents.md', 'claude.md']);
+
+/** The folder in a server's floor's folder its linked repository is cloned into (see server-repo.ts): the repository's name. */
+export function repoFolder(repo: string): string {
+  const name = repo.split('/').pop() || repo;
+  return RESERVED.has(name.toLowerCase()) ? `${name}-code` : name;
+}
+
+/** Where the project's code is, for the note, when the floor has a repository linked. */
+const codeNote = (id: string, repo: string) => {
+  const dir = `./${repoFolder(repo)}`;
+  return `
+## The project's code
+
+The code of ${repo}, the project this server runs, is cloned at \`${dir}\` in this folder (if it isn't
+there yet, the office is still cloning it). Read, edit, commit and push there: git and gh work as usual.
+The server itself is reached with \`ssh ${id}\`. To deploy, follow the project's own deploy docs (look in
+\`${dir}\`) or ask. Never edit the code directly on the server unless you're asked to.
+`;
+};
+
+/**
+ * What the agents on a server's floor read first (AGENTS.md, and CLAUDE.md for Claude Code): a prompt,
+ * so it's in English whatever the office speaks. With `repo`, where its code is cloned too.
+ */
+export const agentNote = (id: string, at: string, repo?: string) => `# This floor is a server
 
 Everything here is about the server ${at}. You run on the office's machine, in this folder; the server
 is reached with \`ssh ${id}\` (it already has its address, user and key):
@@ -91,16 +117,23 @@ is reached with \`ssh ${id}\` (it already has its address, user and key):
 
 It's a live server: say what you're going to change before you change it, keep a backup of a file you
 edit (\`cp file file.bak\`), and don't restart services or reboot it without being asked.
-`;
+${repo ? codeNote(id, repo) : ''}`;
+
+/** Writes the note in the floor's folder, again whenever its repository is linked or unlinked. */
+export function writeAgentNote(folder: string, id: string, t: SshTarget, repo?: string) {
+  const note = agentNote(id, `${t.user}@${t.host}${t.port === SSH_PORT ? '' : `:${t.port}`}`, repo);
+  for (const file of ['AGENTS.md', 'CLAUDE.md']) writeFileSync(path.join(folder, file), note);
+}
 
 const shq = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
 
 /**
  * Gets a server floor ready, each time it opens: its key, its config, the ssh, scp and sftp in its
- * bin (`bin`, on its workers' PATH), and a note in its folder for the agents. Returns what a 🐚 shell
- * at one of its desks runs: ssh to the server, and a shell here once that's over.
+ * bin (`bin`, on its workers' PATH), and a note in its folder for the agents (with where `repo`'s
+ * code is, when it has one). Returns what a 🐚 shell at one of its desks runs: ssh to the server,
+ * and a shell here once that's over.
  */
-export function prepareServer(dataDir: string, id: string, t: SshTarget, folder: string, bin: string): string[] {
+export function prepareServer(dataDir: string, id: string, t: SshTarget, folder: string, bin: string, repo?: string): string[] {
   makeKey(dataDir, id);
   const config = writeConfig(dataDir, id, t);
   mkdirSync(bin, { recursive: true, mode: 0o700 });
@@ -109,8 +142,7 @@ export function prepareServer(dataDir: string, id: string, t: SshTarget, folder:
     if (real) writeFileSync(path.join(bin, cmd), `#!/bin/sh\n# ${cmd} that knows this floor's server (see server/servers.ts).\nexec ${shq(real)} -F ${shq(config)} "$@"\n`, { mode: 0o700 });
   }
   mkdirSync(folder, { recursive: true });
-  const note = agentNote(id, `${t.user}@${t.host}${t.port === SSH_PORT ? '' : `:${t.port}`}`);
-  for (const file of ['AGENTS.md', 'CLAUDE.md']) writeFileSync(path.join(folder, file), note);
+  writeAgentNote(folder, id, t, repo);
   return ['-l', '-c', `${shq(path.join(bin, 'ssh'))} ${id}; exec "\${SHELL:-/bin/sh}" -l`];
 }
 

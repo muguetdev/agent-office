@@ -8,7 +8,8 @@ import { ServerWatch } from '../../server-watch.js';
 import type { Ctx } from '../../office/context.js';
 import type { Client } from '../../office/client.js';
 import { str } from '../../office/input.js';
-import { publicKey, sshTarget, testServer } from '../../servers.js';
+import { publicKey, repoFolder, sshTarget, testServer, writeAgentNote } from '../../servers.js';
+import { ensureServerRepo } from '../../server-repo.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
 
@@ -32,6 +33,23 @@ export function watchServer(ctx: Ctx, floor: Floor) {
     (state) => ctx.toFloor(floor, { t: 'server.state', state }),
   );
   watches.set(floor.id, watch);
+}
+
+/**
+ * Clones a server's floor's linked repository into the floor's folder if it isn't there yet (see
+ * server-repo.ts), as the floor opens and when one is linked. The floor hears about a clone, not
+ * about code that was there already.
+ */
+export function cloneServerRepo(ctx: Ctx, floor: Floor) {
+  const repo = floor.def.repo;
+  const at = repo && `./${repoFolder(repo)}`;
+  const p = ensureServerRepo(floor.def, { started: () => ctx.toastFloor(floor, `⏳ ${L.servers.repoCloning(repo!, at!)}`) });
+  void p?.then((r) => {
+    if (r.ok && r.cloned) ctx.toastFloor(floor, `✅ ${L.servers.repoCloned(repo!, at!)}`);
+    if (r.ok) return;
+    console.error(`agent-office: ${floor.def.name}: ${r.error}`);
+    ctx.toastFloor(floor, L.servers.repoCloneFailed(repo!, r.error), 'warn');
+  });
 }
 
 /** How the server's doing, for someone arriving on its floor. */
@@ -83,8 +101,11 @@ export const serversHandlers = {
     floor.def.repo = repo;
     ctx.building.save();
     floor.github.setRepo(repo ?? null);
+    // Its agents read where the code is (or that there's none now): an unlinked one's clone stays where it was.
+    writeAgentNote(floor.dir, floor.id, floor.def.ssh!, repo);
     ctx.floorsChanged();
-    ctx.toastFloor(floor, repo ? L.servers.repoLinked(who, repo) : L.servers.repoUnlinked(who));
+    ctx.toastFloor(floor, repo ? L.servers.repoLinked(who, repo, `./${repoFolder(repo)}`) : L.servers.repoUnlinked(who));
+    if (repo) cloneServerRepo(ctx, floor);
   },
   'server.restart'(ctx, c, msg) {
     const who = c.peer.name;
