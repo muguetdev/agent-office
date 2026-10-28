@@ -18,6 +18,7 @@ import type { SettingsClientMsg, SettingsServerMsg } from './protocol/settings.j
 import type { BallClientMsg, CabinetClientMsg, CarClientMsg, DecorClientMsg, DogClientMsg, JukeboxClientMsg, ToysServerMsg, WhiteboardClientMsg } from './protocol/toys.js';
 import type { TranscriptClientMsg, TranscriptServerMsg } from './protocol/transcript.js';
 import type { UsageClientMsg, UsageServerMsg } from './protocol/usage.js';
+import type { WhipClientMsg, WhipServerMsg } from './protocol/whip.js';
 import type { WorkerClientMsg, WorkerServerMsg } from './protocol/workers.js';
 
 export * from './protocol/accounts.js';
@@ -35,6 +36,7 @@ export * from './protocol/settings.js';
 export * from './protocol/toys.js';
 export * from './protocol/transcript.js';
 export * from './protocol/usage.js';
+export * from './protocol/whip.js';
 export * from './protocol/workers.js';
 
 export type ClientMsg =
@@ -61,7 +63,8 @@ export type ClientMsg =
   | CarClientMsg
   | DogClientMsg
   | ServersClientMsg
-  | DiscussionClientMsg;
+  | DiscussionClientMsg
+  | WhipClientMsg;
 
 export type ServerMsg =
   | PresenceServerMsg
@@ -77,4 +80,5 @@ export type ServerMsg =
   | SettingsServerMsg
   | UsageServerMsg
   | ToysServerMsg
-  | ServersServerMsg;
+  | ServersServerMsg
+  | WhipServerMsg;

@@ -382,6 +382,7 @@ deploy/coolify.sh ssh 'node /opt/agent-office/bin/agent-office.js accounts invit
 | Z | Send a finished worker on a break, or back to its desk |
 | J | The big map (the floor indoors, the whole world outside): drag to move, wheel or + − to zoom |
 | L | Hang a sign over a desk ("Operations", "Code cleanup") |
+| U | Take out a toy whip; E at a worker cracks it and it flinches (just for fun) |
 | T / Enter | Chat |
 | V | Join voice; then hold V to talk |
 | M | Mute / unmute in voice |

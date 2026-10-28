@@ -33,7 +33,7 @@ const WAVE_TWIST = -1.4;
 /** Lifting the mug for a sip and lowering it again, in seconds. */
 const SIP_TIME = 1.1;
 
-interface Arm {
+export interface Arm {
   group: THREE.Group;
   base: THREE.Vector3;
   baseRot: THREE.Euler;
@@ -58,7 +58,8 @@ export class Hands {
   readonly camera = new THREE.PerspectiveCamera(55, 1, 0.01, 5);
   private sleeve: THREE.MeshToonMaterial;
   private skin: THREE.MeshToonMaterial;
-  private right: Arm;
+  /** The right arm: something held in `right.group` goes where the hand goes (the whip). */
+  readonly right: Arm;
   private left: Arm;
   private reachT = -1;
   private mug: THREE.Group;
