@@ -67,6 +67,18 @@ The building holds up to **32 project floors**. That's separate from `--max-work
 
 **Language.** The office speaks the language in `AGENT_OFFICE_LANG` (`en`, `pt-BR` or `ko`), else English (not the terminal's `LANG`, so an office already running doesn't switch on an upgrade), in its notices and errors, its console and what it posts to Slack or Discord. An admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or else their browser's.
 
+## Agent machines
+
+Optional, and off until an admin sets it up: a **machines host** gives each worker you choose a desktop computer of its own (Ubuntu with XFCE, viewed in the browser, and Google Chrome with its DevTools open to the office), so it can use websites like a person would while you watch.
+
+1. **The host.** A Linux server with Docker, separate from the office. Install it with the files in [`deploy/machines/`](../deploy/machines/): `install.sh` on the host, as root (its [README](../deploy/machines/README.md) says what it sets up): the machine image, `ce-machines` (which makes, lists and deletes machines) and the forced command that limits what an office's key can do there.
+2. **The office.** In ⚙️ Settings → *Building* → **🖥️ Agent machines**, put in the host as `user@host` or `user@host:port`, and this office's name on the host (a slug; it's made from the office's name, and each office on the host needs its own). Save: the office makes an SSH key of its own for it (`<home>/machines/office_key`) and shows its public half with the exact line to run on the host, `ce-machines authorize "<key>" <office>`. Run that there, then press **Test**: it says how many machines are in use and how much memory the host has free.
+3. **Each machine's size** (memory, `2g`, and CPUs, `2`), **how many a floor may have** at once (4), and whether **members** may give the workers on their floors machines, not only admins (on, by default). Guests never may.
+
+The setting is kept in `<home>/machines.json`, the key and the host's key (`known_hosts`, taken the first time and checked after) in `<home>/machines/`, and each worker's machine in its floor's `workers.json`. **Remove** stops new machines; workers that have one keep it until they're sent home.
+
+The office reaches the host only over SSH with that key (`ce-machines …` as the forced command, nothing else), and each machine's desktop and Chrome through an `ssh -N -L` forward of its own to a port on the office's `127.0.0.1` (started again if it drops). The desktop is served to the browser by the office itself at `/api/machines/<worker>/desktop/`. The browser MCP server is run with `npx -y chrome-devtools-mcp@latest`, so the office's machine needs `npx` and a way to npm's registry.
+
 ## Windows GitHub setup
 
 Install GitHub CLI on the machine running the office, and sign in as the user running it:

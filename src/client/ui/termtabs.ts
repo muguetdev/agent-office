@@ -7,6 +7,7 @@ import { clip, h, toast } from './dom';
 import { store } from '../state';
 import { keyLabels } from './termkeys';
 import { L } from '../i18n';
+import { screenTab } from './machines/screen';
 
 /** A web page pinned open beside a worker's terminal. */
 interface WebTab {
@@ -57,14 +58,19 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   const codeHost = h('div.term-codehost.hidden');
   pages.append(codeHost);
   let codeLoaded = false;
+  /** A worker with a machine of its own: its 🖥️ Screen (see machines/screen.ts). */
+  const screen = screenTab(workerId);
+  pages.append(screen.el);
 
   const render = () => {
     const mainTab = h('div.term-tab', { class: active === 'main' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'main'), onclick: () => show('main') }, L.termTabs.terminal));
     const codeTab = h('div.term-tab', { class: active === 'code' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'code'), title: keyLabels(L.termTabs.codeTip), onclick: () => show('code') }, L.termTabs.code));
     const chatTab = opts.chat ? h('div.term-tab', { class: active === 'chat' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'chat'), onclick: () => show('chat') }, L.termTabs.chat)) : null;
+    const screenBtn = screen.shows() ? h('div.term-tab', { class: active === 'screen' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'screen'), onclick: () => show('screen') }, L.machines.tab)) : null;
     tabsBar.replaceChildren(
       ...(chatTab ? [chatTab, mainTab] : [mainTab]),
       codeTab,
+      ...(screenBtn ? [screenBtn] : []),
       ...tabs.map((t) =>
         h(
           'div.term-tab',
@@ -99,6 +105,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     opts.keypad?.classList.toggle('hidden', !onMain);
     for (const [tid, frame] of frames) frame.classList.toggle('hidden', tid !== id);
     codeHost.classList.toggle('hidden', id !== 'code');
+    screen.show(id === 'screen');
     if (id === 'code' && !codeLoaded) {
       codeLoaded = true;
       codeHost.textContent = L.code.loading;
@@ -125,6 +132,12 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   };
   for (const t of tabs) frameFor(t);
   show(active, false);
+  // Its machine comes or goes: the tab with it. Once the window's closed, it stops looking.
+  const offScreen = screen.onChange(() => {
+    if (!bar.isConnected) return offScreen();
+    if (active === 'screen' && !screen.shows()) show('main');
+    else render();
+  });
 
   addBtn.addEventListener('click', () => {
     form.classList.remove('hidden');

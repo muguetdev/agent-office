@@ -16,6 +16,7 @@ import { charactersSetting, lookSetting } from './settings-look';
 import { choiceRow } from './settings-rows';
 import { L } from '../i18n';
 import { languageSettings } from './settings-language';
+import { machinesSetting } from './machines/settings';
 
 const VIEWS: [ViewMode, string, string][] = [
   ['first', L.settings.first, L.settings.firstNote],
@@ -449,6 +450,8 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
   // What the sky's doing, and which clock it keeps (see settings-sky.ts).
   const sky = outside && outsideSetting(net, outside, (body) => setting(L.settings.outside, 'office', ...body));
   const autoModel = autoModelSetting(net, (body) => setting(L.autoModel.title, 'office', ...body));
+  // The machines host for workers' own computers, admins only (see machines/settings.ts).
+  const machines = machinesSetting(net, (body) => setting(L.machines.title, 'office', ...body));
   const account = store.me.account;
   const signOut = h('button.btn', { type: 'button' }, L.settings.signOut);
   signOut.addEventListener('click', onSignOut);
@@ -494,6 +497,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       ...(sky ? [sky.section] : []),
       dogSection,
       setting(L.elevator.workspaceFolder, 'office', dirRow, dirActions, dirNote),
+      machines.section,
     ],
     workers: [
       setting(L.settings2.defaultWorker, 'office', agentNow, agent.element, agentActions, agentNote),
@@ -555,6 +559,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
       offTheme();
       sky?.off();
       autoModel.off();
+      machines.off();
       offMap();
       offLeave();
       offLang.forEach((f) => f());

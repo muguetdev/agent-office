@@ -44,6 +44,7 @@ import type { installVoice } from '../features/voice';
 import type { installWaiting } from '../features/waiting';
 import type { installWalking } from '../features/walking';
 import type { installWhip } from '../features/whip';
+import type { installMachines } from '../features/machines';
 import type { installWorkerActions } from '../features/workers/actions';
 import type { installWorkerViews } from '../features/workers/views';
 import type { installFocus } from '../input/focus';
@@ -123,6 +124,7 @@ export interface Parts {
   cards: Made<typeof installCarrying>;
   seating: Made<typeof installSeating>;
   whip: Made<typeof installWhip>;
+  machines: Made<typeof installMachines>;
   emotes: Made<typeof installEmotes>;
   talk: Made<typeof installVoice>;
   hud: Made<typeof installHud>;

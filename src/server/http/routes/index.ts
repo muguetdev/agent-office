@@ -7,6 +7,7 @@ import { authRoutes } from './auth.js';
 import { codeRoutes } from './code.js';
 import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
+import { machineRoutes } from './machines.js';
 import { pageRoutes } from './pages.js';
 import { searchRoutes } from './search.js';
 import { serviceRoutes } from './services.js';
@@ -43,6 +44,7 @@ export const routes: readonly Route[] = [
   youtubeRoutes.videos,
   serviceRoutes.forwards,
   githubRoutes.github,
+  machineRoutes.desktop,
   pageRoutes.office,
   pageRoutes.lite,
   pageRoutes.bundle,

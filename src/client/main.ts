@@ -70,6 +70,7 @@ import { installVoice } from './features/voice';
 import { installWaiting } from './features/waiting';
 import { installWalking } from './features/walking';
 import { installWhip } from './features/whip';
+import { installMachines } from './features/machines';
 import { installDiorama } from './features/diorama';
 import { installAvatars } from './features/avatars';
 import { installWhiteboard } from './features/whiteboard';
@@ -189,6 +190,7 @@ parts.cards = installCarrying(ctx, {
 parts.seating = installSeating(ctx, { shares: () => parts.talk.currentShares(), watchShare: () => parts.talk.watchShare(), arcade: parts.arcade, showBar: parts.bar.showBar, usable: () => parts.pointer.usable() });
 const gong = installGong(ctx, { burstOver: parts.views.burstOver, workerViews: parts.views.workerViews, court: () => parts.worlds.court(), idleAgents: () => parts.worlds.idleAgents() });
 parts.whip = installWhip(ctx, { workerViews: parts.views.workerViews, personOf, reach });
+parts.machines = installMachines(ctx, { workerViews: parts.views.workerViews });
 installParty(ctx, { danceParty: gong.danceParty, dog: parts.dog, djAt: parts.rooftop.djAt, lights: parts.stage });
 installServerFloor(ctx, { lights: parts.stage });
 installBreaks(ctx, parts);

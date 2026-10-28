@@ -21,6 +21,7 @@ import { jukebox } from './jukebox';
 import { leaveOnMerge } from './leave-on-merge';
 import { language } from './language';
 import { machine } from './machine';
+import { machines } from './machines';
 import { map } from './map';
 import { meeting } from './meeting';
 import { notify } from './notify';
@@ -67,4 +68,5 @@ export const SLICES: readonly Slice[] = [
   accounts,
   signins,
   server,
+  machines,
 ];

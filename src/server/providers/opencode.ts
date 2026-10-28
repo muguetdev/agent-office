@@ -7,6 +7,10 @@ import { reportedUsage } from '../reported-usage.js';
 import type { WorkerHandle } from '../workers/types.js';
 import { truncate } from '../workers/util.js';
 import type { ProviderAdapter } from './types.js';
+import { openCodeMachineMcp } from '../machines/mcp.js';
+
+/** The office's MCP server and a machine's browser, either or both. */
+const machineMcpFor = (office?: Record<string, unknown>, machine?: Record<string, unknown>) => (office || machine ? { ...office, ...machine } : undefined);
 
 /** What a worker that reports statuses (OpenCode's plugin, Pi's extension) keeps of them. */
 export interface StatusState {
@@ -128,7 +132,7 @@ export const opencode: ProviderAdapter<StatusState, OpenCodeSetup> = {
         // (see ../opencode.ts). Like its model, it's for a fresh session: a resumed one carries on with its own.
         env.AGENT_OFFICE_EFFORT = (!resumeSessionId && info.effort) || '';
         env.AGENT_OFFICE_MODEL = (!resumeSessionId && info.model) || '';
-        env.OPENCODE_CONFIG_CONTENT = mergeOpenCodeConfigContent(env.OPENCODE_CONFIG_CONTENT, openCodePluginSpecifier(setup.plugin), setup.mcpScript ? openCodeMcp(setup.mcpScript) : undefined);
+        env.OPENCODE_CONFIG_CONTENT = mergeOpenCodeConfigContent(env.OPENCODE_CONFIG_CONTENT, openCodePluginSpecifier(setup.plugin), machineMcpFor(setup.mcpScript ? openCodeMcp(setup.mcpScript) : undefined, openCodeMachineMcp(info)));
       },
     };
   },

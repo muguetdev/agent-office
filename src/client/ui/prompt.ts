@@ -28,6 +28,8 @@ export interface PromptOptions {
   extra?: { label: string; title?: string; run(close: () => void): void };
   /** Hire up to this many at once (the free seats on the floor), the rest at the next free desks: a "How many?" field. */
   countOption?: number;
+  /** More options of a feature's own under the rest (a machine of its own, see machines/toggle.ts), read by `onSubmit` itself. */
+  extras?: HTMLElement[];
   onSubmit(text: string, opts: { worktree: boolean; provider?: AgentProvider; model?: string; effort?: AgentEffort; repos: string[]; count: number }): void;
 }
 
@@ -94,7 +96,7 @@ export function openPrompt(opts: PromptOptions) {
     'form.modal',
     { role: 'dialog', 'aria-label': opts.title },
     h('header', {}, h('h2', {}, opts.title)),
-    h('div.body', {}, opts.warning ? h('p.setting-note.bad', { style: 'margin:0 0 10px', role: 'alert' }, opts.warning) : null, opts.subtitle ? h('p', { style: 'margin:0 0 10px;font-weight:700;color:var(--muted)' }, opts.subtitle) : null, presetRow, dictateField(ta), provider?.element ?? null, countRow, wtRow, repos.element),
+    h('div.body', {}, opts.warning ? h('p.setting-note.bad', { style: 'margin:0 0 10px', role: 'alert' }, opts.warning) : null, opts.subtitle ? h('p', { style: 'margin:0 0 10px;font-weight:700;color:var(--muted)' }, opts.subtitle) : null, presetRow, dictateField(ta), provider?.element ?? null, countRow, wtRow, repos.element, ...(opts.extras ?? [])),
     h('footer', {}, h('span.grow', {}, L.prompt.enterToSend), cancel, submit),
   ) as HTMLFormElement;
   form.noValidate = true;

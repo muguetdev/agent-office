@@ -1,0 +1,31 @@
+#!/usr/bin/with-contenv bash
+# Google Chrome, started with the desktop and kept running by s6.
+#
+# s6 restarts this service whenever it exits, so if the user (or an agent)
+# closes the last Chrome window, a fresh Chrome comes back a moment later.
+# DevTools (CDP) listens on 127.0.0.1:9222 inside the container only;
+# svc-cdp-proxy re-exposes it on 0.0.0.0:9223 for the host's port mapping.
+
+# Wait until the X server answers, then give XFCE a moment to map its panel.
+until xset q >/dev/null 2>&1; do sleep 1; done
+sleep 3
+
+PROFILE_DIR=/config/chrome
+mkdir -p "${PROFILE_DIR}"
+chown abc:abc "${PROFILE_DIR}"
+# Only this service uses the profile, so a stale lock (from an unclean
+# container stop) can never belong to a live Chrome.
+rm -f "${PROFILE_DIR}"/Singleton*
+
+# CHROME_EXTRA_FLAGS (container env) appends flags, e.g. --no-sandbox.
+# shellcheck disable=SC2086
+exec s6-setuidgid abc /usr/bin/google-chrome \
+  --remote-debugging-port=9222 \
+  --remote-debugging-address=127.0.0.1 \
+  --user-data-dir="${PROFILE_DIR}" \
+  --no-first-run \
+  --no-default-browser-check \
+  --hide-crash-restore-bubble \
+  --password-store=basic \
+  ${CHROME_EXTRA_FLAGS} \
+  "${CHROME_START_URL:-about:blank}"

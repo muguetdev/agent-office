@@ -39,7 +39,7 @@ declare module '../../world/types' {
   }
 }
 
-export type WorkerActionsParts = Pick<Parts, 'worlds' | 'seating' | 'walking' | 'waiting' | 'meeting' | 'cards'>;
+export type WorkerActionsParts = Pick<Parts, 'worlds' | 'seating' | 'walking' | 'waiting' | 'meeting' | 'cards' | 'machines'>;
 
 /** Registers the worktree answer (worker.worktree), and defines what's done at a desk and at a board agent. */
 export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerActionsParts) {
@@ -88,6 +88,16 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
     }
   }
 
+  /**
+   * Hiring with a machine of its own (see features/machines): the office is told first, and keeps the
+   * first prompt until the machine's ready, so the worker is hired without it.
+   */
+  function withMachine(machine: { checked(): boolean } | null, deskId: string, prompt: string | undefined): string | undefined {
+    if (!machine?.checked()) return prompt;
+    parts.machines.want(deskId, prompt);
+    return undefined;
+  }
+
   function openShell(deskId: string) {
     if (officeIsFull()) return;
     net.send({ t: 'worker.spawn', deskId, kind: 'shell' });
@@ -98,6 +108,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
     const desk = plan().byId.get(deskId)!;
     if (!w) {
       if (officeIsFull()) return;
+      const machine = parts.machines.hireOption();
       openPrompt({
         title: L.main.newTaskAt(placeLabel(desk)),
         subtitle: L.main.freshWorker,
@@ -106,7 +117,8 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
         providerOption: true,
         worktreeOption: !!store.project?.branch,
         repoOptions: repoChoices(),
-        onSubmit: (text, o) => hire(deskId, text, o.worktree, o.provider, o.model, o.effort, undefined, o.repos),
+        extras: machine ? [machine.element] : undefined,
+        onSubmit: (text, o) => hire(deskId, withMachine(machine, deskId, text), o.worktree, o.provider, o.model, o.effort, undefined, o.repos),
       });
     } else if (w.lost) {
       fixLostWorktree(w);
@@ -132,6 +144,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
   function hireAtDesk(deskId: string) {
     const desk = plan().byId.get(deskId)!;
     if (officeIsFull()) return;
+    const machine = parts.machines.hireOption();
     openPrompt({
       title: L.main.hireAt(placeLabel(desk)),
       subtitle: L.main.emptyPromptOk,
@@ -143,6 +156,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
       worktreeOption: !!store.project?.branch,
       repoOptions: repoChoices(),
       countOption: freeSeats().length,
+      extras: machine ? [machine.element] : undefined,
       // On a server's floor: a worker for each of its areas (see server-roles.ts), one at a time or all at once.
       ...(store.currentFloor()?.ssh
         ? {
@@ -160,7 +174,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
         : {}),
       // Several at once: this desk, then the next free ones, all hired the same way.
       onSubmit: (text, o) => {
-        for (const id of [deskId, ...freeSeats().filter((id) => id !== deskId)].slice(0, o.count)) hire(id, text || undefined, o.worktree, o.provider, o.model, o.effort, undefined, o.repos);
+        for (const id of [deskId, ...freeSeats().filter((id) => id !== deskId)].slice(0, o.count)) hire(id, withMachine(machine, id, text || undefined), o.worktree, o.provider, o.model, o.effort, undefined, o.repos);
       },
     });
   }

@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""ce-machines-ssh: forced command for office SSH keys.
+
+authorized_keys runs this as `ce-machines-ssh <office>` for every session
+opened with an office key. The client's requested command arrives in
+$SSH_ORIGINAL_COMMAND; it must be `ce-machines <subcommand> [args...]`
+(the leading `ce-machines` may be omitted) with an office-level subcommand:
+ping, status, list, create, delete.
+
+The command line is split with shlex (POSIX quoting rules) into an argument
+vector and handed straight to ce-machines' main() with the office name, which
+scopes list/create/delete to that office. Nothing is ever run through a
+shell, and callers cannot pass --office themselves.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import shlex
+import sys
+
+CE_MACHINES = os.environ.get("CE_MACHINES_BIN", "/usr/local/bin/ce-machines")
+OFFICE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+MAX_COMMAND = 1024
+
+
+def fail(msg):
+    sys.stdout.write(json.dumps({"error": msg}) + "\n")
+    sys.exit(1)
+
+
+def main():
+    if len(sys.argv) != 2 or not OFFICE_RE.match(sys.argv[1]):
+        fail("server misconfigured: bad office name in authorized_keys")
+    office = sys.argv[1]
+
+    raw = os.environ.get("SSH_ORIGINAL_COMMAND", "")
+    if not raw.strip():
+        fail("interactive sessions are not allowed; run: ce-machines <command>")
+    if len(raw) > MAX_COMMAND or any(ord(ch) < 32 for ch in raw):
+        fail("command rejected")
+    try:
+        argv = shlex.split(raw, posix=True)
+    except ValueError:
+        fail("command rejected: unbalanced quotes")
+    if argv and argv[0] in ("ce-machines", CE_MACHINES):
+        argv = argv[1:]
+    if not argv or argv[0] not in ("ping", "status", "list", "create", "delete"):
+        fail("command not allowed")
+    if "--office" in argv:
+        fail("--office is set by the server")
+
+    loader = importlib.machinery.SourceFileLoader("ce_machines", CE_MACHINES)
+    spec = importlib.util.spec_from_loader("ce_machines", loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    module.main(argv, office=office)
+
+
+if __name__ == "__main__":
+    main()

@@ -8,6 +8,7 @@ import type { AccountsClientMsg, AccountsServerMsg, SignInsClientMsg, TeamClient
 import type { ChangesClientMsg, ChangesServerMsg } from './protocol/changes.js';
 import type { DiscussionClientMsg } from './protocol/discussions.js';
 import type { FloorClientMsg, FloorServerMsg, PlanClientMsg } from './protocol/floors.js';
+import type { MachinesClientMsg, MachinesServerMsg } from './protocol/machines.js';
 import type { GitHubClientMsg, GitHubServerMsg } from './protocol/github.js';
 import type { MeetingClientMsg, MeetingServerMsg } from './protocol/meetings.js';
 import type { PresenceClientMsg, PresenceServerMsg } from './protocol/presence.js';
@@ -27,6 +28,7 @@ export * from './protocol/changes.js';
 export * from './protocol/discussions.js';
 export * from './protocol/floors.js';
 export * from './protocol/github.js';
+export * from './protocol/machines.js';
 export * from './protocol/meetings.js';
 export * from './protocol/presence.js';
 export * from './protocol/queue.js';
@@ -64,7 +66,8 @@ export type ClientMsg =
   | DogClientMsg
   | ServersClientMsg
   | DiscussionClientMsg
-  | WhipClientMsg;
+  | WhipClientMsg
+  | MachinesClientMsg;
 
 export type ServerMsg =
   | PresenceServerMsg
@@ -81,4 +84,5 @@ export type ServerMsg =
   | UsageServerMsg
   | ToysServerMsg
   | ServersServerMsg
-  | WhipServerMsg;
+  | WhipServerMsg
+  | MachinesServerMsg;

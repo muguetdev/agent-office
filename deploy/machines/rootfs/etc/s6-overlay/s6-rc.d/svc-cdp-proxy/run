@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bash
+# Chrome only binds DevTools to 127.0.0.1:9222 inside the container. This
+# relays 0.0.0.0:9223 -> 127.0.0.1:9222 so Docker can publish it to the host
+# (the host publishes it on 127.0.0.1 only, never on a public interface).
+exec s6-setuidgid abc socat \
+  TCP-LISTEN:9223,fork,reuseaddr,bind=0.0.0.0 \
+  TCP:127.0.0.1:9222

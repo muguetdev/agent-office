@@ -1,0 +1,4 @@
+#!/bin/sh
+# Back off a little before s6 restarts Chrome, so a Chrome that crashes on
+# start does not spin the CPU.
+sleep 2

@@ -4,6 +4,7 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { FAILS_TO_DESPAIR, outputFailed, toolAction } from '../../shared/actions.js';
 import { MCP_READ_ONLY, writeClaudeMcpConfig } from '../office-workers.js';
+import { claudeMachineArgs } from '../machines/mcp.js';
 import { QUEUE_AGENT_DISALLOWED_TOOLS } from '../stations.js';
 import { answered, notified, wantsPermission } from '../workers/lifecycle.js';
 import { shq } from '../workers/process.js';
@@ -202,8 +203,12 @@ export const claude: ProviderAdapter<undefined, ClaudeSetup> = {
   launch({ h: { info }, args, prompt, resumeSessionId, station, setup }) {
     args.unshift('--settings', setup.settings);
     // The office's MCP server: its workers, to list, hire, send home and tell (see office-workers.ts).
-    // Ahead of --settings, which ends the list --mcp-config takes.
-    if (setup.mcp) args.unshift('--mcp-config', setup.mcp);
+    // Ahead of --settings, which ends the list --mcp-config takes. With a machine of its own, its
+    // browser too (see machines/mcp.ts).
+    const machine = claudeMachineArgs(info);
+    const mcps = [setup.mcp, machine.mcp].filter((m): m is string => !!m);
+    if (mcps.length) args.unshift('--mcp-config', ...mcps);
+    args.push(...machine.append);
     // A model/effort chosen for this worker overrides whatever --agent-args set office-wide.
     if (info.model) args.push('--model', info.model);
     if (info.effort) args.push('--effort', info.effort);

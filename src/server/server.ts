@@ -16,6 +16,7 @@ import { requestHandler } from './http/router.js';
 import { routes } from './http/routes/index.js';
 import { startHookServer } from './hooks/server.js';
 import { acceptWebSockets } from './ws/upgrade.js';
+import { startMachines, stopMachines } from './machines/index.js';
 
 /** What a test can set about how the office starts: the client bundle it serves, instead of the built one. */
 export interface StartOptions {
@@ -34,6 +35,7 @@ export async function startServer(cfg: Config, opts: StartOptions = {}) {
   Object.assign(ctx, createServices(ctx));
   Object.assign(ctx, await openFloors(ctx, hookPort));
   Object.assign(ctx, createLateServices(ctx));
+  startMachines(ctx);
 
   // --- HTTP ------------------------------------------------------------------------------------
   const handler = requestHandler(ctx, routes);
@@ -61,6 +63,7 @@ export async function startServer(cfg: Config, opts: StartOptions = {}) {
     tailnet.stop();
     ctx.webhook.stop();
     ctx.machine.stop();
+    stopMachines(ctx);
     ctx.sky.stop();
     ctx.themes.stop();
     for (const f of ctx.floors.values()) f.shutdown(keep);

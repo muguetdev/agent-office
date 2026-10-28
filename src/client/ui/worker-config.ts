@@ -7,6 +7,7 @@ import { store } from '../state';
 import { h, openModal } from './dom';
 import { agentFields, resolvedProvider } from './provider';
 import { L } from '../i18n';
+import { machineRow } from './machines/toggle';
 
 export function openWorkerConfig(net: Net, workerId: string) {
   const w = store.workers.get(workerId);
@@ -18,6 +19,8 @@ export function openWorkerConfig(net: Net, workerId: string) {
   const was = { provider: w.provider ?? resolvedProvider(store.project?.defaultProvider, store.project), model: w.model, effort: w.effort };
   const fields = agentFields(store.project, `configure-${workerId}`, was);
   const note = h('p.setting-note', {}, L.configure.note);
+  // 🖥️ A computer of its own, for whoever may give one (see machines/toggle.ts).
+  const machine = machineRow(w);
   const close = h('button.btn.close', { type: 'button', 'aria-label': L.common.close }, '✕');
   const cancel = h('button.btn', { type: 'button' }, L.hints.cancel);
   const save = h('button.btn.primary', { type: 'submit' }, L.configure.save);
@@ -25,7 +28,7 @@ export function openWorkerConfig(net: Net, workerId: string) {
     'form.modal.worker-config',
     { role: 'dialog', 'aria-label': L.configure.title(w.name), style: 'width:min(520px,100%)' },
     h('header', {}, h('h2', {}, `⚙️ ${L.configure.title(w.name)}`), close),
-    h('div.body', {}, nameRow, ...(agent ? [fields.element, note] : [])),
+    h('div.body', {}, nameRow, ...(agent ? [fields.element, note] : []), machine?.element ?? null),
     h('footer', {}, h('span.grow'), cancel, save),
   ) as HTMLFormElement;
   // Another provider can't carry on the conversation: say so before it's saved.
@@ -38,6 +41,8 @@ export function openWorkerConfig(net: Net, workerId: string) {
     const newName = name.value.trim();
     net.send({ t: 'worker.configure', workerId, ...(newName && newName !== w.name ? { name: newName } : {}), ...(agent ? { provider: fields.value(), model: fields.model(), effort: fields.effort() } : {}) });
     modal.close();
+    // After: when it's busy, it asks whether now or once it's done.
+    machine?.apply(net);
   });
   const modal = openModal(form, { doing: L.configure.doing(w.name) });
   close.addEventListener('click', () => modal.close());

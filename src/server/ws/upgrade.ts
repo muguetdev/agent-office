@@ -7,6 +7,7 @@ import { sameOrigin } from '../http/util.js';
 import type { Ctx } from '../office/context.js';
 import { onConnection } from './connection.js';
 import { mayUseService } from '../office/access.js';
+import { proxyDesktopUpgrade } from '../machines/proxy.js';
 
 function refuseUpgrade(socket: Duplex) {
   socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
@@ -27,6 +28,8 @@ export function acceptWebSockets(ctx: Ctx, server: http.Server | https.Server) {
       if (tunneled.svc !== 'gone' && mayUseService(ctx, auth.fromAnyCookie(req), tunneled.svc.workerId)) return relayUpgrade(req, socket, head, tunneled.svc);
       return refuseUpgrade(socket);
     }
+    // A worker's machine's desktop (see machines/proxy.ts).
+    if (proxyDesktopUpgrade(ctx, req, socket, head)) return;
     let url: URL;
     try {
       url = new URL(req.url ?? '/', 'http://x');

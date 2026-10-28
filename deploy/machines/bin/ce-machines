@@ -1,0 +1,546 @@
+#!/usr/bin/env python3
+"""ce-machines: manage Command Express "machines" on this host.
+
+A machine is a Docker container (image command-express/machine) that gives
+one AI coding agent its own desktop: a web desktop on container port 3000
+(served under SUBFOLDER) and Chrome DevTools on container port 9223. Both are
+published on 127.0.0.1 of the host only, on random free ports; offices reach
+them through SSH local forwards.
+
+Every command prints JSON on stdout. On failure it prints {"error": "..."}
+and exits non-zero.
+
+  ce-machines ping
+  ce-machines status
+  ce-machines list                         [--office NAME]
+  ce-machines create ID [--mem 2g] [--cpus 2] [--office NAME]
+  ce-machines delete ID                    [--office NAME]
+  ce-machines authorize "SSH-PUBLIC-KEY" OFFICE      (root only, not via SSH)
+  ce-machines revoke OFFICE                          (root only, not via SSH)
+  ce-machines sync-keys                              (root only, not via SSH)
+
+Only the Python 3 standard library is used. Docker is always invoked with an
+argument vector (never through a shell), and every user-supplied value is
+validated before use.
+
+Settings can be overridden in /etc/ce-machines.json (see DEFAULTS).
+"""
+
+import fcntl
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+VERSION = "1"
+
+CONFIG_PATH = os.environ.get("CE_MACHINES_CONFIG", "/etc/ce-machines.json")
+
+DEFAULTS = {
+    # Docker image every machine runs.
+    "image": "command-express/machine:latest",
+    # Per-machine defaults (overridable per create with --mem / --cpus).
+    "defaultMem": "2g",
+    "defaultCpus": "2",
+    "pidsLimit": 1024,
+    "shmSize": "1g",
+    # Memory kept free for the host itself when computing capacity.
+    "reserveMem": "3g",
+    # Web desktop path prefix; {id} is replaced by the machine id. It must
+    # match the path the office's reverse proxy forwards unchanged.
+    "subfolder": "/api/machines/{id}/desktop/",
+    # Container timezone and the window title shown by the web desktop.
+    "tz": "Etc/UTC",
+    "title": "Command Express · {id}",
+    # Seconds to wait for the desktop and DevTools to answer on create.
+    "readyTimeout": 90,
+    # Extra Chrome flags (env CHROME_EXTRA_FLAGS inside the container).
+    "chromeExtraFlags": "",
+    # Extra `docker run` security options. The default seccomp profile is
+    # Docker's own plus namespace syscalls, which Chrome's sandbox needs
+    # (see seccomp/make-profile.py); far narrower than seccomp=unconfined.
+    "securityOpt": ["seccomp=/usr/local/share/ce-machines/seccomp-chrome.json"],
+    # authorized_keys file that office keys are written to.
+    "authorizedKeys": "/root/.ssh/authorized_keys",
+    # Wrapper used as the forced command for office keys.
+    "sshWrapper": "/usr/local/bin/ce-machines-ssh",
+}
+
+LOCK_PATH = "/run/ce-machines.lock"
+ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+MEM_RE = re.compile(r"^([0-9]+)([mg])$")
+CPUS_RE = re.compile(r"^[0-9]+(\.[0-9]+)?$")
+KEY_RE = re.compile(r"^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|"
+                    r"sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com)"
+                    r" [A-Za-z0-9+/]+={0,3}$")
+MAX_MEM = 8 * 1024 ** 3
+MIN_MEM = 512 * 1024 ** 2
+DESKTOP_PORT = "3000/tcp"
+CDP_PORT = "9223/tcp"
+KEY_TAG = "ce-office:"  # comment marking authorized_keys lines we manage
+
+
+class Fail(Exception):
+    """An error reported to the caller as {"error": message}."""
+
+
+# --------------------------------------------------------------------------
+# helpers
+
+def load_config():
+    cfg = dict(DEFAULTS)
+    try:
+        with open(CONFIG_PATH) as f:
+            cfg.update(json.load(f))
+    except FileNotFoundError:
+        pass
+    except (OSError, ValueError) as e:
+        raise Fail("cannot read %s: %s" % (CONFIG_PATH, e))
+    return cfg
+
+
+def out(obj, code=0):
+    sys.stdout.write(json.dumps(obj) + "\n")
+    sys.exit(code)
+
+
+def docker(*args, check=True):
+    try:
+        p = subprocess.run(["docker"] + list(args), capture_output=True, text=True, timeout=120)
+    except FileNotFoundError:
+        raise Fail("docker is not installed")
+    except subprocess.TimeoutExpired:
+        raise Fail("docker %s timed out" % args[0])
+    if check and p.returncode != 0:
+        raise Fail("docker %s failed: %s" % (args[0], (p.stderr or p.stdout).strip()[:500]))
+    return p
+
+
+def parse_size(text, what):
+    m = MEM_RE.match(text or "")
+    if not m:
+        raise Fail("invalid %s %r (expected e.g. 2g or 1536m)" % (what, text))
+    n = int(m.group(1))
+    return n * (1024 ** 3 if m.group(2) == "g" else 1024 ** 2)
+
+
+def check_id(value, what="id"):
+    if not isinstance(value, str) or not ID_RE.match(value):
+        raise Fail("invalid %s %r (must match %s)" % (what, value, ID_RE.pattern))
+    return value
+
+
+def meminfo():
+    info = {}
+    with open("/proc/meminfo") as f:
+        for line in f:
+            k, v = line.split(":", 1)
+            info[k] = int(v.split()[0]) * 1024
+    return info["MemTotal"], info.get("MemAvailable", info["MemFree"])
+
+
+def parse_docker_bytes(text):
+    """'123.4MiB' -> bytes (docker stats units)."""
+    m = re.match(r"^([0-9.]+)\s*([KMGT]?i?B)$", text.strip())
+    if not m:
+        return None
+    mult = {"B": 1, "KiB": 1024, "MiB": 1024 ** 2, "GiB": 1024 ** 3, "TiB": 1024 ** 4,
+            "kB": 1000, "KB": 1000, "MB": 1000 ** 2, "GB": 1000 ** 3, "TB": 1000 ** 4}
+    return int(float(m.group(1)) * mult.get(m.group(2), 1))
+
+
+class Lock:
+    """Host-wide lock so concurrent creates cannot overshoot capacity and
+    authorized_keys rewrites never interleave."""
+
+    def __enter__(self):
+        self.f = open(LOCK_PATH, "w")
+        fcntl.flock(self.f, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *exc):
+        fcntl.flock(self.f, fcntl.LOCK_UN)
+        self.f.close()
+
+
+# --------------------------------------------------------------------------
+# machines
+
+def inspect_machines(names=None):
+    """Return the inspected machine containers (all, or the given names)."""
+    if names is None:
+        p = docker("ps", "-aq", "--filter", "label=ce.machine=1")
+        names = p.stdout.split()
+    if not names:
+        return []
+    p = docker("inspect", *names, check=False)
+    try:
+        data = json.loads(p.stdout or "[]")
+    except ValueError:
+        data = []
+    return [c for c in data if (c.get("Config", {}).get("Labels") or {}).get("ce.machine") == "1"]
+
+
+def host_port(c, port):
+    bindings = ((c.get("NetworkSettings") or {}).get("Ports") or {}).get(port) or []
+    for b in bindings:
+        if b.get("HostIp") in ("127.0.0.1", "") and b.get("HostPort"):
+            return int(b["HostPort"])
+    return None
+
+
+def describe(c):
+    labels = c["Config"]["Labels"]
+    return {
+        "id": labels.get("ce.id"),
+        "office": labels.get("ce.office"),
+        "state": c["State"]["Status"],
+        "desktopPort": host_port(c, DESKTOP_PORT),
+        "cdpPort": host_port(c, CDP_PORT),
+        "created": c["Created"][:19] + "Z",
+    }
+
+
+def find(mid):
+    found = inspect_machines(["ce-" + mid])
+    return found[0] if found else None
+
+
+def http_ok(url, timeout=3):
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return r.status == 200
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+
+
+def wait_ready(cfg, mid, deadline):
+    """Wait until the desktop page and DevTools answer; return the inspect."""
+    subfolder = cfg["subfolder"].replace("{id}", mid)
+    while True:
+        c = find(mid)
+        if c is None:
+            raise Fail("machine %s disappeared while starting" % mid)
+        d = describe(c)
+        if d["state"] == "running" and d["desktopPort"] and d["cdpPort"]:
+            desk = http_ok("http://127.0.0.1:%d%s" % (d["desktopPort"], subfolder))
+            cdp = http_ok("http://127.0.0.1:%d/json/version" % d["cdpPort"])
+            if desk and cdp:
+                return c
+        if time.time() > deadline:
+            raise Fail("machine %s did not become ready within %ss (state %s)"
+                       % (mid, cfg["readyTimeout"], d["state"]))
+        time.sleep(1.5)
+
+
+def capacity(cfg, machines=None):
+    total, avail = meminfo()
+    default_mem = parse_size(cfg["defaultMem"], "defaultMem")
+    reserve = parse_size(cfg["reserveMem"], "reserveMem")
+    max_machines = max(0, math.floor((total - reserve) / default_mem))
+    if machines is None:
+        machines = inspect_machines()
+    return total, avail, reserve, max_machines, machines
+
+
+def cmd_status(cfg, office, args):
+    if args:
+        raise Fail("status takes no arguments")
+    total, avail, _, max_machines, machines = capacity(cfg)
+    out({
+        "cpus": os.cpu_count(),
+        "memTotal": total,
+        "memAvailable": avail,
+        "machines": len(machines),
+        "maxMachines": max_machines,
+        "canCreate": len(machines) < max_machines,
+    })
+
+
+def cmd_list(cfg, office, args):
+    if args:
+        raise Fail("list takes no arguments")
+    machines = [describe(c) for c in inspect_machines()]
+    if office is not None:
+        machines = [m for m in machines if m["office"] == office]
+    running = ["ce-" + m["id"] for m in machines if m["state"] == "running"]
+    usage = {}
+    if running:
+        p = docker("stats", "--no-stream", "--format", "{{.Name}}\t{{.MemUsage}}", *running, check=False)
+        for line in p.stdout.splitlines():
+            name, _, mem = line.partition("\t")
+            usage[name] = parse_docker_bytes(mem.split("/")[0])
+    for m in machines:
+        m["memUsage"] = usage.get("ce-" + m["id"])  # bytes, null when stopped
+    machines.sort(key=lambda m: m["created"])
+    out(machines)
+
+
+def cmd_create(cfg, office, args):
+    mid, opts = None, {}
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in ("--mem", "--cpus", "--office"):
+            if i + 1 >= len(args):
+                raise Fail("%s needs a value" % a)
+            opts[a] = args[i + 1]
+            i += 2
+        elif a.startswith("-") or mid is not None:
+            raise Fail("unexpected argument %r" % a)
+        else:
+            mid = a
+            i += 1
+    if mid is None:
+        raise Fail("usage: create <id> [--office NAME] [--mem 2g] [--cpus 2]")
+    check_id(mid)
+    if office is None:
+        office = check_id(opts.get("--office", "default"), "office")
+    elif "--office" in opts:
+        raise Fail("--office is set by the server for SSH callers")
+    mem_text = opts.get("--mem", cfg["defaultMem"])
+    mem = parse_size(mem_text, "--mem")
+    if mem > MAX_MEM or mem < MIN_MEM:
+        raise Fail("--mem must be between 512m and 8g")
+    cpus = opts.get("--cpus", str(cfg["defaultCpus"]))
+    if not CPUS_RE.match(cpus) or not 1 <= float(cpus) <= 4:
+        raise Fail("--cpus must be a number from 1 to 4")
+
+    deadline = time.time() + int(cfg["readyTimeout"])
+    with Lock():
+        c = find(mid)
+        new = c is None
+        if c is not None:
+            if c["Config"]["Labels"].get("ce.office") != office:
+                raise Fail("machine id %s is in use by another office" % mid)
+            if c["State"]["Status"] != "running":
+                docker("start", "ce-" + mid)
+        else:
+            total, _, reserve, max_machines, machines = capacity(cfg)
+            if len(machines) >= max_machines:
+                raise Fail("host is at capacity (%d of %d machines)" % (len(machines), max_machines))
+            committed = sum((m.get("HostConfig") or {}).get("Memory") or 0 for m in machines)
+            if committed + mem > total - reserve:
+                raise Fail("not enough memory on host for another %s machine" % mem_text)
+            run = [
+                "run", "-d",
+                "--name", "ce-" + mid,
+                "--hostname", mid,
+                "--label", "ce.machine=1",
+                "--label", "ce.id=" + mid,
+                "--label", "ce.office=" + office,
+                "--memory", mem_text, "--memory-swap", mem_text,
+                "--cpus", cpus,
+                "--pids-limit", str(int(cfg["pidsLimit"])),
+                "--shm-size", cfg["shmSize"],
+                "--restart", "unless-stopped",
+                "--log-opt", "max-size=10m", "--log-opt", "max-file=2",
+                "-v", "ce-%s-config:/config" % mid,
+                "-p", "127.0.0.1::3000",
+                "-p", "127.0.0.1::9223",
+                "-e", "PUID=1000", "-e", "PGID=1000",
+                "-e", "TZ=" + cfg["tz"],
+                "-e", "SUBFOLDER=" + cfg["subfolder"].replace("{id}", mid),
+                "-e", "TITLE=" + cfg["title"].replace("{id}", mid),
+                "-e", "CHROME_EXTRA_FLAGS=" + cfg["chromeExtraFlags"],
+            ]
+            for opt in cfg["securityOpt"]:
+                run += ["--security-opt", opt]
+            run.append(cfg["image"])
+            docker("volume", "create", "--label", "ce.machine=1", "--label", "ce.id=" + mid,
+                   "ce-%s-config" % mid)
+            docker(*run)
+        # Ports may change on (re)start: refresh the office's forward whitelist.
+        sync_keys(cfg)
+    c = wait_ready(cfg, mid, deadline)
+    d = describe(c)
+    d.pop("office")
+    d["new"] = new
+    out(d)
+
+
+def cmd_delete(cfg, office, args):
+    if len(args) != 1:
+        raise Fail("usage: delete <id>")
+    mid = check_id(args[0])
+    with Lock():
+        c = find(mid)
+        if c is not None:
+            if office is not None and c["Config"]["Labels"].get("ce.office") != office:
+                raise Fail("machine id %s is in use by another office" % mid)
+            docker("rm", "-f", "ce-" + mid)
+        docker("volume", "rm", "-f", "ce-%s-config" % mid, check=False)
+        sync_keys(cfg)
+    out({"id": mid, "deleted": True})
+
+
+def cmd_ping(cfg, office, args):
+    out({"ok": True, "version": VERSION})
+
+
+# --------------------------------------------------------------------------
+# office keys (authorized_keys management, root only)
+#
+# Each office key is written as one line ending in the comment
+# "ce-office:<name>". The line forces the ce-machines-ssh wrapper as its
+# command and only allows local port forwards to the desktop/DevTools ports
+# of that office's own machines (re-written by sync_keys whenever machines
+# are created or deleted). With no machines, the key cannot forward at all.
+
+def read_keys(cfg):
+    try:
+        with open(cfg["authorizedKeys"]) as f:
+            return f.read().splitlines()
+    except FileNotFoundError:
+        return []
+
+
+def write_keys(cfg, lines):
+    path = cfg["authorizedKeys"]
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    tmp = path + ".ce-tmp"
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
+
+
+def office_of(line):
+    parts = line.split()
+    if parts and parts[-1].startswith(KEY_TAG):
+        return parts[-1][len(KEY_TAG):]
+    return None
+
+
+def key_line(cfg, office, key, ports):
+    opts = ['restrict', 'command="%s %s"' % (cfg["sshWrapper"], office)]
+    if ports:
+        opts.append("port-forwarding")
+        opts += ['permitopen="127.0.0.1:%d"' % p for p in sorted(ports)]
+        # "port-forwarding" re-enables remote (-R) forwards too. authorized_keys
+        # accepts neither "none" nor port 0 for permitlisten, so pin -R to
+        # loopback port 1 (tcpmux, unused): effectively no remote forwards.
+        opts.append('permitlisten="127.0.0.1:1"')
+    return "%s %s %s%s" % (",".join(opts), key, KEY_TAG, office)
+
+
+def sync_keys(cfg):
+    """Re-write every managed key line with its office's current ports."""
+    if os.geteuid() != 0:
+        return
+    lines = read_keys(cfg)
+    if not any(office_of(l) for l in lines):
+        return
+    ports = {}
+    for c in inspect_machines():
+        d = describe(c)
+        for p in (d["desktopPort"], d["cdpPort"]):
+            if p:
+                ports.setdefault(d["office"], set()).add(p)
+    new = []
+    for l in lines:
+        office = office_of(l)
+        if office:
+            m = re.search(r"((?:ssh|ecdsa|sk)-\S+ [A-Za-z0-9+/]+={0,3}) " + re.escape(KEY_TAG), l)
+            if m:
+                l = key_line(cfg, office, m.group(1), ports.get(office, ()))
+        new.append(l)
+    if new != lines:
+        write_keys(cfg, new)
+
+
+def require_root():
+    if os.geteuid() != 0:
+        raise Fail("must run as root")
+
+
+def cmd_authorize(cfg, office, args):
+    require_root()
+    if office is not None or len(args) != 2:
+        raise Fail('usage: authorize "<ssh public key>" <office>')
+    parts = args[0].strip().split()
+    if len(parts) < 2 or not KEY_RE.match(parts[0] + " " + parts[1]):
+        raise Fail("invalid SSH public key")
+    key = parts[0] + " " + parts[1]  # drop the key's own comment
+    name = check_id(args[1], "office")
+    with Lock():
+        lines = read_keys(cfg)
+        if any(key in l.split() for l in lines):
+            raise Fail("this key is already in %s" % cfg["authorizedKeys"])
+        if not os.path.exists(cfg["authorizedKeys"] + ".ce-backup") and lines:
+            with open(cfg["authorizedKeys"] + ".ce-backup", "w") as f:
+                f.write("\n".join(lines) + "\n")
+            os.chmod(cfg["authorizedKeys"] + ".ce-backup", 0o600)
+        lines.append(key_line(cfg, name, key, ()))
+        write_keys(cfg, lines)
+        sync_keys(cfg)
+    out({"office": name, "authorized": True})
+
+
+def cmd_revoke(cfg, office, args):
+    require_root()
+    if office is not None or len(args) != 1:
+        raise Fail("usage: revoke <office>")
+    name = check_id(args[0], "office")
+    with Lock():
+        lines = read_keys(cfg)
+        kept = [l for l in lines if office_of(l) != name]
+        if kept != lines:
+            write_keys(cfg, kept)
+    out({"office": name, "revoked": len(lines) - len(kept)})
+
+
+def cmd_sync_keys(cfg, office, args):
+    require_root()
+    if office is not None:
+        raise Fail("not allowed")
+    with Lock():
+        sync_keys(cfg)
+    out({"ok": True})
+
+
+# --------------------------------------------------------------------------
+
+COMMANDS = {
+    "ping": cmd_ping,
+    "status": cmd_status,
+    "list": cmd_list,
+    "create": cmd_create,
+    "delete": cmd_delete,
+    "authorize": cmd_authorize,
+    "revoke": cmd_revoke,
+    "sync-keys": cmd_sync_keys,
+}
+
+# Subcommands an office may run through ce-machines-ssh.
+OFFICE_COMMANDS = ("ping", "status", "list", "create", "delete")
+
+
+def main(argv, office=None):
+    """Run a subcommand. `office` is set (and trusted) only by the SSH
+    wrapper; it scopes list/create/delete to that office's machines."""
+    try:
+        if not argv or argv[0] not in COMMANDS:
+            raise Fail("usage: ce-machines {%s} ..." % "|".join(COMMANDS))
+        cmd, args = argv[0], argv[1:]
+        if office is not None and cmd not in OFFICE_COMMANDS:
+            raise Fail("command not allowed")
+        cfg = load_config()
+        if office is None and cmd == "list" and args[:1] == ["--office"]:
+            if len(args) != 2:
+                raise Fail("usage: list [--office NAME]")
+            office, args = check_id(args[1], "office"), []
+        COMMANDS[cmd](cfg, office, args)
+    except Fail as e:
+        out({"error": str(e)}, 1)
+    except Exception as e:  # never leak a traceback instead of JSON
+        out({"error": "internal error: %s" % e.__class__.__name__}, 1)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
