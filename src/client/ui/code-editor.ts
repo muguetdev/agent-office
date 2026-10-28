@@ -1,9 +1,9 @@
 // The code editor beside a worker's terminal (its "Code" tab, see termtabs.ts): the files in the
 // folder it works in down the side, and Monaco (VS Code's editor) for the one you open. Ctrl+S
-// saves, Ctrl+P finds a file by name. While you have a file open it keeps an eye on it: if the
-// worker (or someone else) changes it and you haven't touched it, it reloads by itself; if you have,
-// it says so and lets you pick, so nobody's work is lost. Files dragged in from the desktop, or
-// picked with ⬆️ Upload, go into the worker's folder (code-upload.ts). Loaded only when the tab's first opened.
+// saves, Ctrl+P finds a file by name. What the worker changes comes in live (code-live/: lit up,
+// 👀 Follow, 🔍 Review, Ctrl+K); if you've changed the file too, it says so and lets you pick, so
+// nobody's work is lost. Files dragged in from the desktop, or picked with ⬆️ Upload, go into the
+// worker's folder (code-upload.ts). Loaded only when the tab's first opened.
 import './code-editor.css';
 import * as monaco from 'monaco-editor/editor/editor.api';
 import 'monaco-editor/basic-languages/monaco.contribution';
@@ -12,90 +12,10 @@ import { h, toast } from './dom';
 import { L } from '../i18n';
 import { keyLabels } from './termkeys';
 import { codeUploads } from './code-upload';
+import './code-theme';
+import { attachLive, type LiveHandle } from './code-live';
 
 (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment = { getWorker: () => new EditorWorker() };
-// Dark: Dracula's colours (draculatheme.com, MIT). Light: GitHub's light colours.
-monaco.editor.defineTheme('dracula', {
-  base: 'vs-dark',
-  inherit: true,
-  rules: [
-    { token: '', foreground: 'f8f8f2' },
-    { token: 'comment', foreground: '6272a4', fontStyle: 'italic' },
-    { token: 'keyword', foreground: 'ff79c6' },
-    { token: 'string', foreground: 'f1fa8c' },
-    { token: 'string.escape', foreground: 'ff79c6' },
-    { token: 'number', foreground: 'bd93f9' },
-    { token: 'regexp', foreground: 'ff5555' },
-    { token: 'type', foreground: '8be9fd', fontStyle: 'italic' },
-    { token: 'type.identifier', foreground: '8be9fd' },
-    { token: 'identifier', foreground: 'f8f8f2' },
-    { token: 'function', foreground: '50fa7b' },
-    { token: 'variable', foreground: 'f8f8f2' },
-    { token: 'variable.predefined', foreground: 'bd93f9' },
-    { token: 'constant', foreground: 'bd93f9' },
-    { token: 'delimiter', foreground: 'f8f8f2' },
-    { token: 'operator', foreground: 'ff79c6' },
-    { token: 'tag', foreground: 'ff79c6' },
-    { token: 'attribute.name', foreground: '50fa7b' },
-    { token: 'attribute.value', foreground: 'f1fa8c' },
-    { token: 'key', foreground: '8be9fd' },
-    { token: 'metatag', foreground: 'ff79c6' },
-    { token: 'annotation', foreground: '50fa7b' },
-  ],
-  colors: {
-    'editor.background': '#282a36',
-    'editor.foreground': '#f8f8f2',
-    'editor.lineHighlightBackground': '#44475a75',
-    'editor.selectionBackground': '#44475a',
-    'editor.findMatchHighlightBackground': '#ffb86c55',
-    'editorCursor.foreground': '#f8f8f2',
-    'editorLineNumber.foreground': '#6272a4',
-    'editorLineNumber.activeForeground': '#f8f8f2',
-    'editorWhitespace.foreground': '#44475a',
-    'editorIndentGuide.background1': '#44475a',
-    'editorGutter.background': '#282a36',
-    'minimap.background': '#282a36',
-    'editorWidget.background': '#21222c',
-    'editorSuggestWidget.background': '#21222c',
-    'editorSuggestWidget.selectedBackground': '#44475a',
-  },
-});
-monaco.editor.defineTheme('github-light', {
-  base: 'vs',
-  inherit: true,
-  rules: [
-    { token: '', foreground: '24292f' },
-    { token: 'comment', foreground: '6e7781', fontStyle: 'italic' },
-    { token: 'keyword', foreground: 'cf222e' },
-    { token: 'string', foreground: '0a3069' },
-    { token: 'string.escape', foreground: '0550ae' },
-    { token: 'number', foreground: '0550ae' },
-    { token: 'regexp', foreground: '116329' },
-    { token: 'type', foreground: '953800' },
-    { token: 'type.identifier', foreground: '953800' },
-    { token: 'function', foreground: '8250df' },
-    { token: 'variable.predefined', foreground: '0550ae' },
-    { token: 'constant', foreground: '0550ae' },
-    { token: 'operator', foreground: 'cf222e' },
-    { token: 'tag', foreground: '116329' },
-    { token: 'attribute.name', foreground: '0550ae' },
-    { token: 'attribute.value', foreground: '0a3069' },
-    { token: 'key', foreground: '0550ae' },
-    { token: 'metatag', foreground: 'cf222e' },
-  ],
-  colors: {
-    'editor.background': '#ffffff',
-    'editor.foreground': '#24292f',
-    'editor.lineHighlightBackground': '#eaeef280',
-    'editor.selectionBackground': '#0969da33',
-    'editorLineNumber.foreground': '#8c959f',
-    'editorLineNumber.activeForeground': '#24292f',
-    'editorIndentGuide.background1': '#d0d7de',
-    'editorGutter.background': '#ffffff',
-    'minimap.background': '#ffffff',
-  },
-});
-
 /** How often an open file is checked for changes made elsewhere. */
 const WATCH_MS = 2000;
 /** What you've set the editor to, kept in this browser: the window full screen, how wide the files are, the text size, wrapping. */
@@ -185,7 +105,9 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const uploadBtn = h('button.code-tool', { type: 'button', title: L.code.uploadTip }, L.code.upload) as HTMLButtonElement;
   // Esc is the editor's while you're in it (its suggestions, its find box): see openModal.
   const surface = h('div.code-surface', { 'data-own-esc': '' });
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, banner, surface);
+  const liveTools = h('span.cl-tools');
+  const above = h('div.cl-above');
+  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, liveTools, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, above, banner, surface);
   host.replaceChildren(side, split, main);
 
   const editor = monaco.editor.create(surface, {
@@ -200,6 +122,8 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   });
   let files: string[] = [];
   let open: Open | null = null;
+  /** What the worker changes, as it happens (code-live/). */
+  let live: LiveHandle | null = null;
   /** Folders you've opened in the tree. */
   const expanded = new Set<string>();
 
@@ -270,7 +194,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     list.replaceChildren(...rows);
   }
   function fileRow(file: string, label: string, depth: number): HTMLElement {
-    return h('button.code-row', { type: 'button', 'data-file': file, class: open?.path === file ? 'on' : '', style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
+    return h('button.code-row', { type: 'button', 'data-file': file, class: `${open?.path === file ? 'on' : ''} ${live?.rowClass(file) ?? ''}`, style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
   }
 
   async function loadTree() {
@@ -300,6 +224,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     paintState();
     renderTree();
     editor.focus();
+    void live?.opened();
   }
 
   async function save(force = false) {
@@ -358,19 +283,23 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     paintState();
   }
 
+  let ticks = 0;
   const watch = setInterval(async () => {
     if (!host.isConnected) {
       // The window's closed: keep what you hadn't saved for next time.
       if (open && dirty()) drafts.set(`${workerId}:${open.path}`, { version: open.version, text: open.model.getValue() });
+      live?.dispose();
       open?.model.dispose();
       editor.dispose();
       return clearInterval(watch);
     }
-    if (!open || host.offsetParent === null) return;
+    // Changes are pushed while the tab's live (code-live/): this only looks now and then, in case.
+    if (!open || host.offsetParent === null || (live?.live() && ++ticks % 8)) return;
     const o = open;
     const r = await getJson<{ version: string }>(`/api/code/version?${q({ path: o.path })}`);
     if (!r.ok || open !== o || r.body.version === o.version) return;
     if (dirty()) showConflict(r.body.version);
+    else if (live) await live.syncOpen();
     else await reload(o);
   }, WATCH_MS);
 
@@ -460,6 +389,35 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
       for (const p of paths) for (let i = p.indexOf('/'); i >= 0; i = p.indexOf('/', i + 1)) expanded.add(p.slice(0, i + 1));
       await loadTree();
       if (one) await openFile(one);
+    },
+  });
+  live = attachLive({
+    workerId,
+    editor,
+    q,
+    tools: liveTools,
+    above,
+    side,
+    open: () => open,
+    dirty,
+    files: () => files,
+    setFiles(next) {
+      if (next) files = next;
+      renderTree();
+    },
+    reloadTree: loadTree,
+    openFile,
+    showConflict,
+    showDeleted() {
+      banner.replaceChildren(h('span', {}, L.codeLive.deleted));
+      banner.classList.remove('hidden');
+    },
+    synced(o, version) {
+      if (open !== o) return;
+      open.version = version;
+      open.saved = open.model.getAlternativeVersionId();
+      hideBanner();
+      paintState();
     },
   });
   void loadTree();

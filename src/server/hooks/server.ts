@@ -10,6 +10,7 @@ import { officeQueue } from './office-queue.js';
 import { officeWorkers } from './office-workers.js';
 import { officeMachine } from './office-machine.js';
 import { providerHook } from '../providers/index.js';
+import { codeHook } from '../codelive/index.js';
 import type { AgentProvider } from '../../shared/providers.js';
 
 /** Starts the hook server, and says which port it listens on. */
@@ -42,6 +43,8 @@ export async function startHookServer(ctx: Ctx): Promise<{ hookServer: http.Serv
     if (!workers) return send(res, 401, {});
     const event = url.searchParams.get('event') ?? '';
     const ok = workers.handleProviderHook(route as AgentProvider, workerId, token, event, payload);
+    // The file it's editing, for the Code tab's 👀 Follow (only once the event's known to be its own).
+    if (ok) codeHook(ctx, workerId, event, payload);
     send(res, ok ? 200 : 401, {});
   });
   // Workers' terminals outlive a restart of the office (see ptys.ts) with this address in their

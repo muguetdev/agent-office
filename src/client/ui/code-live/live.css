@@ -1,0 +1,318 @@
+/* The Code tab, live (see code-live/index.ts): changes lighting up, the typing effect, 👀 Follow's bar,
+   the review's green and red lines with their buttons, the list of files to review, and Ctrl+K's box. */
+.modal.term .term-codehost {
+  --cl-add: #50fa7b;
+  --cl-del: #ff5555;
+  --cl-add-bg: rgba(80, 250, 123, 0.13);
+  --cl-del-bg: rgba(255, 85, 85, 0.16);
+  --cl-flash: rgba(80, 250, 123, 0.38);
+  --cl-accent: #8be9fd;
+}
+.modal.term .term-codehost.light {
+  --cl-add: #1a7f37;
+  --cl-del: #cf222e;
+  --cl-add-bg: rgba(46, 160, 67, 0.12);
+  --cl-del-bg: rgba(207, 34, 46, 0.1);
+  --cl-flash: rgba(46, 160, 67, 0.3);
+  --cl-accent: #0969da;
+}
+.cl-tools {
+  display: flex;
+  gap: 6px;
+}
+
+/* A change that just landed: green, fading out over four seconds; a red line where lines went. */
+@keyframes cl-fade {
+  from {
+    background: var(--cl-flash);
+  }
+  to {
+    background: transparent;
+  }
+}
+.monaco-editor .cl-flash-line {
+  animation: cl-fade 4s ease-out forwards;
+}
+.monaco-editor .cl-flash-gutter {
+  border-left: 4px solid var(--cl-add);
+  animation: cl-fade 4s ease-out forwards;
+}
+.monaco-editor .cl-del-above {
+  box-shadow: inset 0 2px 0 var(--cl-del);
+}
+.monaco-editor .cl-del-below {
+  box-shadow: inset 0 -2px 0 var(--cl-del);
+}
+.monaco-editor .cl-del-gutter {
+  border-left: 4px solid var(--cl-del);
+}
+/* The typing effect: what isn't typed yet is there but unseen, the caret blinking at its front. */
+.monaco-editor .cl-unrevealed {
+  opacity: 0;
+}
+.monaco-editor .cl-caret::before {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-right: -2px;
+  vertical-align: text-bottom;
+  background: var(--cl-accent);
+}
+
+/* 👀 Follow: who's editing what, over the editor. */
+.cl-follow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--code-line);
+  background: color-mix(in srgb, var(--cl-accent) 12%, var(--code-bg));
+  font-size: 13px;
+}
+.cl-follow.hidden {
+  display: none;
+}
+.cl-follow-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-follow.live .cl-follow-text::after {
+  content: ' …';
+  animation: cl-blink 1s steps(2) infinite;
+}
+@keyframes cl-blink {
+  50% {
+    opacity: 0;
+  }
+}
+.cl-follow.here .cl-follow-go {
+  display: none;
+}
+.modal .cl-follow .btn {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+/* The review, in the editor: green for what's new, the old lines in red above it, ✓ and ✕ on each hunk. */
+.monaco-editor .cl-rev-add {
+  background: var(--cl-add-bg);
+}
+.monaco-editor .cl-rev-add-gutter {
+  border-left: 3px solid var(--cl-add);
+}
+.cl-zone {
+  /* Over Monaco's lines layer, which would take the buttons' clicks otherwise. */
+  z-index: 5;
+  box-sizing: border-box;
+  white-space: pre;
+  color: var(--code-text);
+}
+.cl-zone-actions {
+  display: flex;
+  gap: 6px;
+  height: 26px;
+  align-items: center;
+  font-family: system-ui, sans-serif;
+}
+.cl-zone-actions button,
+.cl-mini {
+  padding: 1px 8px;
+  border: 1px solid var(--code-line);
+  border-radius: 6px;
+  background: var(--code-side);
+  color: var(--code-text);
+  font: 700 12px system-ui, sans-serif;
+  cursor: pointer;
+}
+.cl-zone-actions .cl-accept,
+.cl-mini.cl-accept,
+.modal .cl-list-all .cl-accept {
+  border-color: var(--cl-add);
+  color: var(--cl-add);
+}
+.cl-zone-actions .cl-reject,
+.cl-mini.cl-reject,
+.modal .cl-list-all .cl-reject {
+  border-color: var(--cl-del);
+  color: var(--cl-del);
+}
+.cl-zone-actions button:hover,
+.cl-mini:hover {
+  background: var(--code-hover);
+}
+.cl-zone-del {
+  background: var(--cl-del-bg);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--cl-del) 45%, transparent);
+  opacity: 0.85;
+}
+.cl-zone-del.more {
+  text-decoration: none;
+  font-style: italic;
+}
+.cl-zone-margin-del {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  background: var(--cl-del);
+}
+
+/* The files to review, under the file list. */
+.cl-list {
+  flex: none;
+  max-height: 42%;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--code-line);
+  font-size: 12px;
+}
+.cl-list.hidden {
+  display: none;
+}
+.cl-list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 2px;
+}
+.cl-list-count {
+  padding: 0 7px;
+  border-radius: 9px;
+  background: var(--code-line);
+  font-weight: 800;
+}
+.cl-list-all {
+  display: flex;
+  gap: 6px;
+  padding: 4px 8px 6px;
+}
+.modal .cl-list-all .btn {
+  flex: 1;
+  padding: 3px 6px;
+  font-size: 12px;
+  background: none;
+}
+.cl-list-rows {
+  overflow: auto;
+  padding-bottom: 6px;
+}
+.cl-list-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+}
+.cl-list-row.on {
+  background: var(--code-pick);
+}
+.cl-list-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 2px;
+  border: none;
+  background: none;
+  color: var(--code-text);
+  font: 12px ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+.cl-list-path:disabled {
+  cursor: default;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+.cl-tag {
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font: 700 10px system-ui, sans-serif;
+}
+.cl-tag.add {
+  background: var(--cl-add-bg);
+  color: var(--cl-add);
+}
+.cl-tag.del {
+  background: var(--cl-del-bg);
+  color: var(--cl-del);
+}
+.cl-list-n {
+  display: flex;
+  gap: 4px;
+  font: 11px ui-monospace, Menlo, monospace;
+}
+.cl-list-n .add {
+  color: var(--cl-add);
+}
+.cl-list-n .del {
+  color: var(--cl-del);
+}
+.cl-list-empty {
+  margin: 0;
+  padding: 4px 10px 8px;
+  opacity: 0.7;
+}
+.cl-mini {
+  padding: 0 5px;
+}
+
+/* A file the worker just changed: a dot in the list for a few seconds. */
+.code-row.cl-touched::after {
+  content: '●';
+  margin-left: 6px;
+  color: var(--cl-add);
+  font-size: 10px;
+  animation: cl-blink 1s steps(2) 4;
+}
+
+/* Ctrl+K: the box over the lines you picked. */
+.cl-ask {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(560px, 70vw);
+  padding: 6px;
+  border: 2px solid var(--cl-accent);
+  border-radius: 10px;
+  background: var(--code-side);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  font: 13px system-ui, sans-serif;
+}
+.cl-ask-lines {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--code-line);
+  color: var(--code-text);
+  font: 11px ui-monospace, Menlo, monospace;
+}
+/* Over the windows' own text boxes (as wide as the window, white). */
+.cl-ask input.cl-ask-input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  margin: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--code-line);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  font: inherit;
+  font-size: 13px;
+}
+.modal .cl-ask .btn {
+  padding: 4px 12px;
+}
+.cl-ask-close {
+  border: none;
+  background: none;
+  color: var(--code-text);
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.7;
+}

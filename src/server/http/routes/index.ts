@@ -5,6 +5,7 @@ import type { Route } from '../router.js';
 import { agentRoutes } from './agents.js';
 import { authRoutes } from './auth.js';
 import { codeRoutes } from './code.js';
+import { codeReviewRoutes } from './code-review.js';
 import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
 import { machineRoutes } from './machines.js';
@@ -39,6 +40,7 @@ export const routes: readonly Route[] = [
   fileRoutes.changedFile,
   fileRoutes.docs,
   codeRoutes.code,
+  codeReviewRoutes.review,
   searchRoutes.search,
   youtubeRoutes.search,
   youtubeRoutes.videos,

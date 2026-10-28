@@ -15,6 +15,7 @@ import type { AgentEffort, AgentProvider, FloorInfo, WorkerInfo } from '../share
 import { $, clip, closeAllModals, doingNow, h, onDoingChange, onModalChange, openModal, readingNow, STATUS_LABEL, timeAgo, toast } from './ui/dom';
 import { openTerminal, openTerminalFor, routeTerminalMessage } from './ui/terminal';
 import { openChanges, openChangesFor, routeChangesMessage } from './ui/changes';
+import { linkCodeLive } from './ui/code-live/link';
 import { lostWorktreeDialog, openPrompt, routeWorktreeMessage, sendHomeDialog } from './ui/prompt';
 import { openBoard } from './ui/boards';
 import type { BoardActions } from './ui/github/prompts';
@@ -51,6 +52,8 @@ const notifier = new DesktopNotifier(() => settings.notify, (id) => openWorker(i
 let bootVersion = '';
 
 net.onStatus((up) => $('conn').classList.toggle('hidden', up));
+// A worker's Code tab hears what changes in its folder as it happens (see ui/code-live/).
+linkCodeLive(net);
 net.onMessage((msg) => {
   store.apply(msg);
   routeTerminalMessage(msg);

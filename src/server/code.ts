@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 import { insideCheckout } from './changes.js';
@@ -87,6 +87,11 @@ export class CodeFiles {
     private dirOf: (workerId: string) => string | undefined,
   ) {}
 
+  /** The folder `workerId` works in, or undefined when there's no such worker. */
+  dir(workerId: string): string | undefined {
+    return this.dirOf(workerId);
+  }
+
   /** The worker's files, sorted, and whether there were more than the tree shows. */
   async tree(workerId: string): Promise<{ files: string[]; truncated: boolean } | CodeError> {
     const dir = this.dirOf(workerId);
@@ -134,6 +139,18 @@ export class CodeFiles {
     if (versionOf(s) !== base) return { status: 409, error: 'The file changed since you opened it', version: versionOf(s) };
     await writeFile(abs, text, 'utf8');
     return { version: versionOf(await stat(abs)) };
+  }
+
+  /** Deletes the file, if it's still at version `base` (the Code tab's review rejecting a file the worker made). */
+  async remove(workerId: string, file: string, base: string): Promise<{ ok: true } | (CodeError & { version?: string })> {
+    if (!uploadParts(file)) return { status: 403, error: 'Not somewhere in this worker’s folder you can change' };
+    const abs = await this.locate(workerId, file);
+    if (typeof abs !== 'string') return abs;
+    const s = await lstat(abs).catch(() => undefined);
+    if (!s?.isFile()) return { status: 404, error: 'Not a file' };
+    if (versionOf(s) !== base) return { status: 409, error: 'The file changed since you opened it', version: versionOf(s) };
+    await unlink(abs);
+    return { ok: true };
   }
 
   /**
