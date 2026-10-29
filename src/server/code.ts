@@ -122,6 +122,15 @@ export class CodeFiles {
     return { text: body.toString('utf8'), version: versionOf(s) };
   }
 
+  /** Where a file is and how big, to send it as it is (an image, a video… see shared/media.ts), whatever its size. */
+  async raw(workerId: string, file: string): Promise<{ abs: string; size: number; version: string } | CodeError> {
+    const abs = await this.locate(workerId, file);
+    if (typeof abs !== 'string') return abs;
+    const s = await stat(abs).catch(() => undefined);
+    if (!s?.isFile()) return { status: 404, error: 'Not a file' };
+    return { abs, size: s.size, version: versionOf(s) };
+  }
+
   /** A file's version now, to see whether it changed under you. */
   async version(workerId: string, file: string): Promise<{ version: string } | CodeError> {
     const abs = await this.locate(workerId, file);

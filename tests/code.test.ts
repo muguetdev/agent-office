@@ -152,3 +152,52 @@ test('the upload route: only from the office’s own page, its size asked for up
   assert.equal((await postUpload('path=src%2Fapp.ts', bytes)).status, 409);
   assert.equal((await postUpload('path=..%2Fx.bin', bytes)).status, 403);
 });
+
+/** GETs a file's bytes from the raw route, with `headers` (a Range, say). */
+async function getRaw(query: string, headers: Record<string, string> = {}, setup?: (dir: string) => void) {
+  const { codeRoutes } = await import('../src/server/http/routes/code.js');
+  const { code, dir } = project();
+  setup?.(dir);
+  const floor = { id: 'f1', workers: new Map([['w1', {}]]), code };
+  const ctx = { cfg: { trustProxy: false }, floors: new Map([['f1', floor]]) } as never;
+  const http = await import('node:http');
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url ?? '/', 'http://x');
+    void codeRoutes.code.handle(ctx, { req, res, url, path: url.pathname, session: {} as never });
+  });
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
+  const port = (server.address() as { port: number }).port;
+  try {
+    const r = await fetch(`http://127.0.0.1:${port}/api/code/raw?floor=f1&worker=w1&${query}`, { headers });
+    return { status: r.status, headers: r.headers, body: Buffer.from(await r.arrayBuffer()) };
+  } finally {
+    server.close();
+  }
+}
+
+test('the raw route: a picture as itself, sandboxed; a range of a video; anything else a download; never outside the folder', async () => {
+  const png = await getRaw('path=logo.png');
+  assert.equal(png.status, 200);
+  assert.equal(png.headers.get('content-type'), 'image/png');
+  assert.match(png.headers.get('content-disposition') ?? '', /^inline/);
+  assert.match(png.headers.get('content-security-policy') ?? '', /sandbox/);
+  assert.equal(png.headers.get('x-content-type-options'), 'nosniff');
+  assert.deepEqual(png.body, Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 1]));
+
+  const video = await getRaw('path=clip.mp4', { range: 'bytes=2-5' }, (dir) => writeFileSync(path.join(dir, 'clip.mp4'), Buffer.from('0123456789')));
+  assert.equal(video.status, 206);
+  assert.equal(video.headers.get('content-range'), 'bytes 2-5/10');
+  assert.equal(video.body.toString(), '2345');
+  assert.equal((await getRaw('path=clip.mp4', { range: 'bytes=50-' }, (dir) => writeFileSync(path.join(dir, 'clip.mp4'), 'x'))).status, 416);
+
+  // A page would run as the office's own: it only ever downloads.
+  const page = await getRaw('path=evil.html', {}, (dir) => writeFileSync(path.join(dir, 'evil.html'), '<script>alert(1)</script>'));
+  assert.equal(page.headers.get('content-type'), 'application/octet-stream');
+  assert.match(page.headers.get('content-disposition') ?? '', /^attachment/);
+  const svg = await getRaw('path=a.svg', {}, (dir) => writeFileSync(path.join(dir, 'a.svg'), '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'));
+  assert.equal(svg.headers.get('content-type'), 'image/svg+xml');
+  assert.match(svg.headers.get('content-security-policy') ?? '', /sandbox/);
+  assert.match((await getRaw('path=logo.png&download=1')).headers.get('content-disposition') ?? '', /^attachment/);
+
+  for (const bad of ['..%2Fx', '.git%2Fconfig', '%2Fetc%2Fpasswd']) assert.equal((await getRaw(`path=${bad}`)).status, 404, bad);
+});

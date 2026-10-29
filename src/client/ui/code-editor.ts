@@ -3,7 +3,9 @@
 // saves, Ctrl+P finds a file by name. What the worker changes comes in live (code-live/: lit up,
 // 👀 Follow, 🔍 Review, Ctrl+K); if you've changed the file too, it says so and lets you pick, so
 // nobody's work is lost. Files dragged in from the desktop, or picked with ⬆️ Upload, go into the
-// worker's folder (code-upload.ts). Loaded only when the tab's first opened.
+// worker's folder (code-upload.ts). Pictures, sound, video, PDFs, fonts and 3D models open in a viewer
+// instead (code-media.ts), and other files that aren't text in a card to download them. Loaded only
+// when the tab's first opened.
 import './code-editor.css';
 import * as monaco from 'monaco-editor/editor/editor.api';
 import 'monaco-editor/basic-languages/monaco.contribution';
@@ -14,6 +16,8 @@ import { keyLabels } from './termkeys';
 import { codeUploads } from './code-upload';
 import './code-theme';
 import { attachLive, type LiveHandle } from './code-live';
+import { mediaPane } from './code-media';
+import { mediaKind } from '../../shared/media';
 
 (self as unknown as { MonacoEnvironment: monaco.Environment }).MonacoEnvironment = { getWorker: () => new EditorWorker() };
 /** How often an open file is checked for changes made elsewhere. */
@@ -107,7 +111,8 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const surface = h('div.code-surface', { 'data-own-esc': '' });
   const liveTools = h('span.cl-tools');
   const above = h('div.cl-above');
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, liveTools, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, above, banner, surface);
+  const media = mediaPane((file, download) => `/api/code/raw?${q({ path: file, ...(download ? { download: '1' } : {}) })}`);
+  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, liveTools, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, above, banner, surface, media.el);
   host.replaceChildren(side, split, main);
 
   const editor = monaco.editor.create(surface, {
@@ -194,7 +199,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     list.replaceChildren(...rows);
   }
   function fileRow(file: string, label: string, depth: number): HTMLElement {
-    return h('button.code-row', { type: 'button', 'data-file': file, class: `${open?.path === file ? 'on' : ''} ${live?.rowClass(file) ?? ''}`, style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
+    return h('button.code-row', { type: 'button', 'data-file': file, class: `${open?.path === file || media.path === file ? 'on' : ''} ${live?.rowClass(file) ?? ''}`, style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
   }
 
   async function loadTree() {
@@ -205,11 +210,31 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   }
 
   // ---- A file: opening it, saving it, and keeping it in step with the disk.
+  /** The viewer over the editor for `file` (a picture, a video… or a file to download), in place of the one open. */
+  function view(file: string, kind: Parameters<typeof media.show>[1]) {
+    open?.model.dispose();
+    open = null;
+    editor.setModel(null);
+    surface.classList.add('hidden');
+    media.show(file, kind);
+    pathEl.textContent = file;
+    hideBanner();
+    paintState();
+    renderTree();
+  }
+
   async function openFile(file: string) {
     if (open?.path === file) return editor.focus();
+    if (media.path === file) return;
     if (dirty() && !confirm(L.code.leaveUnsaved(open!.path))) return;
+    const kind = mediaKind(file);
+    if (kind) return view(file, kind);
     const r = await getJson<{ text: string; version: string }>(`/api/code/file?${q({ path: file })}`);
+    // Not text, or too big to edit: its size, and a download.
+    if (!r.ok && (r.status === 413 || r.status === 415)) return view(file, 'binary');
     if (!r.ok) return void toast(why(r.status, r.body.error), 'warn');
+    media.hide();
+    surface.classList.remove('hidden');
     open?.model.dispose();
     const model = monaco.editor.createModel(r.body.text, languageOf(file));
     open = { path: file, model, version: r.body.version, saved: model.getAlternativeVersionId() };
