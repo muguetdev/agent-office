@@ -3,10 +3,12 @@
 // MySQL or MariaDB, MongoDB, Redis, installed or in Docker containers) and the SQLite files in their
 // folders, read through the office (POST /api/dbview, see server/dbview/). On the left, each one's
 // databases and their tables; on the right, a table's rows a page at a time, and a box for a query of
-// your own. All of it read-only.
+// your own. It reads only, unless an admin turns ✍️ writing on: then what they run changes the
+// database for real, once they've confirmed it.
 import './db.css';
 import { DB_ENGINE_META, type DbEngine, type DbFound, type DbRequest, type DbRows, type DbSource, type DbTable, type DbVia } from '../../../shared/dbview';
 import { h } from '../dom';
+import { confirmDialog } from '../prompt';
 import { store } from '../../state';
 import { L } from '../../i18n';
 
@@ -80,6 +82,10 @@ export function dbTab(workerId: string): DbTab {
     return out;
   };
   const rescan = h('button.btn', { type: 'button', title: L.dbview.rescanTip }, L.dbview.rescan);
+  const writeBtn = h('button.btn.db-write', { type: 'button', title: L.dbview.writeTip, 'aria-pressed': 'false' }, L.dbview.write);
+  const badge = h('span.db-ro', {}, L.dbview.readOnly);
+  /** ✍️ Writing is on: the query box runs what's in it as written. */
+  let writing = false;
   const side = h('nav.db-side', { 'aria-label': L.dbview.title });
   const where = h('div.db-where');
   const prev = h('button.btn.db-page', { type: 'button', 'aria-label': L.dbview.prev }, '◀');
@@ -99,7 +105,7 @@ export function dbTab(workerId: string): DbTab {
     grid,
     detail,
   );
-  const el = h('div.db-pane.hidden', {}, h('div.machine-bar', {}, h('span.machine-note', {}, L.dbview.title), h('span.db-ro', {}, L.dbview.readOnly), h('span.grow'), rescan), h('div.db-body', {}, side, main));
+  const el = h('div.db-pane.hidden', {}, h('div.machine-bar', {}, h('span.machine-note', {}, L.dbview.title), badge, h('span.grow'), writeBtn, rescan), h('div.db-body', {}, side, main));
 
   let found: Found[] | undefined;
   let scanning = false;
@@ -185,6 +191,13 @@ export function dbTab(workerId: string): DbTab {
     const meta = DB_ENGINE_META[place.engine];
     const dbName = place.engine === 'sqlite' ? place.db.split('/').pop() || place.db : place.db;
     where.textContent = [`${meta.icon} ${dbName}`, place.table].filter(Boolean).join(' › ');
+    if (writing) {
+      query.disabled = run.disabled = false;
+      const t = place.table ?? (meta.query === 'filter' ? 'collection' : 'table');
+      query.placeholder = meta.query === 'sql' ? `UPDATE ${t} SET … WHERE …` : meta.query === 'filter' ? `db.${t}.updateOne({…}, {$set: {…}})` : 'SET key value';
+      hint.textContent = meta.query === 'sql' ? L.dbview.writeSqlHint : meta.query === 'filter' ? L.dbview.writeMongoHint : L.dbview.writeRedisHint;
+      return;
+    }
     query.disabled = run.disabled = meta.query !== 'sql' && !place.table;
     query.placeholder = meta.query === 'sql' ? (place.table ? `SELECT * FROM ${place.table} WHERE …` : 'SELECT …') : meta.query === 'filter' ? '{"status": "active"}' : 'user:*';
     hint.textContent = meta.query === 'sql' ? L.dbview.sqlHint : meta.query === 'filter' ? L.dbview.filterHint : L.dbview.patternHint;
@@ -281,6 +294,19 @@ export function dbTab(workerId: string): DbTab {
     if (!place || run.disabled) return;
     const text = query.value.trim();
     const meta = DB_ENGINE_META[place.engine];
+    if (writing) {
+      if (!text) return;
+      const p = place;
+      const go = () => {
+        void read(p.source, { op: 'write', ...at(p), text, limit: 200, ...(p.table ? { table: p.table } : {}) }, 0);
+        prev.classList.add('hidden');
+        next.classList.add('hidden');
+      };
+      // Only a statement that reads goes without asking.
+      if (meta.query === 'sql' && /^\s*(select|show|describe|desc|explain|with|table|values|pragma)\b/i.test(text) && !/;\s*\S/.test(text)) return go();
+      const dbName = p.engine === 'sqlite' ? p.db.split('/').pop() || p.db : p.db;
+      return confirmDialog(L.dbview.confirmTitle, L.dbview.confirmBody(`${meta.icon} ${meta.label} › ${dbName}`, text), L.dbview.confirmYes, go, true);
+    }
     if (meta.query !== 'sql') {
       place.offset = 0;
       return loadPage();
@@ -324,6 +350,14 @@ export function dbTab(workerId: string): DbTab {
   };
 
   rescan.addEventListener('click', scan);
+  writeBtn.addEventListener('click', () => {
+    writing = !writing;
+    writeBtn.setAttribute('aria-pressed', String(writing));
+    el.classList.toggle('db-writing', writing);
+    badge.textContent = writing ? L.dbview.writing : L.dbview.readOnly;
+    paintPlace();
+    query.focus();
+  });
   run.addEventListener('click', runQuery);
   query.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -349,6 +383,8 @@ export function dbTab(workerId: string): DbTab {
     shows: () => sources().length > 0,
     show(on) {
       el.classList.toggle('hidden', !on);
+      // Writing is for admins (the office checks too); it starts off each time the tab's made.
+      writeBtn.classList.toggle('hidden', !store.me.admin);
       // Looked for the first time it's opened, not before: it runs in the machine and on the server.
       if (on && !found && !scanning && sources().length) scan();
     },

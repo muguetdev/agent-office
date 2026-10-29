@@ -137,10 +137,11 @@ export function openPrompt(opts: PromptOptions) {
   }, 30);
 }
 
-export function confirmDialog(title: string, body: string, confirmLabel: string, onConfirm: () => void) {
+/** `pre`: the body keeps its line breaks (a statement about to run, say). */
+export function confirmDialog(title: string, body: string, confirmLabel: string, onConfirm: () => void, pre = false) {
   const yes = h('button.btn.danger', { type: 'button' }, confirmLabel);
   const no = h('button.btn', { type: 'button' }, L.prompt.neverMind);
-  const el = h('div.modal', { role: 'alertdialog', 'aria-label': title }, h('header', {}, h('h2', {}, title)), h('div.body', {}, h('p', { style: 'margin:0;font-weight:700' }, body)), h('footer', {}, no, yes));
+  const el = h('div.modal', { role: 'alertdialog', 'aria-label': title }, h('header', {}, h('h2', {}, title)), h('div.body', {}, h('p', { style: `margin:0;font-weight:700${pre ? ';white-space:pre-wrap;overflow-wrap:anywhere' : ''}` }, body)), h('footer', {}, no, yes));
   const modal = openModal(el);
   no.addEventListener('click', () => modal.close());
   yes.addEventListener('click', () => {

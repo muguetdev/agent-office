@@ -7,6 +7,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { dbCommand, dbRequest, readDb, readServerDb } from '../src/server/dbview/index.ts';
+import { logWrite, writeTarget } from '../src/server/dbview/audit.ts';
+import { readFileSync } from 'node:fs';
 import type { DbRequest } from '../src/shared/dbview.ts';
 import type { WorkerInfo } from '../src/shared/protocol.ts';
 
@@ -78,6 +80,26 @@ test('an SQLite file: its tables, a page of rows, a query, and no writing', { sk
   assert.match(runHere({ op: 'query', engine: 'sqlite', db, text: 'select 1; delete from users', limit: 5 }).error, /one statement/);
   assert.match(runHere({ op: 'tables', engine: 'sqlite', db: path.join(dir, 'nope.db') }).error, /not an SQLite file/);
   assert.equal(runHere({ op: 'rows', engine: 'sqlite', db, table: 'users', offset: 0, limit: 5 }).total, 3, 'still all there');
+
+  // ✍️ Writing: as written, and it stays written.
+  assert.deepEqual(runHere({ op: 'write', engine: 'sqlite', db, text: "update users set name = 'bea' where id = 1", limit: 5 }), { columns: ['result'], rows: [['1 row(s) changed']], changed: true });
+  assert.deepEqual(runHere({ op: 'write', engine: 'sqlite', db, text: "insert into users(name) values ('dee') returning id, name", limit: 5 }).rows, [[4, 'dee']]);
+  assert.deepEqual(runHere({ op: 'query', engine: 'sqlite', db, text: 'select name from users order by id', limit: 10 }).rows, [['bea'], ['bob'], ['cy'], ['dee']]);
+});
+
+test('a write is for one statement, and each one is logged with who, where and what', (t) => {
+  assert.deepEqual(dbRequest({ op: 'write', engine: 'postgres', db: 'crivo', text: 'delete from jobs', container: 'crivo-postgres-1' }), { op: 'write', engine: 'postgres', db: 'crivo', text: 'delete from jobs', limit: 50, container: 'crivo-postgres-1' });
+  assert.equal(typeof dbRequest({ op: 'write', engine: 'postgres', db: 'crivo', text: ' ' }), 'string');
+  const dir = mkdtempSync(path.join(tmpdir(), 'ao-dbview-log-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const req = { op: 'write' as const, engine: 'postgres' as const, db: 'crivo', text: 'delete from jobs', limit: 50, container: 'crivo-postgres-1' };
+  assert.equal(writeTarget({ source: 'server', req }), 'postgres (🐳 crivo-postgres-1) › crivo');
+  logWrite(dir, { by: 'ana', source: 'server', req }, new Date('2026-10-29T00:00:00Z'));
+  logWrite(dir, { by: 'bo', source: 'machine', req: { ...req, container: undefined, link: '0123456789ab' }, error: 'nope' });
+  const lines = readFileSync(path.join(dir, 'dbview-writes.log'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.deepEqual(lines[0], { at: '2026-10-29T00:00:00.000Z', by: 'ana', source: 'server', engine: 'postgres', db: 'crivo', container: 'crivo-postgres-1', text: 'delete from jobs', ok: true });
+  assert.equal(lines[1].ok, false);
+  assert.equal(lines[1].link, '0123456789ab');
 });
 
 test("an app's database URL is found in its .env, and only its label and id come out", { skip: !python && 'no python3 here' }, (t) => {

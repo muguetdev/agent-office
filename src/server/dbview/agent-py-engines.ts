@@ -10,32 +10,42 @@ def pq_lit(s):
 
 
 PG_ENV = {'PGOPTIONS': '-c default_transaction_read_only=on -c statement_timeout=20000', 'PGCONNECT_TIMEOUT': '5'}
+# A write (op 'write', see the end): no read-only transaction, and a minute to run.
+PG_WRITE_ENV = {'PGOPTIONS': '-c statement_timeout=60000', 'PGCONNECT_TIMEOUT': '5'}
 
 
-def psql(sql, db=None):
+def pg_env():
+    return PG_WRITE_ENV if REQ.get('op') == 'write' else PG_ENV
+
+
+def psql(sql, db=None, raw=False):
+    """Runs sql: its one value as JSON, or with raw what psql said (a write's UPDATE 3)."""
+    quiet = [] if raw else ['-q']
+    parse = (lambda out: out) if raw else (lambda out: json.loads(out) if out else None)
     url = link_url()
     if url:
         if not shutil.which('psql'):
             raise Fail('psql is not installed', 'notInstalled')
-        out = run(['psql', '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql], pg_link_env(url, db)).strip()
-        return json.loads(out) if out else None
+        env = pg_link_env(url, db)
+        env.update(pg_env())
+        return parse(run(['psql', '-X'] + quiet + ['-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql], env).strip())
     db = db or 'postgres'
     ctr = REQ.get('container')
     if ctr:
         # Over the container's own socket, which its image trusts, as the user it made.
-        out = in_ctr(ctr, 'U=$POSTGRES_USER; [ -n "$U" ] || U=postgres; exec psql -X -q -A -t -v ON_ERROR_STOP=1 -U "$U" -d "$1" -c "$2"', [db, sql], PG_ENV).strip()
-        return json.loads(out) if out else None
-    cmd = ['psql', '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-d', db, '-c', sql]
+        q = '' if raw else '-q '
+        return parse(in_ctr(ctr, 'U=$POSTGRES_USER; [ -n "$U" ] || U=postgres; exec psql -X ' + q + '-A -t -v ON_ERROR_STOP=1 -U "$U" -d "$1" -c "$2"', [db, sql], pg_env()).strip())
+    cmd = ['psql', '-X'] + quiet + ['-A', '-t', '-v', 'ON_ERROR_STOP=1', '-d', db, '-c', sql]
     if os.geteuid() == 0:
         cmd = ['runuser', '-u', 'postgres', '--'] + cmd
     try:
-        out = run(cmd, PG_ENV).strip()
+        out = run(cmd, pg_env()).strip()
     except Fail as e:
         # Not root, so it went in as this user, whom PostgreSQL doesn't know.
         if os.geteuid() != 0 and re.search(r'role .* does not exist|Peer authentication', str(e)):
             raise Fail(str(e), 'needsRoot')
         raise
-    return json.loads(out) if out else None
+    return parse(out)
 
 
 def pg_split(table):
@@ -68,6 +78,22 @@ def postgres(op):
         return dict(rows_of(data, cols), total=total)
     if op == 'query':
         return pg_select(sql_text(), db)
+    if op == 'write':
+        t = sql_text()
+        first = t.split(None, 1)[0].lower()
+        if first in READS:
+            return pg_select(t, db)
+        if first in ('insert', 'update', 'delete', 'merge') and re.search(r'\breturning\b', t, re.I):
+            return dict(rows_of(psql('with q as (%s) select json_agg(q) from q' % t, db) or []), changed=True)
+        return said_rows(psql(t, db, raw=True) or 'OK')
+
+
+READS = ('select', 'show', 'describe', 'desc', 'explain', 'with', 'table', 'values', 'pragma')
+
+
+def said_rows(text):
+    """A write that brings back no rows: what the database said about it, as a one-cell grid."""
+    return {'columns': ['result'], 'rows': [[cell(text)]], 'changed': True}
 
 
 def sql_text():
@@ -113,7 +139,12 @@ MY_SH = ('C=$(command -v mariadb || command -v mysql); P=$MARIADB_ROOT_PASSWORD;
 
 
 def mysql(sql, db=None):
-    args = ['--batch', '--connect-timeout=5'] + (['-D', db] if db else []) + ['-e', 'SET SESSION TRANSACTION READ ONLY; START TRANSACTION READ ONLY; ' + sql + '; ROLLBACK']
+    if REQ.get('op') == 'write':
+        # Its rows if it reads, else how many it changed.
+        stmt = sql if sql.split(None, 1)[0].lower() in READS else sql + '; SELECT ROW_COUNT() AS affected_rows'
+    else:
+        stmt = 'SET SESSION TRANSACTION READ ONLY; START TRANSACTION READ ONLY; ' + sql + '; ROLLBACK'
+    args = ['--batch', '--connect-timeout=5'] + (['-D', db] if db else []) + ['-e', stmt]
     ctr = REQ.get('container')
     url = link_url()
     if url:
@@ -157,12 +188,15 @@ def mysqldb(op):
             cols = [r[0] for r in cr]
         _, tot = mysql('SELECT COUNT(*) FROM (SELECT 1 FROM %s LIMIT 100001) t' % t, db)
         return {'columns': cols, 'rows': [[cell(x) for x in r] for r in rows], 'total': int(tot[0][0]) if tot else None}
-    if op == 'query':
+    if op in ('query', 'write'):
         t = sql_text()
-        if t.split(None, 1)[0].lower() not in ('select', 'show', 'describe', 'desc', 'explain', 'with', 'table', 'values'):
+        if op == 'query' and t.split(None, 1)[0].lower() not in READS:
             raise Fail('only reading here: SELECT, SHOW, DESCRIBE, EXPLAIN', 'readOnly')
         cols, rows = mysql(t, db)
-        return {'columns': cols, 'rows': [[cell(x) for x in r] for r in rows[:lim]], 'more': len(rows) > lim}
+        res = {'columns': cols, 'rows': [[cell(x) for x in r] for r in rows[:lim]], 'more': len(rows) > lim}
+        if op == 'write':
+            res['changed'] = True
+        return res
 
 
 # ---- MongoDB ----------------------------------------------------------------------------------------
@@ -187,6 +221,17 @@ else {
 }
 print(JSON.stringify(out));
 '''
+# A write: the person's own mongosh code, as written (db is the database picked), and what it gave back.
+MONGO_WRITE_JS = r'''
+const a = JSON.parse(process.env.DBV_ARG);
+if (process.env.DBV_URL) db = connect(process.env.DBV_URL);
+db = db.getSiblingDB(a.db);
+let r = (
+%s
+);
+if (r && typeof r.toArray === 'function') r = (typeof r.limit === 'function' ? r.limit(a.limit) : r).toArray().slice(0, a.limit);
+print(JSON.stringify({ result: EJSON.serialize(r === undefined ? null : r, { relaxed: true }) }));
+'''
 
 
 MONGO_URL = 'mongodb://127.0.0.1:27017/?serverSelectionTimeoutMS=5000'
@@ -200,15 +245,21 @@ def mongo(op):
     arg = dict(REQ, op=op, limit=lim, offset=off)
     if op == 'query' and not (REQ.get('table') or ''):
         raise Fail('pick a collection first; the query is its filter, like {"status": "active"}', 'pickCollection')
+    js = MONGO_JS
+    if op == 'write':
+        code = (REQ.get('text') or '').strip().rstrip(';')
+        if not code:
+            raise Fail('write a query', 'writeQuery')
+        js = MONGO_WRITE_JS % code
     ctr = REQ.get('container')
     url = link_url()
     if url:
         exe = shutil.which('mongosh') or shutil.which('mongo')
         if not exe:
             raise Fail('mongosh is not installed', 'notInstalled')
-        out = run([exe, '--nodb', '--quiet', '--norc', '--eval', MONGO_JS], {'DBV_ARG': json.dumps(arg), 'DBV_URL': url})
+        out = run([exe, '--nodb', '--quiet', '--norc', '--eval', js], {'DBV_ARG': json.dumps(arg), 'DBV_URL': url}, timeout=70)
     elif ctr:
-        out = in_ctr(ctr, MONGO_SH, [MONGO_URL, MONGO_JS], {'DBV_ARG': json.dumps(arg)})
+        out = in_ctr(ctr, MONGO_SH, [MONGO_URL, js], {'DBV_ARG': json.dumps(arg)})
     else:
         exe = shutil.which('mongosh') or shutil.which('mongo')
         if not exe:
@@ -217,6 +268,11 @@ def mongo(op):
     data = json.loads(out.strip().splitlines()[-1])
     if op in ('dbs', 'tables'):
         return data
+    if op == 'write':
+        r = data['result']
+        if isinstance(r, list) and all(isinstance(x, dict) for x in r):
+            return dict(rows_of(r), changed=True)
+        return said_rows(r)
     return dict(rows_of(data['docs']), total=data['total'])
 
 
@@ -254,7 +310,8 @@ def sqlite(op):
     path = REQ['db']
     if not is_sqlite(path):
         raise Fail('that is not an SQLite file', 'notSqlite')
-    con = sqlite3.connect('file:%s?mode=ro' % path.replace('?', '%3f').replace('#', '%23'), uri=True, timeout=5)
+    mode = 'rw' if op == 'write' else 'ro'
+    con = sqlite3.connect('file:%s?mode=%s' % (path.replace('?', '%3f').replace('#', '%23'), mode), uri=True, timeout=5)
     try:
         if op == 'tables':
             res = []
@@ -273,11 +330,17 @@ def sqlite(op):
         else:
             cur = con.execute(sql_text())
             total = None
+            if op == 'write' and not cur.description:
+                con.commit()
+                return said_rows('%d row(s) changed' % cur.rowcount if cur.rowcount >= 0 else 'OK')
         cols = [c[0] for c in cur.description or []]
         rows = cur.fetchmany(lim + 1)
         res = {'columns': cols, 'rows': [[cell(x) for x in r] for r in rows[:lim]], 'total': total}
         if total is None:
             res['more'] = len(rows) > lim
+        if op == 'write':
+            con.commit()
+            res['changed'] = True
         return res
     finally:
         con.close()
@@ -358,6 +421,14 @@ def redis(op):
     r = Redis(int(str(REQ['db']).replace('db', '') or 0))
     if op == 'tables':
         return [{'name': 'keys', 'kind': 'k', 'rows': r.cmd('DBSIZE')}]
+    if op == 'write':
+        try:
+            words = shlex.split(REQ.get('text') or '')
+        except ValueError as e:
+            raise Fail(str(e))
+        if not words:
+            raise Fail('write a query', 'writeQuery')
+        return said_rows(r.cmd(*words))
     lim, off = limits()
     pattern = (REQ.get('text') or '*').strip() or '*'
     keys, cursor = [], '0'
@@ -480,7 +551,7 @@ def main():
     if REQ.get('container') and REQ['container'] not in [c for _, c in containers()]:
         raise Fail('that container is not running', 'noContainer')
     eng = ENGINES.get(REQ.get('engine'))
-    if not eng or op not in ('tables', 'rows', 'query'):
+    if not eng or op not in ('tables', 'rows', 'query', 'write'):
         raise Fail('bad request')
     if op == 'rows' and not REQ.get('table'):
         raise Fail('pick a table')

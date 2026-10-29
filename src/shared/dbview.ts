@@ -1,5 +1,6 @@
 // The 🗄️ Database tab of a worker with a machine of its own, or on a server's floor: what the page asks
-// the office for (POST /api/dbview, see server/dbview/) and what comes back. Everything is read-only.
+// the office for (POST /api/dbview, see server/dbview/) and what comes back. It reads only, unless an
+// admin turns ✍️ writing on: then a statement of their own runs as written (op 'write').
 
 export const DB_ENGINES = ['postgres', 'mysql', 'mongo', 'redis', 'sqlite'] as const;
 export type DbEngine = (typeof DB_ENGINES)[number];
@@ -38,7 +39,9 @@ export type DbRequest =
   | { op: 'scan' }
   | ({ op: 'tables'; engine: DbEngine; db: string } & DbVia)
   | ({ op: 'rows'; engine: DbEngine; db: string; table: string; offset: number; limit: number; text?: string } & DbVia)
-  | ({ op: 'query'; engine: DbEngine; db: string; table?: string; text: string; limit: number } & DbVia);
+  | ({ op: 'query'; engine: DbEngine; db: string; table?: string; text: string; limit: number } & DbVia)
+  /** Runs `text` as written, not read-only: SQL, mongosh code with `db` the database picked, or a Redis command. Admins only. */
+  | ({ op: 'write'; engine: DbEngine; db: string; table?: string; text: string; limit: number } & DbVia);
 
 /**
  * An engine found: its databases (SQLite: its files), or why it couldn't be read. For one reached by
@@ -67,6 +70,8 @@ export interface DbRows {
   rows: unknown[][];
   total?: number | null;
   more?: boolean;
+  /** A write ran: these are what it gave back. */
+  changed?: boolean;
 }
 
 /** `code`: one of the script's own refusals (see the tab's errors in the dictionaries), which the page says in your language. */

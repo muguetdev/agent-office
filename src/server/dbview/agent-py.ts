@@ -11,7 +11,7 @@
 // No backtick or dollar-brace may go in either: they're template literals.
 import { ENGINES_PY } from './agent-py-engines.js';
 
-const BASE_PY = String.raw`import base64, hashlib, json, os, pwd, re, socket, sqlite3, subprocess, sys, shutil
+const BASE_PY = String.raw`import base64, hashlib, json, os, pwd, re, shlex, socket, sqlite3, subprocess, sys, shutil
 from urllib.parse import unquote, urlsplit, parse_qs
 
 REQ = json.loads(base64.b64decode(sys.argv[1]).decode('utf-8'))

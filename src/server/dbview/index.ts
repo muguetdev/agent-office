@@ -34,9 +34,9 @@ export function dbRequest(body: unknown): DbRequest | string {
     if (!table) return 'which table?';
     return { op: 'rows', engine: b.engine, db, table, offset: whole(b.offset, 0, 1e9, 0), limit, ...(q ? { text: q } : {}), ...container };
   }
-  if (b.op === 'query') {
+  if (b.op === 'query' || b.op === 'write') {
     if (!q?.trim()) return 'write a query';
-    return { op: 'query', engine: b.engine, db, text: q, limit, ...(table ? { table } : {}), ...container };
+    return { op: b.op, engine: b.engine, db, text: q, limit, ...(table ? { table } : {}), ...container };
   }
   return 'what to do?';
 }
