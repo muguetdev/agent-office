@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { dbCommand, dbRequest, readDb } from '../src/server/dbview/index.ts';
+import { dbCommand, dbRequest, readDb, readServerDb } from '../src/server/dbview/index.ts';
 import type { DbRequest } from '../src/shared/dbview.ts';
 import type { WorkerInfo } from '../src/shared/protocol.ts';
 
@@ -28,11 +28,32 @@ test('only well-formed reads get through', () => {
   assert.equal(typeof dbRequest({ op: 'query', engine: 'postgres', db: 'shop', text: '  ' }), 'string');
   assert.equal(typeof dbRequest({ op: 'drop', engine: 'postgres', db: 'shop' }), 'string');
   assert.deepEqual(dbRequest({ op: 'rows', engine: 'mysql', db: 'blog', table: 'posts', offset: -5, limit: 9999 }), { op: 'rows', engine: 'mysql', db: 'blog', table: 'posts', offset: 0, limit: 200 });
+  // A database in a Docker container: named as Docker names them, nothing a shell would read as more.
+  assert.deepEqual(dbRequest({ op: 'tables', engine: 'postgres', db: 'crivo', container: 'crivo-postgres-1' }), { op: 'tables', engine: 'postgres', db: 'crivo', container: 'crivo-postgres-1' });
+  assert.equal(typeof dbRequest({ op: 'tables', engine: 'postgres', db: 'crivo', container: 'x; rm -rf /' }), 'string');
+  assert.equal(typeof dbRequest({ op: 'tables', engine: 'postgres', db: 'crivo', container: 7 }), 'string');
+  // An app's URL, by its id only: the URL itself stays on the server.
+  assert.deepEqual(dbRequest({ op: 'tables', engine: 'postgres', db: 'meta', link: '20dcba518f93' }), { op: 'tables', engine: 'postgres', db: 'meta', link: '20dcba518f93' });
+  assert.equal(typeof dbRequest({ op: 'tables', engine: 'postgres', db: 'meta', link: 'postgres://u:p@h/db' }), 'string');
+  assert.equal(typeof dbRequest({ op: 'tables', engine: 'postgres', db: 'meta', link: '20dcba518f93', container: 'pg' }), 'string');
 });
 
 test('the command line carries the script and the request as base64 only', () => {
   const cmd = dbCommand({ op: 'query', engine: 'sqlite', db: "/x/it's.db", text: "select '$(rm -rf /)'", limit: 5 });
   assert.match(cmd, /^python3 -c "\$\(printf %s '[A-Za-z0-9+/=]+' \| base64 -d\)" '[A-Za-z0-9+/=]+'$/);
+  // On a server: as root by sudo, when it isn't root and may.
+  const server = dbCommand({ op: 'scan' }, true);
+  assert.ok(server.endsWith(`$S ${dbCommand({ op: 'scan' })}`));
+  assert.match(server, /sudo -n true/);
+});
+
+test("a server's floor's databases are read over its ssh, and a run with no answer says why", async () => {
+  const ran: { script: string; timeout: number }[] = [];
+  const answer = await readServerDb(async (script, timeout) => (ran.push({ script, timeout }), 'motd\n{"engines": [{"engine": "postgres", "container": "crivo-postgres-1", "dbs": ["crivo"]}]}\n'), { op: 'scan' });
+  assert.deepEqual(answer, { engines: [{ engine: 'postgres', container: 'crivo-postgres-1', dbs: ['crivo'] }] });
+  assert.match(ran[0].script, /sudo -n/);
+  assert.ok(ran[0].timeout >= 60_000);
+  assert.match(String((await readServerDb(async () => 'bash: python3: command not found\n', { op: 'scan' }) as { error: string }).error), /python3/);
 });
 
 test('an SQLite file: its tables, a page of rows, a query, and no writing', { skip: !python && 'no python3 here' }, (t) => {
@@ -57,6 +78,27 @@ test('an SQLite file: its tables, a page of rows, a query, and no writing', { sk
   assert.match(runHere({ op: 'query', engine: 'sqlite', db, text: 'select 1; delete from users', limit: 5 }).error, /one statement/);
   assert.match(runHere({ op: 'tables', engine: 'sqlite', db: path.join(dir, 'nope.db') }).error, /not an SQLite file/);
   assert.equal(runHere({ op: 'rows', engine: 'sqlite', db, table: 'users', offset: 0, limit: 5 }).total, 3, 'still all there');
+});
+
+test("an app's database URL is found in its .env, and only its label and id come out", { skip: !python && 'no python3 here' }, (t) => {
+  const home = mkdtempSync(path.join(tmpdir(), 'ao-dbview-env-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const env = path.join(home, 'app', '.env');
+  execFileSync('bash', ['-c', `mkdir -p ${JSON.stringify(path.dirname(env))} && printf 'DATABASE_URL="postgresql://shop:hunter2@db.internal:6543/shop?sslmode=require"\\nOTHER=1\\n' > ${JSON.stringify(env)}`]);
+  // The script looks in the usual folders: this one is put first among them.
+  const cmd = dbCommand({ op: 'scan' }).replace(/^python3 -c "\$\(printf %s '([^']+)' \| base64 -d\)"/, (_m, b64: string) => {
+    const script = Buffer.from(b64, 'base64').toString('utf8').replace("SQLITE_ROOTS = ('/config',", `SQLITE_ROOTS = (${JSON.stringify(home)}, '/config',`);
+    return `python3 -c "$(printf %s '${Buffer.from(script).toString('base64')}' | base64 -d)"`;
+  });
+  const out = execFileSync('bash', ['-c', cmd], { encoding: 'utf8' });
+  assert.ok(!out.includes('hunter2'), 'the password never comes out');
+  const scan = JSON.parse(out.trim().split('\n').pop() as string) as { engines: { engine: string; link?: string; label?: string; where?: string }[] };
+  const link = scan.engines.find((e) => e.link);
+  assert.ok(link, JSON.stringify(scan));
+  assert.equal(link.engine, 'postgres');
+  assert.equal(link.label, 'shop@db.internal:6543/shop');
+  assert.equal(link.where, env);
+  assert.match(link.link as string, /^[0-9a-f]{12}$/);
 });
 
 test('it reads in the worker’s own machine, as root, and passes on what the script said', async () => {

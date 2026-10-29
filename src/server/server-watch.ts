@@ -75,14 +75,14 @@ export function read(out: string, at = Date.now()): Omit<ServerState, 'history'>
   return s;
 }
 
-/** Runs `script` on the floor's server (`ssh <id> sh -s`), with what it printed, or why it couldn't. */
-function onServer(dataDir: string, id: string, script: string, timeout = 20_000): Promise<string> {
+/** Runs `script` on the floor's server (`ssh <id> sh -s`), with what it printed (its last `keep` bytes), or why it couldn't. */
+export function onServer(dataDir: string, id: string, script: string, timeout = 20_000, keep = 512 * 1024): Promise<string> {
   return new Promise((resolve, reject) => {
     const p = spawn('ssh', ['-F', configFile(dataDir, id), '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', id, 'sh -s'], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
     const timer = setTimeout(() => p.kill(), timeout);
-    p.stdout.on('data', (d) => (out = (out + d).slice(-512 * 1024)));
+    p.stdout.on('data', (d) => (out = (out + d).slice(-keep)));
     p.stderr.on('data', (d) => (err = (err + d).slice(-4096)));
     p.on('error', (e) => reject(e));
     p.on('close', (code) => {
