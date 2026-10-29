@@ -20,6 +20,7 @@ export const MACHINE_NOTE =
   "Its desktop and Chrome run in that computer too, so a server you start there (`machine run -- 'cd ~/app && nohup npm run dev > dev.log 2>&1 &'`) is at localhost in its Chrome. " +
   'The office\'s own host, where your shell and files are, is shared by every worker and short on memory: run heavy work in your computer instead ' +
   '(compiling toolchains or big projects, `go install`, `cargo build`, Docker, large installs, long test suites), copying what you need in with `machine put` or cloning it there. ' +
+  'Run the project\'s databases (PostgreSQL, MySQL or MariaDB, MongoDB, Redis, SQLite) in that computer too, on their usual ports: people browse them in its 🗄️ Database tab. ' +
   'Never type passwords or other credentials into it that you were not given for the task.';
 
 /** Claude Code's rules for running commands in its machine without asking: `machine run`, `machine info`, the machine_run tool. */
