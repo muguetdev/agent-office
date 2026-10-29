@@ -41,6 +41,7 @@ export function saveWorkers(file: string, workers: Iterable<Worker>, stopping: b
     pastPrs: info.pastPrs,
     meeting: info.meeting,
     machine: info.machine,
+    napping: info.napping,
     workedMs: workedMs(info),
     tracker: info.kind === 'agent' ? tracker : undefined,
     usage: providerAdapter(info.provider)?.usage?.persisted ? info.usage : undefined,
@@ -104,6 +105,7 @@ export function restoreWorkers(file: string, workers: Map<string, Worker>, defau
         meeting: typeof s.meeting === 'string' && DESK_BY_ID.get(s.deskId)?.room ? s.meeting : undefined,
         workedMs: typeof s.workedMs === 'number' && Number.isFinite(s.workedMs) && s.workedMs > 0 ? s.workedMs : undefined,
         machine: validMachine(s.machine),
+        napping: typeof s.napping === 'number' ? s.napping : undefined,
       };
       const w = newWorker(info, tracker, typeof s.hookToken === 'string' && s.hookToken ? s.hookToken : undefined);
       if (typeof s.owner === 'string' && s.owner) w.owner = s.owner;

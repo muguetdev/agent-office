@@ -18,6 +18,8 @@ export const MACHINE_NOTE =
   'You also have a shell in that same computer: `machine run -- <command>` (or the machine_run tool) runs a command line with bash there, as its user with passwordless sudo ' +
   '(`machine run -- sudo apt-get install -y golang-go`); `machine put <local> <remote>` and `machine get <remote> <local>` copy files in and out; `machine info` says what is installed. ' +
   "Its desktop and Chrome run in that computer too, so a server you start there (`machine run -- 'cd ~/app && nohup npm run dev > dev.log 2>&1 &'`) is at localhost in its Chrome. " +
+  'The office\'s own host, where your shell and files are, is shared by every worker and short on memory: run heavy work in your computer instead ' +
+  '(compiling toolchains or big projects, `go install`, `cargo build`, Docker, large installs, long test suites), copying what you need in with `machine put` or cloning it there. ' +
   'Never type passwords or other credentials into it that you were not given for the task.';
 
 /** Claude Code's rules for running commands in its machine without asking: `machine run`, `machine info`, the machine_run tool. */

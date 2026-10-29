@@ -2203,6 +2203,7 @@ Opções:
     pressRestart: 'aperte R para reiniciar',
     pressResume: 'aperte R para retomar',
     exited: (who: string, code: number | null) => `${who} saiu com o código ${code}`,
+    napping: (who: string) => `💤 ${who} ficou um tempo parado e foi dormir para liberar memória; acorda na mesma sessão quando precisar`,
     codexSetup: 'Abra o terminal: termine o login e revise os hooks do escritório em /hooks',
     setupPrompt: 'Esperando uma pergunta de configuração (confiança / login) — abra o terminal',
     failedStart: (what: string, error: string) => `Falhou ao iniciar ${what}: ${error}`,

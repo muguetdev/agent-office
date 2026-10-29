@@ -28,6 +28,8 @@ export interface WorkerTask {
 
 export interface WorkerInfo {
   id: string;
+  /** Put to sleep since then for sitting quiet (server/workers/nap.ts): a restart leaves it asleep, and its next start clears it. */
+  napping?: number;
   /** On a break since then (the office's clock): up from its desk, wandering the office until there's work for it (see features/breaks). */
   resting?: number;
   /** 'agent' runs the selected provider; 'shell' is a plain shared login shell. */

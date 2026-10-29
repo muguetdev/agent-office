@@ -30,6 +30,7 @@ import type { Capacity } from './machine.js';
 import { officePrompt, type PromptSource } from './prompts.js';
 import { L } from './i18n.js';
 import { breakOver } from './workers/breaks.js';
+import { startNaps } from './workers/nap.js';
 import { CodeFiles } from './code.js';
 import { serverCheckout } from './server-repo.js';
 import { crewOf } from '../shared/crew.js';
@@ -148,6 +149,8 @@ export class Floor {
   /** Workers sent home on a map that locks them up (see MapPlan.sendHome). */
   readonly jail: Jail;
   private timer: NodeJS.Timeout;
+  /** Stops putting quiet agents to sleep (workers/nap.ts). */
+  private stopNaps: () => void;
   /** Pull requests merging, to ring the gong for. */
   private merges = new MergeWatch();
   /** A look for workers whose pull request merged, due shortly (see sendLandedHome). */
@@ -347,6 +350,7 @@ export class Floor {
     this.timer = setInterval(() => {
       if (this.active() || Date.now() - this.github.issues.fetchedAt > IDLE_REFRESH_MS) void this.github.refresh();
     }, REFRESH_MS);
+    this.stopNaps = startNaps(this.workers);
   }
 
   /** Pull request `n` merged (`by` someone, from the PR window): the gong rings, once per PR. */
@@ -445,6 +449,7 @@ export class Floor {
   /** With `keep` (a restart), the workers' terminals keep running for the next office to pick up. */
   shutdown(keep = false) {
     clearInterval(this.timer);
+    this.stopNaps();
     clearTimeout(this.landedTimer);
     this.dog.stop();
     this.github.stop();

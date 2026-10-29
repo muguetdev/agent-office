@@ -307,7 +307,7 @@ export class WorkerManager {
     if (this.worktrees.checkLost(w, true)) return lostMessage(w.info);
     clockWork(w.info, 'starting');
     w.info.status = 'starting';
-    w.info.exitCode = undefined;
+    w.info.exitCode = w.info.napping = undefined;
     const station = DESK_BY_ID.get(w.info.deskId)?.station;
     // A board agent with no session to carry on starts over, so it needs telling what it's for again.
     const first = prompt && station && !w.info.sessionId ? `${stationBrief(station, this.prompts)}\n\n${prompt}` : prompt;
@@ -363,10 +363,19 @@ export class WorkerManager {
     return this.resume(id);
   }
 
-  /** Starts every worker that isn't running: nobody should be found asleep at their desk. */
+  /** Starts every worker that isn't running, but the ones napping (workers/nap.ts): nobody should be found asleep at their desk. */
   wakeAll() {
     // A DeepSeek Harness worker has no PTY but is still running: only the ones that are gone wake up.
-    for (const w of this.workers.values()) if (!w.pty && !w.dsh) this.resume(w.info.id);
+    for (const w of this.workers.values()) if (!w.pty && !w.dsh && !w.info.napping) this.resume(w.info.id);
+  }
+
+  /** Stops a quiet agent's process to free the machine (see workers/nap.ts): asleep until it's next needed. */
+  nap(id: string): boolean {
+    const w = this.workers.get(id);
+    if (!w?.pty || w.viewers.size || midTurn(w)) return false;
+    w.info.napping = Date.now();
+    w.pty.kill();
+    return true;
   }
 
   /**
@@ -462,19 +471,10 @@ export class WorkerManager {
   write(id: string, data: string, by: string) {
     const w = this.workers.get(id);
     if (!w) return;
-    if (w.dsh) {
-      // ACP has no terminal: the session buffers these into a line and submits it on Enter.
-      w.dsh.writeInput(data);
-      let changed = this.typed(w, by);
-      if (w.info.status === 'needs_input' && w.info.acked === false) {
-        w.info.acked = true;
-        changed = true;
-      }
-      if (changed) this.emitUpdate(w);
-      return;
-    }
-    if (!w.pty) return;
-    w.pty.write(data);
+    // ACP has no terminal: the session buffers these into a line and submits it on Enter.
+    if (w.dsh) w.dsh.writeInput(data);
+    else if (w.pty) w.pty.write(data);
+    else return;
     let changed = this.typed(w, by);
     if (w.info.status === 'needs_input' && w.info.acked === false) {
       w.info.acked = true;
@@ -820,7 +820,7 @@ export class WorkerManager {
       clockWork(info, 'exited');
       info.status = 'exited';
       const hint = info.kind === 'shell' ? ` — ${L.workers.pressRestart}` : info.sessionId ? ` — ${L.workers.pressResume}` : '';
-      const msg = `\r\n\x1b[2m[${L.workers.exited(info.name, exitCode)}${hint}]\x1b[0m\r\n`;
+      const msg = `\r\n\x1b[2m[${info.napping ? L.workers.napping(info.name) : L.workers.exited(info.name, exitCode)}${hint}]\x1b[0m\r\n`;
       term.write(msg);
       if (w.viewers.size) this.events.data(info.id, msg, [...w.viewers.keys()]);
       w.screenDirty = true;

@@ -2213,6 +2213,7 @@ Options:
     pressRestart: 'press R to restart',
     pressResume: 'press R to resume',
     exited: (who: string, code: number | null) => `${who} exited with code ${code}`,
+    napping: (who: string) => `💤 ${who} was quiet for a while, so it's asleep to free memory; it wakes on its session when needed`,
     codexSetup: 'Open the terminal: complete login and review Office hooks in /hooks',
     setupPrompt: 'Waiting on a setup prompt (trust / login) — open the terminal',
     failedStart: (what: string, error: string) => `Failed to start ${what}: ${error}`,

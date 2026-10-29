@@ -2213,6 +2213,7 @@ GitHub CLI 로그인, 층으로 복제할 저장소 선택. --projects나 --proj
     pressRestart: 'R을 눌러 다시 시작',
     pressResume: 'R을 눌러 이어서 실행',
     exited: (who: string, code: number | null) => `${who}이(가) 코드 ${code}(으)로 종료되었습니다`,
+    napping: (who: string) => `💤 ${who}이(가) 한동안 조용해서 메모리를 비우려고 잠들었습니다. 필요할 때 같은 세션으로 깨어납니다`,
     codexSetup: '터미널을 여세요: 로그인을 완료하고 /hooks에서 Office hooks를 검토하세요',
     setupPrompt: '설정 확인(신뢰 / 로그인)을 기다리는 중 — 터미널을 여세요',
     failedStart: (what: string, error: string) => `${what}을(를) 시작하지 못했습니다: ${error}`,

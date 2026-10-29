@@ -65,6 +65,8 @@ agent-office tunnel [office@address | url] [--port <n>] [--office-port <n>] [--n
 
 The building holds up to **32 project floors**. That's separate from `--max-workers`, which caps the workers running at once across the building.
 
+**Naps.** An agent that has sat ready or done for 2 hours, with nobody at its terminal, goes to sleep: its process stops to free the office's memory (a Claude Code process holds a few hundred MB), and it shows asleep (💤) until it's needed. Opening its terminal, a prompt or a message from another worker wakes it on the same session, and a restart or reboot leaves it asleep. Set `AGENT_OFFICE_NAP_HOURS` to change the wait (`0.5` is half an hour), or to `0` to keep everyone awake.
+
 **Language.** The office speaks the language in `AGENT_OFFICE_LANG` (`en`, `pt-BR` or `ko`), else English (not the terminal's `LANG`, so an office already running doesn't switch on an upgrade), in its notices and errors, its console and what it posts to Slack or Discord. An admin can change it in ⚙️ Settings → Building. Each page is in the language its person picked in ⚙️ Settings → You, or else their browser's.
 
 ## Agent machines
