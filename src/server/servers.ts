@@ -117,6 +117,14 @@ is reached with \`ssh ${id}\` (it already has its address, user and key):
 
 It's a live server: say what you're going to change before you change it, keep a backup of a file you
 edit (\`cp file file.bak\`), and don't restart services or reboot it without being asked.
+
+## Where to build
+
+The office's machine is shared by every worker on every floor and short on memory: don't compile,
+install toolchains or packages, or run test suites or Docker here. Do that on the server, in a folder of
+its own away from what's deployed (\`~/build/<name>\`): copy the code over with
+\`rsync -az --exclude .git ./<dir>/ ${id}:build/<dir>/\`, then \`ssh ${id} 'cd ~/build/<dir> && <build or test>'\`.
+Read, edit, commit and push here; build and test there.
 ${repo ? codeNote(id, repo) : ''}`;
 
 /** Writes the note in the floor's folder, again whenever its repository is linked or unlinked. */

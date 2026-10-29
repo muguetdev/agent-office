@@ -68,7 +68,11 @@ test("the floor's note says where the project's code is when it has a repository
   const plain = readFileSync(path.join(folder, 'AGENTS.md'), 'utf8');
   assert.match(plain, /`ssh prod`/);
   assert.doesNotMatch(plain, /project's code|cloned/);
-  assert.ok(plain.endsWith("don't restart services or reboot it without being asked.\n"));
+  assert.match(plain, /don't restart services or reboot it without being asked\./);
+  // Builds go on the server, never on the office's shared machine.
+  assert.match(plain, /don't compile,\ninstall toolchains or packages/);
+  assert.match(plain, /rsync -az --exclude \.git \.\/<dir>\/ prod:build\/<dir>\//);
+  assert.ok(plain.endsWith('Read, edit, commit and push here; build and test there.\n'));
 
   writeAgentNote(folder, 'prod', TARGET, 'muguetdev/crivo');
   for (const file of ['AGENTS.md', 'CLAUDE.md']) {
