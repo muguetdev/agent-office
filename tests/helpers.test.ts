@@ -55,3 +55,26 @@ test('at most a dozen at once, and nothing odd for an id', () => {
   helperHook(h, 'SubagentStart', { agent_id: 'x; rm -rf /', agent_type: 'x' }, describe);
   assert.ok(!info.helpers?.some((x) => x.id.includes(' ')));
 });
+
+test("a Claude Code started before the office asked for SubagentStart still shows its helpers", () => {
+  // Its hooks were read as it started: only the tool calls, with each helper's id on its own.
+  const { h, info } = handle();
+  helperHook(h, 'PreToolUse', agentCall, describe, 1000);
+  // A helper that runs to its end: it comes in with its first tool call…
+  assert.equal(helperHook(h, 'PreToolUse', { agent_id: 'b1', agent_type: 'Explore', tool_name: 'Glob', tool_input: { pattern: '*.go' } }, describe, 2000), true);
+  assert.deepEqual(info.helpers, [{ id: 'b1', type: 'Explore', description: 'Count files here', since: 2000, activity: 'Glob: *.go' }]);
+  // …and goes with the Agent call's answer; a late tool call of it doesn't bring it back.
+  helperHook(h, 'PostToolUse', { ...agentCall, tool_response: { status: 'completed', agentId: 'b1', content: [] } }, describe);
+  assert.equal(info.helpers, undefined);
+  helperHook(h, 'PostToolUse', { agent_id: 'b1', tool_name: 'Glob' }, describe);
+  helperHook(h, 'PreToolUse', { agent_id: 'b1', tool_name: 'Glob', tool_input: {} }, describe);
+  assert.equal(info.helpers, undefined);
+  // One in the background comes in with the Agent call's answer, and goes on Stop once it's done.
+  helperHook(h, 'PreToolUse', { ...agentCall, tool_input: { description: 'Scan the repo', subagent_type: 'general-purpose' } }, describe);
+  helperHook(h, 'PostToolUse', { ...agentCall, tool_input: { description: 'Scan the repo', subagent_type: 'general-purpose' }, tool_response: { isAsync: true, status: 'async_launched', agentId: 'b2' } }, describe, 3000);
+  assert.deepEqual(info.helpers?.map((x) => [x.id, x.description]), [['b2', 'Scan the repo']]);
+  helperHook(h, 'Stop', { background_tasks: [{ id: 'b2', status: 'running' }] }, describe);
+  assert.equal(info.helpers?.length, 1);
+  helperHook(h, 'Stop', { background_tasks: [] }, describe);
+  assert.equal(info.helpers, undefined);
+});

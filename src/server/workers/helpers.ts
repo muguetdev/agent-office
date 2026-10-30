@@ -1,9 +1,12 @@
 // A worker's helpers: the subagents its Claude Code runs (the Agent tool), kept in WorkerInfo.helpers
 // for the office to show at desks of their own while they work. Claude Code's hooks say it all: the
 // Agent call (what it's for), SubagentStart (its id), the tool calls it makes (marked with its id),
-// SubagentStop, and on Stop the background agents still running. Nothing is saved: a new run of the
-// worker starts with none.
-import type { WorkerHelper, WorkerInfo } from '../../shared/protocol.js';
+// SubagentStop, and on Stop the background agents still running. A Claude Code started before the
+// office asked for SubagentStart and SubagentStop (its hooks are read once, as it starts) still shows
+// its helpers: one comes in with its first tool call, or with the Agent call's answer for one in the
+// background, and goes with the answer of one that ran to the end, or on Stop. Nothing is saved: a
+// new run of the worker starts with none.
+import type { WorkerInfo } from '../../shared/protocol.js';
 import type { WorkerHandle } from './types.js';
 import { truncate } from './util.js';
 
@@ -14,10 +17,29 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** Agent calls made and not started yet, oldest first: SubagentStart pairs each with its id. */
 const pending = new WeakMap<WorkerInfo, { description: string; type: string }[]>();
+/** Helpers gone already, so a late tool call of one doesn't bring it back. */
+const gone = new WeakMap<WorkerInfo, Set<string>>();
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? truncate(v.replace(/\s+/g, ' ').trim(), max) : '');
 
+/** A helper comes in (once): what it was asked is the oldest Agent call not yet paired, unless `asked` says. */
+function start(h: WorkerHandle, id: string, agentType: unknown, now: number, asked?: { description: string; type: string }): void {
+  const { info } = h;
+  if (info.helpers?.some((x) => x.id === id) || gone.get(info)?.has(id) || (info.helpers?.length ?? 0) >= MAX_HELPERS) return;
+  const queue = pending.get(info);
+  // Told what it was asked: that Agent call is paired now, whichever it was.
+  if (asked && queue) queue.splice(Math.max(0, queue.findIndex((q) => q.description === asked.description)), 1);
+  const call = asked ?? queue?.shift();
+  const type = text(agentType, 40) || call?.type || 'agent';
+  info.helpers = [...(info.helpers ?? []), { id, type, description: call?.description || type, since: now }];
+  h.emit();
+}
+
 function remove(info: WorkerInfo, id: string): boolean {
+  let ended = gone.get(info);
+  if (!ended) gone.set(info, (ended = new Set()));
+  ended.add(id);
+  if (ended.size > 200) ended.delete(ended.values().next().value!);
   const before = info.helpers?.length ?? 0;
   info.helpers = info.helpers?.filter((x) => x.id !== id);
   if (!info.helpers?.length) delete info.helpers;
@@ -37,24 +59,16 @@ export function helperHook(h: WorkerHandle, event: string, payload: any, describ
       // A new run of Claude Code: whoever helped the last one is gone with it.
       if (payload?.source === 'startup' || payload?.source === 'resume') {
         pending.delete(info);
+        gone.delete(info);
         if (info.helpers) {
           delete info.helpers;
           h.emit();
         }
       }
       return false;
-    case 'SubagentStart': {
-      if (!agentId) return true;
-      const queue = pending.get(info) ?? [];
-      const asked = queue.shift();
-      const type = text(payload?.agent_type, 40) || asked?.type || 'agent';
-      if (!info.helpers?.some((x) => x.id === agentId) && (info.helpers?.length ?? 0) < MAX_HELPERS) {
-        const helper: WorkerHelper = { id: agentId, type, description: asked?.description || type, since: now };
-        info.helpers = [...(info.helpers ?? []), helper];
-        h.emit();
-      }
+    case 'SubagentStart':
+      if (agentId) start(h, agentId, payload?.agent_type, now);
       return true;
-    }
     case 'SubagentStop':
       if (agentId && remove(info, agentId)) h.emit();
       return true;
@@ -62,7 +76,9 @@ export function helperHook(h: WorkerHandle, event: string, payload: any, describ
     case 'PostToolUse':
     case 'PostToolUseFailure':
       if (agentId) {
-        // One of its helpers at work: what it's doing goes on its card, not the worker's.
+        // One of its helpers at work: what it's doing goes on its card, not the worker's. Without
+        // SubagentStart (an older run), its first tool call is how it comes in.
+        if (event === 'PreToolUse') start(h, agentId, payload?.agent_type, now);
         const helper = info.helpers?.find((x) => x.id === agentId);
         if (helper && event === 'PreToolUse') {
           helper.activity = describe(payload);
@@ -78,13 +94,18 @@ export function helperHook(h: WorkerHandle, event: string, payload: any, describ
           queue.push({ description, type: text(input.subagent_type, 40) });
           pending.set(info, queue.slice(-MAX_HELPERS));
         } else {
-          // Its answer names the helper it started (one in the background): the sure pairing.
-          const id = payload?.tool_response?.agentId;
-          const helper = typeof id === 'string' ? info.helpers?.find((x) => x.id === id) : undefined;
-          if (helper && description && helper.description !== description) {
-            helper.description = description;
-            h.emit();
-          }
+          // Its answer names the helper: one in the background has just started (the sure pairing
+          // with what it was asked), one that wasn't has run to its end.
+          const res = payload?.tool_response;
+          const id = typeof res?.agentId === 'string' && ID.test(res.agentId) ? res.agentId : undefined;
+          if (id && res?.isAsync === true) {
+            const helper = info.helpers?.find((x) => x.id === id);
+            if (!helper) start(h, id, input.subagent_type, now, { description, type: text(input.subagent_type, 40) });
+            else if (description && helper.description !== description) {
+              helper.description = description;
+              h.emit();
+            }
+          } else if (id && remove(info, id)) h.emit();
         }
       }
       return false;
