@@ -80,6 +80,8 @@ export class Phone {
   private calls = new Map<string, Call>();
   /** What's waiting to reach each worker (`floor:id`), in order. */
   private queue = new Map<string, { call: string; text: string }[]>();
+  /** Workers being given their messages right now: prompting one tells everyone it changed, which comes back here. */
+  private delivering = new Set<string>();
   private now: () => number;
 
   constructor(private deps: PhoneDeps) {
@@ -229,19 +231,29 @@ export class Phone {
   private deliver(p: Party) {
     const key = `${p.floor}:${p.id}`;
     const waiting = this.queue.get(key);
-    if (!waiting?.length) return;
+    if (!waiting?.length || this.delivering.has(key)) return;
     const found = this.party(p);
     if (!found) return void this.queue.delete(key);
     const { floor, w } = found;
     // In the middle of a turn, or waiting on a person: it hears once that's over.
     if (isBusy(w.status) || w.status === 'starting') return;
     const text = waiting.map((m) => m.text).join('\n\n---\n\n');
-    let err = floor.workers.prompt(w.id, text, '📞');
-    if (err) err = floor.workers.resume(w.id, text);
-    if (err) return;
+    // Off the queue before it goes in, and not again meanwhile: typing it in tells everyone the
+    // worker changed, which comes straight back to deliver.
     this.queue.delete(key);
-    w.phone = { calls: w.phone?.calls ?? [], ringingUntil: this.now() + RING_MS };
-    floor.workers.relaunch(w.id, false);
+    this.delivering.add(key);
+    try {
+      let err = floor.workers.prompt(w.id, text, '📞');
+      if (err) err = floor.workers.resume(w.id, text);
+      if (err) {
+        this.queue.set(key, [...waiting, ...(this.queue.get(key) ?? [])]);
+        return;
+      }
+      w.phone = { calls: w.phone?.calls ?? [], ringingUntil: this.now() + RING_MS };
+      floor.workers.relaunch(w.id, false);
+    } finally {
+      this.delivering.delete(key);
+    }
   }
 
   /** What `p`'s phone shows: its open calls. */

@@ -114,3 +114,35 @@ test('only floors your owner may reach, and a quiet call ends by itself', () => 
   open.phone.tick();
   assert.equal(open.meta.infos.get('n1')!.phone?.calls.length ?? 0, 0);
 });
+
+test("typing a message in tells the office the worker changed, which doesn't deliver it again", () => {
+  const floors: PhoneFloor[] = [];
+  const typed: string[] = [];
+  const mk = (id: string, wid: string, name: string): PhoneFloor => {
+    const w = { id: wid, name, kind: 'agent', status: 'idle' } as WorkerInfo;
+    return {
+      id,
+      name: id,
+      workers: {
+        get: (x) => (x === wid ? w : undefined),
+        list: () => [w],
+        ownerOf: () => undefined,
+        // Like the manager: prompting emits an update at once (the status only changes with its hooks later).
+        prompt: (x, text) => {
+          typed.push(text);
+          phone.workerChanged(id, w);
+          return undefined;
+        },
+        resume: () => undefined,
+        relaunch: () => {
+          phone.workerChanged(id, w);
+          return undefined;
+        },
+      },
+    };
+  };
+  floors.push(mk('a', 'n1', 'Nova'), mk('b', 'p1', 'Pixel'));
+  const phone: Phone = new Phone({ floors: () => floors, floor: (id) => floors.find((f) => f.id === id), may: () => true, toast: () => undefined });
+  assert.ok(typeof phone.call({ floor: 'a', id: 'n1' }, 'Pixel@b', 'hi') !== 'string');
+  assert.equal(typed.length, 1);
+});
