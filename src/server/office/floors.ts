@@ -12,6 +12,7 @@ import { floorsToEveryone } from './access.js';
 import { prepareServer } from '../servers.js';
 import { cloneServerRepo, watchServer } from '../ws/handlers/servers.js';
 import { machinesOf } from '../machines/index.js';
+import { phoneOf } from '../phone/index.js';
 
 /** Finding floors, the elevator's list of them, and taking one off the building. */
 export function floorHelpers(ctx: Ctx): FloorHelpers {
@@ -114,6 +115,7 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
       } else ctx.webhook.onWorker(w);
       ctx.machine.workersChanged();
       machinesOf(ctx).workerChanged(floor, w);
+      phoneOf(ctx).workerChanged(floor.id, w);
       ctx.floorsChanged();
     },
     people: (floor) => {

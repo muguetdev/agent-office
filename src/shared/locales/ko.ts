@@ -3717,4 +3717,8 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
   helpers: {
     name: (worker: string) => `${worker}의 도우미`,
   },
+  phone: {
+    badge: (who: string, floor: string) => `📞 ${who} · ${floor}`,
+    badgeMany: (n: number) => `📞 통화 ${n}건`,
+  },
 };

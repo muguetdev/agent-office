@@ -11,6 +11,7 @@ import { realpathSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { machineTools, runMachineTool } from './office-machine.js';
+import { PHONE_INSTRUCTIONS, PHONE_TOOLS, runPhoneTool } from './office-phone.js';
 
 const USAGE = `Usage:
   office-workers list [--json]                  everyone at a desk on this floor: status, task,
@@ -409,7 +410,9 @@ const INSTRUCTIONS =
   'puts a new agent to work, send_home sends agents home and deletes their worktrees and branches, tell_worker gives one a prompt, discuss_with_worker posts your turn in a discussion the office started you in, and link_pr says which pull request is a ' +
   "worker's when list_workers does not show it. Everyone in the office sees who did what. " +
   'choose_model switches your own model to fit the task: call it when you start a task (high for planning and hard problems, medium for ordinary work, low for small edits and lookups) and again when the work changes size. ' +
-  'The office-workers command on your PATH does the same from a shell.';
+  'The office-workers command on your PATH does the same from a shell. ' +
+  PHONE_INSTRUCTIONS +
+  ' The office-phone command does the same from a shell.';
 
 /** Runs a tool; resolves to its text, and whether nothing it was asked came off, or throws with why it failed. */
 async function runTool(name, args, io) {
@@ -466,13 +469,14 @@ export async function handleMcp(msg, io) {
       return ok({});
     // A worker with a machine of its own also gets its shell and files (see office-machine.js).
     case 'tools/list':
-      return ok({ tools: [...TOOLS, ...(await machineTools(io))] });
+      return ok({ tools: [...TOOLS, ...PHONE_TOOLS, ...(await machineTools(io))] });
     case 'tools/call': {
       const name = msg.params?.name;
       const machine = typeof name === 'string' && name.startsWith('machine_');
-      if (!TOOLS.some((t) => t.name === name) && !(machine && (await machineTools(io)).some((t) => t.name === name))) return { jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: `Unknown tool: ${name}` } };
+      const phone = PHONE_TOOLS.some((t) => t.name === name);
+      if (!TOOLS.some((t) => t.name === name) && !phone && !(machine && (await machineTools(io)).some((t) => t.name === name))) return { jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: `Unknown tool: ${name}` } };
       try {
-        const { text, isError } = await (machine ? runMachineTool : runTool)(name, msg.params?.arguments, io);
+        const { text, isError } = await (machine ? runMachineTool : phone ? runPhoneTool : runTool)(name, msg.params?.arguments, io);
         return ok({ content: [{ type: 'text', text }], ...(isError ? { isError: true } : {}) });
       } catch (e) {
         return ok({ content: [{ type: 'text', text: e.message }], isError: true });

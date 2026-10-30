@@ -3717,4 +3717,8 @@ Options:
   helpers: {
     name: (worker: string) => `${worker}'s helper`,
   },
+  phone: {
+    badge: (who: string, floor: string) => `📞 ${who} · ${floor}`,
+    badgeMany: (n: number) => `📞 ${n} calls`,
+  },
 };

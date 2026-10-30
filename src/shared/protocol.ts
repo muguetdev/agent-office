@@ -31,6 +31,7 @@ export * from './protocol/discussions.js';
 export * from './protocol/floors.js';
 export * from './protocol/github.js';
 export * from './protocol/machines.js';
+export * from './protocol/phone.js';
 export * from './protocol/meetings.js';
 export * from './protocol/presence.js';
 export * from './protocol/queue.js';
