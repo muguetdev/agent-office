@@ -1,0 +1,37 @@
+/* The 💬 WhatsOffice tab (tab.ts): a messaging app's look, the list beside the conversation. */
+.wo-pane { position: absolute; inset: 0; display: flex; background: #f0f2f5; color: #111b21; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.wo-side { width: 300px; flex: none; display: flex; flex-direction: column; background: #fff; border-right: 1px solid #d1d7db; }
+.wo-side-head { padding: 12px 14px; font-weight: 800; font-size: 16px; background: #008069; color: #fff; }
+.wo-list { flex: 1; overflow: auto; }
+.wo-item { display: flex; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid #e9edef; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.wo-item:hover { background: #f5f6f6; }
+.wo-item.on { background: #e9edef; }
+.wo-avatar { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 17px; }
+.wo-item-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wo-item-top, .wo-item-bottom { display: flex; align-items: baseline; gap: 6px; }
+.wo-name { flex: 1; min-width: 0; font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-time { font-size: 11px; color: #667781; }
+.wo-floor { font-size: 11px; color: #008069; font-weight: 700; }
+.wo-preview { flex: 1; min-width: 0; font-size: 13px; color: #667781; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wo-unread { flex: none; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: #25d366; color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
+.wo-chat { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.wo-chat-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #f0f2f5; border-bottom: 1px solid #d1d7db; min-height: 56px; }
+.wo-chat-name { font-weight: 700; font-size: 15px; }
+.wo-chat-floor { font-size: 12px; color: #667781; }
+.wo-msgs { flex: 1; overflow: auto; padding: 14px 6%; display: flex; flex-direction: column; gap: 4px; background: #efeae2 radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0) 0 0 / 18px 18px; }
+.wo-day { align-self: center; margin: 8px 0; padding: 4px 10px; border-radius: 8px; background: #fff; color: #54656f; font-size: 12px; box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); }
+.wo-bubble { position: relative; max-width: 72%; padding: 6px 9px 18px; border-radius: 8px; font-size: 14px; line-height: 1.4; box-shadow: 0 1px 0.5px rgba(11, 20, 26, 0.13); }
+.wo-bubble.mine { align-self: flex-end; background: #d9fdd3; border-top-right-radius: 0; }
+.wo-bubble.theirs { align-self: flex-start; background: #fff; border-top-left-radius: 0; }
+.wo-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.wo-at { position: absolute; right: 8px; bottom: 3px; font-size: 10.5px; color: #667781; }
+.wo-foot { padding: 8px 14px; font-size: 12px; color: #667781; background: #f0f2f5; border-top: 1px solid #d1d7db; text-align: center; }
+.wo-empty { margin: 24px 16px; color: #667781; font-size: 13px; text-align: center; }
+.wo-back { display: none; border: 0; background: none; font-size: 22px; line-height: 1; padding: 0 4px; cursor: pointer; color: #54656f; }
+@media (max-width: 640px) {
+  .wo-side { width: 100%; border-right: 0; }
+  .wo-chat { display: none; }
+  .wo-reading .wo-side { display: none; }
+  .wo-reading .wo-chat { display: flex; }
+  .wo-back { display: block; }
+}

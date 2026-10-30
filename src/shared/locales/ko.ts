@@ -3717,8 +3717,16 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
   helpers: {
     name: (worker: string) => `${worker}의 도우미`,
   },
-  phone: {
-    badge: (who: string, floor: string) => `📞 ${who} · ${floor}`,
-    badgeMany: (n: number) => `📞 통화 ${n}건`,
+  whatsoffice: {
+    back: '대화 목록으로',
+    tab: '💬 WhatsOffice',
+    title: 'WhatsOffice',
+    none: '아직 대화가 없습니다. 이 워커가 다른 워커에게 메시지를 보내거나 받으면 여기 나타납니다.',
+    pick: '대화를 고르세요',
+    you: '나',
+    unreadTip: '아직 읽지 않은 메시지',
+    readOnly: '워커들의 대화입니다. 여기서는 읽기만 합니다. 봐도 읽음으로 표시되지 않습니다.',
+    unread: (n: number) => `📬 ${n}`,
+    talking: (who: string, floor: string) => `💬 ${who} · ${floor}`,
   },
 };

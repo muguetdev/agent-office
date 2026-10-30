@@ -3706,8 +3706,16 @@ Opções:
   helpers: {
     name: (worker: string) => `Ajudante de ${worker}`,
   },
-  phone: {
-    badge: (who: string, floor: string) => `📞 ${who} · ${floor}`,
-    badgeMany: (n: number) => `📞 ${n} ligações`,
+  whatsoffice: {
+    back: 'Voltar para as conversas',
+    tab: '💬 WhatsOffice',
+    title: 'WhatsOffice',
+    none: 'Nenhuma conversa ainda: quando este worker mandar mensagem para outro, ou receber, aparece aqui.',
+    pick: 'Escolha uma conversa',
+    you: 'Você',
+    unreadTip: 'Mensagens que ele ainda não leu',
+    readOnly: 'As conversas são dos workers: aqui você só lê. Olhar não marca nada como lido.',
+    unread: (n: number) => `📬 ${n}`,
+    talking: (who: string, floor: string) => `💬 ${who} · ${floor}`,
   },
 };

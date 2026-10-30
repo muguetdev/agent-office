@@ -9,6 +9,7 @@ import { keyLabels } from './termkeys';
 import { L } from '../i18n';
 import { screenTab } from './machines/screen';
 import { dbTab } from './machines/db';
+import { woTab } from './whatsoffice/tab';
 
 /** A web page pinned open beside a worker's terminal. */
 interface WebTab {
@@ -65,6 +66,9 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
   /** And the 🗄️ databases in that machine (see machines/db.ts). */
   const db = dbTab(workerId);
   pages.append(db.el);
+  /** And its 💬 WhatsOffice: its conversations with the other workers (see whatsoffice/tab.ts). */
+  const wo = woTab(workerId);
+  pages.append(wo.el);
 
   const render = () => {
     const mainTab = h('div.term-tab', { class: active === 'main' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'main'), onclick: () => show('main') }, L.termTabs.terminal));
@@ -72,11 +76,13 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     const chatTab = opts.chat ? h('div.term-tab', { class: active === 'chat' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'chat'), onclick: () => show('chat') }, L.termTabs.chat)) : null;
     const screenBtn = screen.shows() ? h('div.term-tab', { class: active === 'screen' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'screen'), onclick: () => show('screen') }, L.machines.tab)) : null;
     const dbBtn = db.shows() ? h('div.term-tab', { class: active === 'db' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'db'), onclick: () => show('db') }, L.dbview.tab)) : null;
+    const woBtn = wo.shows() ? h('div.term-tab', { class: active === 'wo' ? 'on' : '' }, h('button.term-tab-label', { type: 'button', role: 'tab', 'aria-selected': String(active === 'wo'), onclick: () => show('wo') }, L.whatsoffice.tab)) : null;
     tabsBar.replaceChildren(
       ...(chatTab ? [chatTab, mainTab] : [mainTab]),
       codeTab,
       ...(screenBtn ? [screenBtn] : []),
       ...(dbBtn ? [dbBtn] : []),
+      ...(woBtn ? [woBtn] : []),
       ...tabs.map((t) =>
         h(
           'div.term-tab',
@@ -113,6 +119,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     codeHost.classList.toggle('hidden', id !== 'code');
     screen.show(id === 'screen');
     db.show(id === 'db');
+    wo.show(id === 'wo');
     if (id === 'code' && !codeLoaded) {
       codeLoaded = true;
       codeHost.textContent = L.code.loading;

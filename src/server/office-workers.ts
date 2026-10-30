@@ -197,8 +197,8 @@ export const MCP_NAME = 'agent-office';
 const MCP_ENV = ['AGENT_OFFICE_HOOK_URL', 'AGENT_OFFICE_WORKER_ID', 'AGENT_OFFICE_HOOK_TOKEN'];
 /** Its tools that only look, which Claude Code workers may call without asking. */
 export const MCP_READ_ONLY = [`mcp__${MCP_NAME}__list_workers`, `mcp__${MCP_NAME}__choose_model`];
-/** The office phone's tools (see bin/office-phone.js), which only pass messages between workers: Claude Code workers call, answer and hang up without asking. */
-export const MCP_PHONE = ['list_contacts', 'call_worker', 'reply_call', 'hang_up'].map((t) => `mcp__${MCP_NAME}__${t}`);
+/** WhatsOffice's tools (see bin/whatsoffice.js), which only pass messages between workers: Claude Code workers message and read without asking. */
+export const MCP_CHAT = ['list_contacts', 'send_message', 'read_messages'].map((t) => `mcp__${MCP_NAME}__${t}`);
 
 /**
  * Writes Claude Code's --mcp-config file for the MCP server (bin/office-workers.js `mcp`, run by the

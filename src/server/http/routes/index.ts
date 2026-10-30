@@ -7,6 +7,7 @@ import { authRoutes } from './auth.js';
 import { codeRoutes } from './code.js';
 import { codeReviewRoutes } from './code-review.js';
 import { dbviewRoutes } from './dbview.js';
+import { whatsOfficeRoutes } from './whatsoffice.js';
 import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
 import { machineRoutes } from './machines.js';
@@ -49,6 +50,7 @@ export const routes: readonly Route[] = [
   githubRoutes.github,
   machineRoutes.desktop,
   dbviewRoutes.read,
+  whatsOfficeRoutes.read,
   pageRoutes.office,
   pageRoutes.lite,
   pageRoutes.bundle,

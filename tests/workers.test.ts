@@ -1232,7 +1232,7 @@ test("every Claude worker gets the office's MCP server, and office-workers on it
   assert.ok(server.args[0].endsWith(path.join('bin', 'office-workers.js')));
   // Looking is allowed without asking; hiring and sending home aren't.
   assert.deepEqual(JSON.parse(readFileSync(path.join(f.data, 'claude-hooks.json'), 'utf8')).permissions, {
-    allow: ['mcp__agent-office__list_workers', 'mcp__agent-office__choose_model', 'mcp__agent-office__list_contacts', 'mcp__agent-office__call_worker', 'mcp__agent-office__reply_call', 'mcp__agent-office__hang_up', 'Bash(office-phone:*)'],
+    allow: ['mcp__agent-office__list_workers', 'mcp__agent-office__choose_model', 'mcp__agent-office__list_contacts', 'mcp__agent-office__send_message', 'mcp__agent-office__read_messages', 'Bash(whatsoffice:*)', 'Bash(office-phone:*)'],
   });
 
   const desk = workers.spawn('desk-2', 'Ada', 'Fix login');

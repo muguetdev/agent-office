@@ -84,7 +84,8 @@ const OFFICE_COMMANDS: readonly (readonly [string, string, string])[] = [
   ['office-queue', 'office-queue.js', "Agent Office's task queue, for the board agents"],
   ['office-workers', 'office-workers.js', "Agent Office's workers, for every worker"],
   ['machine', 'office-machine.js', "a shell and files in the worker's own machine (see server/machines/)"],
-  ['office-phone', 'office-phone.js', 'the office phone: call a worker on any floor (see server/phone/)'],
+  ['whatsoffice', 'whatsoffice.js', "WhatsOffice, the workers' messages to each other (see server/whatsoffice/)"],
+  ['office-phone', 'whatsoffice.js', 'WhatsOffice, under the name it had when it was a phone'],
 ];
 
 /**

@@ -71,7 +71,7 @@ import { installWaiting } from './features/waiting';
 import { installWalking } from './features/walking';
 import { installWhip } from './features/whip';
 import { installMachines } from './features/machines';
-import { installPhone } from './features/phone';
+import { installWhatsOffice } from './features/whatsoffice';
 import { installHelpers } from './features/helpers';
 import { installCodeLive } from './features/codelive';
 import { installDiorama } from './features/diorama';
@@ -194,7 +194,7 @@ parts.seating = installSeating(ctx, { shares: () => parts.talk.currentShares(), 
 const gong = installGong(ctx, { burstOver: parts.views.burstOver, workerViews: parts.views.workerViews, court: () => parts.worlds.court(), idleAgents: () => parts.worlds.idleAgents() });
 parts.whip = installWhip(ctx, { workerViews: parts.views.workerViews, personOf, reach });
 parts.machines = installMachines(ctx, { workerViews: parts.views.workerViews });
-installPhone(ctx, { workerViews: parts.views.workerViews });
+installWhatsOffice(ctx, { workerViews: parts.views.workerViews });
 installHelpers(ctx, { arrivals: parts.views.arrivals, departures: parts.views.departures });
 installCodeLive(ctx);
 installParty(ctx, { danceParty: gong.danceParty, dog: parts.dog, djAt: parts.rooftop.djAt, lights: parts.stage });
