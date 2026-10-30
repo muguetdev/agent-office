@@ -20,6 +20,23 @@ export type WorkerKind = 'agent' | 'shell';
  */
 export type WorkerAction = 'read' | 'edit' | 'test' | 'web' | 'failing';
 
+/**
+ * A helper a worker has called in: a subagent its Claude Code is running (the Agent tool), shown at a
+ * desk of its own until it's done (see server/workers/helpers.ts and the client's features/helpers).
+ */
+export interface WorkerHelper {
+  /** Claude Code's id for it. */
+  id: string;
+  /** Its kind (general-purpose, Explore, Plan…). */
+  type: string;
+  /** What it was asked to do, in a few words. */
+  description: string;
+  /** When it started (ms). */
+  since: number;
+  /** Its latest tool call. */
+  activity?: string;
+}
+
 /** What a worker is on, for the card above its head: "Fix Login Redirect" + what it's doing now. */
 export interface WorkerTask {
   name: string;
@@ -86,6 +103,8 @@ export interface WorkerInfo {
   viewerIds: string[];
   /** Latest line of meaningful activity (e.g. last prompt or tool). */
   activity?: string;
+  /** The helpers it has called in, still at work (see WorkerHelper). */
+  helpers?: WorkerHelper[];
   /** What its latest tool call is, for the worker to act out while it works. */
   action?: WorkerAction;
   /** Written by a small model from its prompts and recent tool calls (see server/tasks.ts). */

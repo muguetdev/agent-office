@@ -3714,4 +3714,7 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
       needsRoot: '이 방법은 root만 읽을 수 있는데, 층의 사용자는 root가 아닙니다(비밀번호 없는 sudo도 없음)',
     },
   },
+  helpers: {
+    name: (worker: string) => `${worker}의 도우미`,
+  },
 };

@@ -7,6 +7,7 @@ import { MCP_READ_ONLY, writeClaudeMcpConfig } from '../office-workers.js';
 import { claudeMachineArgs } from '../machines/mcp.js';
 import { QUEUE_AGENT_DISALLOWED_TOOLS } from '../stations.js';
 import { answered, notified, wantsPermission } from '../workers/lifecycle.js';
+import { helperHook } from '../workers/helpers.js';
 import { shq } from '../workers/process.js';
 import type { WorkerHandle } from '../workers/types.js';
 import { truncate } from '../workers/util.js';
@@ -42,6 +43,9 @@ function writeHookSettings(dataDir: string): string {
     ['PreToolUse', undefined],
     ['PostToolUse', undefined],
     ['PostToolUseFailure', undefined],
+    // Its helpers (subagents) coming and going: see workers/helpers.ts.
+    ['SubagentStart', undefined],
+    ['SubagentStop', undefined],
   ];
   // Minimal VPS images sometimes lack curl; the office's own node binary is always there.
   const nodeHook = path.join(dataDir, 'hook.cjs');
@@ -131,6 +135,8 @@ function claudeHook(h: WorkerHandle, event: string, payload: any): boolean {
     h.persist();
   }
   h.scheduleScan();
+  // A helper's own tool call is the helper's, not the worker's.
+  if (helperHook(h, event, payload, describeTool, now)) return true;
   switch (event) {
     case 'SessionStart':
       if (payload?.source === 'clear') {

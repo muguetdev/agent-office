@@ -3703,4 +3703,7 @@ Opções:
       needsRoot: 'Só o root lê por aqui, e o usuário do andar não é root (nem tem sudo sem senha)',
     },
   },
+  helpers: {
+    name: (worker: string) => `Ajudante de ${worker}`,
+  },
 };

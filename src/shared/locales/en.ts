@@ -3714,4 +3714,7 @@ Options:
       needsRoot: 'Only root may read it this way, and the floor’s user isn’t root (nor has sudo without a password)',
     },
   },
+  helpers: {
+    name: (worker: string) => `${worker}'s helper`,
+  },
 };
