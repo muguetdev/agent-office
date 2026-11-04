@@ -184,7 +184,13 @@ test('a worker with a machine is told about its shell, and may run commands ther
   assert.match(MACHINE_NOTE, /machine put/);
   const args = claudeMachineArgs({ kind: 'agent', machine: { host: 'root@h', id: 'app-1', cdpLocalPort: 41001, desktopLocalPort: 41000 } }).append;
   const allowed = args.slice(args.indexOf('--allowedTools') + 1, args.indexOf('--append-system-prompt'));
-  assert.deepEqual(allowed, ['mcp__computer', 'Bash(machine run:*)', 'Bash(machine info)', 'mcp__agent-office__machine_run']);
+  assert.deepEqual(allowed, [
+    'mcp__computer',
+    'Bash(machine run:*)',
+    'Bash(machine info)',
+    'mcp__agent-office__machine_run',
+    ...['screenshot', 'click', 'type', 'key', 'scroll', 'drag'].map((t) => `mcp__agent-office__desktop_${t}`),
+  ]);
 });
 
 // --- The host's side (Python 3, standard library) ---------------------------------------------------

@@ -224,8 +224,14 @@ export const claude: ProviderAdapter<undefined, ClaudeSetup> = {
     if (info.effort) args.push('--effort', info.effort);
     // The queue agent only ever adds to the queue: without these it can't touch the checkout's files.
     if (station === 'queue') args.push('--disallowedTools', ...QUEUE_AGENT_DISALLOWED_TOOLS);
-    // A project's floor linked to the server its project runs on: the way there, on top of its own instructions.
-    if (existsSync(setup.serverNote)) args.push('--append-system-prompt', readFileSync(setup.serverNote, 'utf8'));
+    // A project's floor linked to the server its project runs on: the way there, on top of its own instructions
+    // (with a machine's note when it has one too: Claude Code takes one --append-system-prompt).
+    if (existsSync(setup.serverNote)) {
+      const note = readFileSync(setup.serverNote, 'utf8');
+      const at = args.indexOf('--append-system-prompt');
+      if (at >= 0 && at + 1 < args.length) args[at + 1] = `${args[at + 1]}\n\n${note}`;
+      else args.push('--append-system-prompt', note);
+    }
     if (resumeSessionId) args.push('--resume', resumeSessionId);
     // `--` so a prompt like "- fix login" is never parsed as a CLI option.
     if (prompt) args.push('--', prompt);

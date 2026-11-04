@@ -17,6 +17,8 @@ export const MACHINE_NOTE =
   '(chrome-devtools: open pages, click, type, take screenshots). A person may be watching its screen live. ' +
   'You also have a shell in that same computer: `machine run -- <command>` (or the machine_run tool) runs a command line with bash there, as its user with passwordless sudo ' +
   '(`machine run -- sudo apt-get install -y golang-go`); `machine put <local> <remote>` and `machine get <remote> <local>` copy files in and out; `machine info` says what is installed. ' +
+  'You see and use its whole screen too, not only Chrome: desktop_screenshot shows the desktop with every window, and desktop_click, desktop_type, desktop_key, desktop_scroll and desktop_drag ' +
+  'use its mouse and keyboard on anything there (a terminal, VS Code, a file manager, a native app, a dialog), each showing you the screen after; for web pages the Chrome tools are quicker and more exact. ' +
   "Its desktop and Chrome run in that computer too, so a server you start there (`machine run -- 'cd ~/app && nohup npm run dev > dev.log 2>&1 &'`) is at localhost in its Chrome. " +
   'The office\'s own host, where your shell and files are, is shared by every worker and short on memory: run heavy work in your computer instead ' +
   '(compiling toolchains or big projects, `go install`, `cargo build`, Docker, large installs, long test suites), copying what you need in with `machine put` or cloning it there. ' +
@@ -24,7 +26,13 @@ export const MACHINE_NOTE =
   'Never type passwords or other credentials into it that you were not given for the task.';
 
 /** Claude Code's rules for running commands in its machine without asking: `machine run`, `machine info`, the machine_run tool. */
-export const MACHINE_SHELL_ALLOWED = ['Bash(machine run:*)', 'Bash(machine info)', 'mcp__agent-office__machine_run'];
+export const MACHINE_SHELL_ALLOWED = [
+  'Bash(machine run:*)',
+  'Bash(machine info)',
+  'mcp__agent-office__machine_run',
+  // Its whole desktop (bin/office-desktop.js): its own screen, mouse and keyboard.
+  ...['screenshot', 'click', 'type', 'key', 'scroll', 'drag'].map((t) => `mcp__agent-office__desktop_${t}`),
+];
 
 /** npx beside the node the office runs on, else whichever is on the PATH. */
 function npx(): string {

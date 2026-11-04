@@ -9,6 +9,7 @@
 // dependencies.
 
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { DESKTOP_TOOLS, runDesktopTool } from './office-desktop.js';
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 
@@ -218,7 +219,7 @@ export const MACHINE_TOOLS = [
 export async function machineTools(io) {
   try {
     const r = await call('quick', {}, io);
-    return r.machine ? MACHINE_TOOLS : [];
+    return r.machine ? [...MACHINE_TOOLS, ...DESKTOP_TOOLS] : [];
   } catch {
     return [];
   }
@@ -234,6 +235,8 @@ export function formatRun(r) {
 
 /** Runs a machine tool; resolves to its text and whether it failed. */
 export async function runMachineTool(name, args, io) {
+  // Its whole desktop: see office-desktop.js.
+  if (name.startsWith('desktop_')) return runDesktopTool(name, args, io);
   const a = args && typeof args === 'object' ? args : {};
   if (name === 'machine_run') {
     if (typeof a.command !== 'string' || !a.command.trim()) throw new Error('Say what to run: command');

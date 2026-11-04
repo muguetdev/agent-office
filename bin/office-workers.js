@@ -472,12 +472,14 @@ export async function handleMcp(msg, io) {
       return ok({ tools: [...TOOLS, ...CHAT_TOOLS, ...(await machineTools(io))] });
     case 'tools/call': {
       const name = msg.params?.name;
-      const machine = typeof name === 'string' && name.startsWith('machine_');
+      const machine = typeof name === 'string' && (name.startsWith('machine_') || name.startsWith('desktop_'));
       const chat = CHAT_TOOLS.some((t) => t.name === name);
       if (!TOOLS.some((t) => t.name === name) && !chat && !(machine && (await machineTools(io)).some((t) => t.name === name))) return { jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: `Unknown tool: ${name}` } };
       try {
-        const { text, isError } = await (machine ? runMachineTool : chat ? runChatTool : runTool)(name, msg.params?.arguments, io);
-        return ok({ content: [{ type: 'text', text }], ...(isError ? { isError: true } : {}) });
+        const { text, isError, image } = await (machine ? runMachineTool : chat ? runChatTool : runTool)(name, msg.params?.arguments, io);
+        // A desktop tool's screenshot comes as a picture the agent sees.
+        const picture = image ? [{ type: 'image', data: image, mimeType: 'image/png' }] : [];
+        return ok({ content: [{ type: 'text', text }, ...picture], ...(isError ? { isError: true } : {}) });
       } catch (e) {
         return ok({ content: [{ type: 'text', text: e.message }], isError: true });
       }
