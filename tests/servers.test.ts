@@ -65,7 +65,7 @@ test("a project's floor linked to its server gets the way in and a note kept out
   assert.equal(readFileSync(path.join(checkout, 'CLAUDE.md'), 'utf8'), '# meta-system\n');
   assert.equal(existsSync(path.join(checkout, 'AGENTS.md')), false);
   const note = readFileSync(serverNoteFile(path.join(checkout, '.agent-office')), 'utf8');
-  assert.match(note, /runs on the server root@203\.0\.113\.9/);
+  assert.match(note, /runs in production on the server root@203\.0\.113\.9/);
   assert.match(note, /`ssh meta-system`/);
   assert.match(note, /don't edit the code directly on it/);
   assert.match(execFileSync(path.join(bin, 'ssh'), ['-G', 'meta-system'], { encoding: 'utf8' }), /^hostname 203\.0\.113\.9$/m);

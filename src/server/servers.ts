@@ -133,11 +133,18 @@ ${repo ? codeNote(id, repo) : ''}`;
  * What the agents on a project's floor linked to a server are told (on top of their own instructions,
  * see providers/claude.ts): a prompt, so it's in English whatever the office speaks.
  */
-export const linkedNote = (id: string, at: string) => `## The server this project runs on
+export const linkedNote = (id: string, at: string) => `## Production: the server this project runs on
 
-This floor's project runs on the server ${at}, which the office linked to it. Reach it with \`ssh ${id}\`
-(it already has its address, user and key): \`ssh ${id} '<command>'\` runs a command there, and \`scp\`,
-\`sftp\` and \`rsync -e ssh\` copy files to and from \`${id}:<path>\`.
+This floor's project runs in production on the server ${at}, which the office linked to it, and you
+can reach it: \`ssh ${id}\` (it already has its address, user and key). \`ssh ${id} '<command>'\` runs a
+command there, and \`scp\`, \`sftp\` and \`rsync -e ssh\` copy files to and from \`${id}:<path>\`.
+
+The project's live services, their logs and its databases are there. Whenever a question or a task is
+about production (is it up, why did it fail, what's in the database, which version is deployed, what
+the logs say), look on the server instead of guessing: \`ssh ${id} 'pm2 list'\` or \`'pm2 logs <app>
+--lines 100 --nostream'\`, \`'docker ps'\` and \`'docker logs --tail 100 <container>'\`,
+\`'systemctl status <service>'\` and \`'journalctl -u <service> -n 100'\`, and its databases with
+their own clients there (or the 🗄️ Database tab people see).
 
 It's a live server: say what you're going to change there before you do, keep a backup of a file you edit
 on it, don't restart services or reboot it without being asked, and don't edit the code directly on it:
