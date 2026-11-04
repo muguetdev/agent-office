@@ -3,10 +3,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { forgetServer, isSshTarget, prepareServer, publicKey, sshTarget } from '../src/server/servers.js';
+import { forgetServer, isSshTarget, prepareServer, publicKey, serverNoteFile, sshTarget, unlinkServer } from '../src/server/servers.js';
 import { UNIT_RE, read } from '../src/server/server-watch.js';
 
 test('a server is an address, a user and a port, nothing that could be an ssh option', () => {
@@ -49,6 +49,31 @@ test("a server's floor gets its own key, a config and an ssh that know the way i
   forgetServer(data, 'prod');
   assert.equal(existsSync(path.join(data, 'ssh', 'prod')), false);
   assert.equal(publicKey(data, 'prod'), undefined);
+});
+
+test("a project's floor linked to its server gets the way in and a note kept out of its repository, and unlinking takes them away", (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'ao-linked-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const data = path.join(root, 'data');
+  const checkout = path.join(root, 'meta-system');
+  mkdirSync(checkout, { recursive: true });
+  // The project's own instructions, which the office must never touch.
+  writeFileSync(path.join(checkout, 'CLAUDE.md'), '# meta-system\n');
+  const bin = path.join(checkout, '.agent-office', 'bin');
+  prepareServer(data, 'meta-system', { host: '203.0.113.9', user: 'root', port: 22 }, checkout, bin, 'muguetdev/meta-system', true);
+
+  assert.equal(readFileSync(path.join(checkout, 'CLAUDE.md'), 'utf8'), '# meta-system\n');
+  assert.equal(existsSync(path.join(checkout, 'AGENTS.md')), false);
+  const note = readFileSync(serverNoteFile(path.join(checkout, '.agent-office')), 'utf8');
+  assert.match(note, /runs on the server root@203\.0\.113\.9/);
+  assert.match(note, /`ssh meta-system`/);
+  assert.match(note, /don't edit the code directly on it/);
+  assert.match(execFileSync(path.join(bin, 'ssh'), ['-G', 'meta-system'], { encoding: 'utf8' }), /^hostname 203\.0\.113\.9$/m);
+
+  unlinkServer(bin);
+  assert.equal(existsSync(path.join(bin, 'ssh')), false);
+  assert.equal(existsSync(serverNoteFile(path.join(checkout, '.agent-office'))), false);
+  assert.equal(readFileSync(path.join(checkout, 'CLAUDE.md'), 'utf8'), '# meta-system\n');
 });
 
 test("the server's reading: its load, memory, disk and uptime, its containers, and its own services and failed ones", () => {

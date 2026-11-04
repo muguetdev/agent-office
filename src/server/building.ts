@@ -19,8 +19,9 @@ export interface FloorDef {
   palette: number;
   addedBy: string;
   addedAt: number;
-  /** A server's floor: no repository, its workers manage that server over SSH (see servers.ts). */
+  /** A server's floor: no repository, its workers manage that server over SSH (see servers.ts); `linked`, a project's floor linked to the server it runs on. */
   ssh?: SshTarget;
+  linked?: true;
 }
 
 /** A projects folder picked in ⚙️ Settings (or with --projects), as projects-folder.json keeps it. */
@@ -180,9 +181,8 @@ export class Building {
   }
 
   /**
-   * Picks up the clones an office before this one left running (it restarted mid-clone): each goes
-   * on as a floor on its way, and `done` hears how it ended. One that finished with no office
-   * watching becomes its floor now.
+   * Picks up the clones an office before this one left running (it restarted mid-clone): each goes on
+   * as a floor on its way, and `done` hears how it ended. One that finished unwatched is its floor now.
    */
   resumeClones(done: (r: FloorDef | string) => void) {
     for (const s of this.loadClones()) {
@@ -421,7 +421,7 @@ export class Building {
           palette: Number.isInteger(s.palette) && (s.palette as number) >= 0 ? (s.palette as number) : 0,
           addedBy: typeof s.addedBy === 'string' ? s.addedBy : '?',
           addedAt: typeof s.addedAt === 'number' ? s.addedAt : Date.now(),
-          ...(isSshTarget(s.ssh) ? { ssh: s.ssh } : {}),
+          ...(isSshTarget(s.ssh) ? { ssh: s.ssh, ...(s.linked === true ? { linked: true as const } : {}) } : {}),
         });
       }
     } catch (err) {

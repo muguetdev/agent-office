@@ -143,7 +143,7 @@ export function openElevator(opts: ElevatorOptions): void {
         'span.floor-text',
         {},
         h('span.floor-name', {}, f.name, here ? h('span.here-tag', {}, L.elevator.youAreHere) : mine ? h('span.here-tag', {}, L.elevator.yourFloor) : null),
-        h('span.floor-sub', {}, f.locked ? L.access.locked : f.ssh ? `🖥️ ${f.ssh.user}@${f.ssh.host}` : [f.repo ?? f.dir, f.cloning ? f.clone?.detail : ''].filter(Boolean).join(' · ')),
+        h('span.floor-sub', {}, f.locked ? L.access.locked : f.ssh && !f.linked ? `🖥️ ${f.ssh.user}@${f.ssh.host}` : [f.repo ?? f.dir, f.cloning ? f.clone?.detail : '', f.ssh ? `🖥️ ${f.ssh.host}` : ''].filter(Boolean).join(' · ')),
         f.cloning ? cloneBar(f.clone) : null,
       ),
       h('span.floor-stats', {}, ...stats.flatMap((s, j) => (j ? [' ', s] : [s]))),
@@ -168,11 +168,13 @@ export function openElevator(opts: ElevatorOptions): void {
     if (!store.me.admin) return btn;
     const off = h('button.btn.floor-off', { type: 'button', title: L.elevator.takeOff(f.name), 'aria-label': L.elevator.remove(f.name) }, '🗑');
     off.addEventListener('click', () => confirmRemove(f));
-    // A server's floor: its key and trying the way in.
-    const key = f.ssh ? h('button.btn.floor-off', { type: 'button', title: L.serverFloor.keyTip, 'aria-label': L.serverFloor.keyTip }, '🔑') : null;
-    key?.addEventListener('click', () => {
+    // A server's floor (or a project's linked to one): its key and trying the way in. A project's floor: linking it to its server.
+    const key = f.ssh
+      ? h('button.btn.floor-off', { type: 'button', title: L.serverFloor.keyTip, 'aria-label': L.serverFloor.keyTip }, '🔑')
+      : h('button.btn.floor-off', { type: 'button', title: L.serverFloor.linkTip(f.name), 'aria-label': L.serverFloor.linkTip(f.name) }, '🖥️');
+    key.addEventListener('click', () => {
       modal.close();
-      openServerFloor(net, f.id);
+      openServerFloor(net, f.ssh ? f.id : undefined, f.ssh ? undefined : f.id);
     });
     return h('div.floor-row', {}, btn, key, off);
   };

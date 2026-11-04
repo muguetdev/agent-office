@@ -3482,6 +3482,8 @@ Options:
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} put ${name} on ${now}${fresh ? ': a new conversation, on another provider' : ', carrying on where it was'}`,
   },
   servers: {
+    linked: (who: string, floor: string, at: string) => `🖥️ ${who} linked the ${floor} floor to its server ${at}`,
+    unlinked: (who: string, floor: string) => `🖥️ ${who} unlinked the ${floor} floor from its server`,
     noRepo: 'This server’s floor has no repository yet: link the one it runs with the 🔑 beside it in the elevator',
     badRepo: 'That isn’t a GitHub repository: owner/name, or its github.com address',
     repoLinked: (who: string, repo: string, at: string) => `🔗 ${who} linked ${repo}: its code goes in ${at} in the floor’s folder, and the boards show its issues and pull requests`,
@@ -3503,6 +3505,14 @@ Options:
     added: (who: string, name: string) => `🖥️ New floor: the server ${name}, added by ${who}`,
   },
   serverFloor: {
+    link: 'Link',
+    linkTitle: (floor: string) => `Link ${floor} to its server`,
+    linkTip: (floor: string) => `Link ${floor} to the server its project runs on`,
+    linkIntro: 'The server this floor’s project runs on: its workers reach it as ssh <floor>, the monitor shows how it’s doing, and its databases are in the 🗄️ Database tab. The floor stays the project’s: its checkout, its look, and nothing written into the repository.',
+    linkedNote: 'This project’s floor is linked to the server: its Claude Code workers are told about it as they start (the ones running now, once they start again).',
+    unlink: 'Unlink the server',
+    unlinkQ: (floor: string) => `Unlink ${floor} from its server?`,
+    unlinkNote: 'Its workers lose the way in (ssh) and the floor its monitor of the server. The office deletes the key it made; take its line out of the server’s authorized_keys yourself.',
     restarts: (n: number) => `${n} restart${n === 1 ? '' : 's'}`,
     online: 'Online',
     offline: 'Not answering',

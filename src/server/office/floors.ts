@@ -143,9 +143,11 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
     }
     try {
       // A server's floor: its key, its way in, and its shells opening on the server (see servers.ts).
-      const shell = def.ssh && prepareServer(cfg.dataDir, def.id, def.ssh, def.dir, path.join(def.dir, '.agent-office', 'bin'), def.repo);
+      // A project's floor linked to its server gets the way in and the watch, and stays a project's.
+      const shell = def.ssh && prepareServer(cfg.dataDir, def.id, def.ssh, def.dir, path.join(def.dir, '.agent-office', 'bin'), def.repo, def.linked);
       const floor = new Floor(def, floorContext);
-      if (shell) {
+      if (def.ssh && def.linked) watchServer(ctx, floor);
+      else if (shell) {
         floor.workers.shellArgs = shell;
         // Its boards show the repository it runs, once there's one, whose code is cloned into its folder; and how it's doing is watched.
         floor.github.setRepo(def.repo ?? null);

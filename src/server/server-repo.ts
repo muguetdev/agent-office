@@ -14,8 +14,8 @@ import { L } from './i18n.js';
 import { repoFolder } from './servers.js';
 
 /** Where a server's floor's repository is cloned, or undefined when it isn't a server's floor with one. */
-export function repoDir(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh'>): string | undefined {
-  return def.ssh && def.repo ? path.join(def.dir, repoFolder(def.repo)) : undefined;
+export function repoDir(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh' | 'linked'>): string | undefined {
+  return def.ssh && def.repo && !def.linked ? path.join(def.dir, repoFolder(def.repo)) : undefined;
 }
 
 const BRANCH_TTL_MS = 5 * 60_000;
@@ -41,7 +41,7 @@ function defaultBranch(dir: string): string | null {
  * and the 📝 Code tab shows for a worker there (the floor's folder itself isn't a git checkout).
  * `rel` is its folder in the floor's, `baseBranch` the branch diffs are taken against and PRs target.
  */
-export function serverCheckout(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh'>): { cwd: string; rel: string; baseBranch: string | null } | undefined {
+export function serverCheckout(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh' | 'linked'>): { cwd: string; rel: string; baseBranch: string | null } | undefined {
   const dir = repoDir(def);
   if (!dir || !existsSync(path.join(dir, '.git'))) return undefined;
   return { cwd: dir, rel: path.basename(dir), baseBranch: defaultBranch(dir) };
@@ -74,7 +74,7 @@ interface SavedClone {
  * there, leaves (and fetches) a clone of it that is, and says why when something else is in the way.
  * Undefined when the floor isn't a server's with a repository.
  */
-export function ensureServerRepo(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh'>, opts: RepoOptions = {}): Promise<RepoResult> | undefined {
+export function ensureServerRepo(def: Pick<FloorDef, 'dir' | 'repo' | 'ssh' | 'linked'>, opts: RepoOptions = {}): Promise<RepoResult> | undefined {
   const dest = repoDir(def);
   if (!dest || !def.repo) return undefined;
   const busy = running.get(dest);

@@ -75,6 +75,8 @@ export interface FloorInfo {
   crew?: CrewMember[];
   /** A server's floor: its workers manage that server over SSH (`ssh <id>`), and it has no repository. */
   ssh?: SshTarget;
+  /** With `ssh`: a project's floor linked to the server its project runs on, not a server's floor. */
+  linked?: true;
   /** Not yours to go to: only its name shows, and the elevator doesn't stop there (see server/access.ts). */
   locked?: boolean;
 }

@@ -17,7 +17,9 @@ const WARM = new THREE.Color('#ffc98a');
 export function installServerFloor(ctx: Ctx, deps: ServerFloorDeps) {
   let level = 0;
   ctx.ticks.add('env', ({ dt }) => {
-    const here = !!store.currentFloor()?.ssh && ctx.inOffice() && !ctx.upTop();
+    const f = store.currentFloor();
+    // A project's floor linked to its server keeps its own look.
+    const here = !!f?.ssh && !f.linked && ctx.inOffice() && !ctx.upTop();
     level += ((here ? 1 : 0) - level) * (1 - Math.exp(-dt * 2));
     if (here) {
       let working = 0;

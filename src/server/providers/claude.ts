@@ -1,6 +1,6 @@
 // Claude Code: hooks from a settings file the office writes (its own hook route, /hooks/claude),
 // usage read off the session transcript and booked in the budget, and tasks the office names.
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { FAILS_TO_DESPAIR, outputFailed, toolAction } from '../../shared/actions.js';
 import { MCP_CHAT, MCP_READ_ONLY, writeClaudeMcpConfig } from '../office-workers.js';
@@ -8,6 +8,7 @@ import { claudeMachineArgs } from '../machines/mcp.js';
 import { QUEUE_AGENT_DISALLOWED_TOOLS } from '../stations.js';
 import { answered, notified, wantsPermission } from '../workers/lifecycle.js';
 import { helperHook } from '../workers/helpers.js';
+import { serverNoteFile } from '../servers.js';
 import { shq } from '../workers/process.js';
 import type { WorkerHandle } from '../workers/types.js';
 import { truncate } from '../workers/util.js';
@@ -27,6 +28,8 @@ const NOT_LOGGED_IN = /Not logged in\s*·\s*Run \/login|Invalid API key|Please r
 interface ClaudeSetup {
   /** Its --settings: the office's hooks. */
   settings: string;
+  /** Where its floor keeps what its agents are told about the server it's linked to, if it is (see servers.ts). */
+  serverNote: string;
   /** Its --mcp-config: the office's MCP server. */
   mcp?: string;
 }
@@ -204,6 +207,7 @@ export const claude: ProviderAdapter<undefined, ClaudeSetup> = {
   scrubPrefixes: ['CLAUDE_CODE_SESSION', 'CLAUDE_CODE_CHILD', 'CLAUDE_CODE_MESSAGING'],
   prepare: ({ dataDir, mcpScript }) => ({
     settings: writeHookSettings(dataDir),
+    serverNote: serverNoteFile(dataDir),
     mcp: mcpScript ? writeClaudeMcpConfig(dataDir, mcpScript) : undefined,
   }),
   launch({ h: { info }, args, prompt, resumeSessionId, station, setup }) {
@@ -220,6 +224,8 @@ export const claude: ProviderAdapter<undefined, ClaudeSetup> = {
     if (info.effort) args.push('--effort', info.effort);
     // The queue agent only ever adds to the queue: without these it can't touch the checkout's files.
     if (station === 'queue') args.push('--disallowedTools', ...QUEUE_AGENT_DISALLOWED_TOOLS);
+    // A project's floor linked to the server its project runs on: the way there, on top of its own instructions.
+    if (existsSync(setup.serverNote)) args.push('--append-system-prompt', readFileSync(setup.serverNote, 'utf8'));
     if (resumeSessionId) args.push('--resume', resumeSessionId);
     // `--` so a prompt like "- fix login" is never parsed as a CLI option.
     if (prompt) args.push('--', prompt);

@@ -1,10 +1,12 @@
 // 🖥️ A floor that's a server (see server/servers.ts), for admins: adding one, then its key for the
-// server's authorized_keys and trying the way in. The same window shows an existing one's key again.
+// server's authorized_keys and trying the way in. The same window shows an existing one's key again,
+// and links a project's floor to the server its project runs on (and shows that one's key, or unlinks it).
 import './server-floor.css';
 import type { ServerMsg } from '../../shared/protocol';
 import type { Net } from '../net';
 import { store } from '../state';
 import { h, openModal } from './dom';
+import { confirmDialog } from './prompt';
 import { copyButton } from './team';
 import { L } from '../i18n';
 
@@ -15,8 +17,8 @@ export function routeServerMessage(msg: ServerMsg) {
   if (msg.t === 'server.added' || msg.t === 'server.key' || msg.t === 'server.tested') onMessage?.(msg);
 }
 
-/** Adds a server's floor; with `floorId`, shows that one's key and lets you try the way in. */
-export function openServerFloor(net: Net, floorId?: string) {
+/** Adds a server's floor; with `floorId`, shows that one's key and lets you try the way in; with `linkTo`, links that project's floor to a server. */
+export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
   const body = h('div.body.team.server-floor');
   const close = h('button.btn.close', { type: 'button', 'aria-label': L.common.close }, '✕');
   const title = h('h2', {}, `🖥️ ${L.serverFloor.title}`);
@@ -28,13 +30,16 @@ export function openServerFloor(net: Net, floorId?: string) {
   const user = h('input', { type: 'text', maxlength: 32, value: 'root', autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
   const port = h('input', { type: 'number', min: 1, max: 65535, value: 22 }) as HTMLInputElement;
   const error = h('p.team-status.error.hidden');
-  const add = h('button.btn.primary', { type: 'submit' }, L.serverFloor.add);
-  const form = h('form.server-form', {}, field(L.serverFloor.name, name), field(L.serverFloor.host, host), h('div.server-row', {}, field(L.serverFloor.user, user), field(L.serverFloor.port, port)), error, h('div.seg', {}, add)) as HTMLFormElement;
+  const add = h('button.btn.primary', { type: 'submit' }, linkTo ? L.serverFloor.link : L.serverFloor.add);
+  const linking = linkTo ? store.floors.find((o) => o.id === linkTo) : undefined;
+  if (linking) title.textContent = `🖥️ ${L.serverFloor.linkTitle(linking.name)}`;
+  const form = h('form.server-form', {}, linkTo ? null : field(L.serverFloor.name, name), field(L.serverFloor.host, host), h('div.server-row', {}, field(L.serverFloor.user, user), field(L.serverFloor.port, port)), error, h('div.seg', {}, add)) as HTMLFormElement;
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     add.disabled = true;
     error.classList.add('hidden');
-    net.send({ t: 'server.add', name: name.value.trim(), host: host.value.trim(), user: user.value.trim(), port: Number(port.value) || undefined });
+    const where = { host: host.value.trim(), user: user.value.trim(), port: Number(port.value) || undefined };
+    net.send(linkTo ? { t: 'server.link', floor: linkTo, ...where } : { t: 'server.add', name: name.value.trim(), ...where });
   });
 
   /** Its key, how to let it in, and trying the way in. */
@@ -64,10 +69,15 @@ export function openServerFloor(net: Net, floorId?: string) {
       h('p.note', {}, L.serverFloor.then(floor)),
       h('div.seg', {}, test),
       result,
-      // The code it runs: its issues and pull requests on the floor's boards.
-      h('h4', {}, `🔗 ${L.serverFloor.repo}`),
-      h('form.repo-row', { onsubmit: (e: Event) => (e.preventDefault(), net.send({ t: 'server.repo', floor, repo: repoSelect.value })) }, repoSelect, h('button.btn.primary', { type: 'submit' }, L.serverFloor.saveRepo)),
-      h('p.note', {}, L.serverFloor.repoNote),
+      // A project's floor linked to its server: its code is its own, and the link can go.
+      ...(f?.linked
+        ? [h('p.note', {}, L.serverFloor.linkedNote), h('div.seg', {}, unlinkButton(floor, f.name))]
+        : [
+            // The code it runs: its issues and pull requests on the floor's boards.
+            h('h4', {}, `🔗 ${L.serverFloor.repo}`),
+            h('form.repo-row', { onsubmit: (e: Event) => (e.preventDefault(), net.send({ t: 'server.repo', floor, repo: repoSelect.value })) }, repoSelect, h('button.btn.primary', { type: 'submit' }, L.serverFloor.saveRepo)),
+            h('p.note', {}, L.serverFloor.repoNote),
+          ]),
     );
     linked = f?.repo ?? '';
     fillRepos();
@@ -78,6 +88,20 @@ export function openServerFloor(net: Net, floorId?: string) {
       net.send({ t: 'floor.repos' });
     }
   };
+  /** Takes the floor's server link away, once you've said so. */
+  const unlinkButton = (floor: string, floorName: string) =>
+    h(
+      'button.btn',
+      {
+        type: 'button',
+        onclick: () =>
+          confirmDialog(L.serverFloor.unlinkQ(floorName), L.serverFloor.unlinkNote, L.serverFloor.unlink, () => {
+            net.send({ t: 'server.unlink', floor });
+            modal.close();
+          }),
+      },
+      L.serverFloor.unlink,
+    );
   /** The repositories the office's GitHub can see, to pick the one the server runs from: none at the top, the linked one picked. */
   const repoSelect = h('select.repo-pick', { 'aria-label': L.serverFloor.repo }) as HTMLSelectElement;
   let linked = '';
@@ -106,10 +130,10 @@ export function openServerFloor(net: Net, floorId?: string) {
   if (floorId) {
     body.append(h('p.empty', {}, L.common.loading));
     net.send({ t: 'server.key', floor: floorId });
-  } else body.append(h('p.note', {}, L.serverFloor.intro), form);
+  } else body.append(h('p.note', {}, linkTo ? L.serverFloor.linkIntro : L.serverFloor.intro), form);
 
   const offRepos = store.on('repos', fillRepos);
   const modal = openModal(el, { onClose: () => ((onMessage = null), offRepos()) });
   close.addEventListener('click', () => modal.close());
-  if (!floorId) setTimeout(() => name.focus(), 30);
+  if (!floorId) setTimeout(() => (linkTo ? host : name).focus(), 30);
 }

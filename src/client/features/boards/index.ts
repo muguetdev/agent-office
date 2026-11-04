@@ -125,7 +125,7 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   ctx.interactions.define('services', {
     reach: 9,
     hint: () => boardHint(L.hints.servicesBoard),
-    use: onE(() => (store.currentFloor()?.ssh ? openServerServices(ctx.net) : openServices())),
+    use: onE(() => (serverBoard() ? openServerServices(ctx.net) : openServices())),
   });
   ctx.interactions.define('queue', {
     reach: 9,
@@ -144,6 +144,11 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   const meetingSignTex = new MeetingSignTexture();
   mountBoard(office.meetingSign, meetingSignTex.texture, () => meetingSignTex.render(store.meeting), ['meeting']);
   // A server's floor's own: the monitor shows its server, and the services board what runs on it (see server.ts).
+  // A project's floor linked to its server shows the server on the monitor and keeps its workers' services on the board.
+  const serverBoard = () => {
+    const f = store.currentFloor();
+    return !!f?.ssh && !f.linked;
+  };
   const serverMonTex = new ServerMonitorTexture();
   const serverSvcTex = new ServerServicesTexture();
   const dressServer = () => {
@@ -154,7 +159,7 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
       serverSvcTex.render(store.server);
     }
     if (office.machineScreen) showOn(office.machineScreen, on ? serverMonTex.texture : machineTex.texture);
-    showOn(ctx.world().boardMeshes.services, on ? serverSvcTex.texture : servicesTex.texture);
+    showOn(ctx.world().boardMeshes.services, serverBoard() ? serverSvcTex.texture : servicesTex.texture);
   };
   for (const topic of ['server', 'floors', 'floor'] as const) store.on(topic, dressServer);
   dressServer();
@@ -162,7 +167,7 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   function dressBoards(w: World) {
     showOn(w.boardMeshes.issues, issuesTex.texture);
     showOn(w.boardMeshes.pulls, pullsTex.texture);
-    showOn(w.boardMeshes.services, store.currentFloor()?.ssh ? serverSvcTex.texture : servicesTex.texture);
+    showOn(w.boardMeshes.services, serverBoard() ? serverSvcTex.texture : servicesTex.texture);
     showOn(w.boardMeshes.queue, queueTex.texture);
     if (w.meetingBoard) showOn(w.meetingBoard, meetingBoardTex.texture);
     if (w.meetingSign) showOn(w.meetingSign, meetingSignTex.texture);

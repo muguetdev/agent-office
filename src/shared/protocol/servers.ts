@@ -72,6 +72,10 @@ export type ServersClientMsg =
   | { t: 'server.test'; floor: string }
   /** The GitHub repository the server runs (owner/name), for the floor's issues and PR boards; empty for none. */
   | { t: 'server.repo'; floor: string; repo: string }
+  /** Links a project's floor to the server its project runs on (it stays a project's floor): the answer is `server.added`, with its key. */
+  | { t: 'server.link'; floor: string; host: string; user: string; port?: number }
+  /** Takes a project's floor's server link away. */
+  | { t: 'server.unlink'; floor: string }
   /** Restarts a container or a service the server was last seen running. */
   | ({ t: 'server.restart'; floor: string } & ServerUnit);
 

@@ -3459,6 +3459,8 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} 님이 ${name}을(를) ${now}(으)로 변경했습니다${fresh ? ': 다른 에이전트에서 새 대화로 시작' : ', 하던 작업을 이어갑니다'}`,
   },
   servers: {
+    linked: (who: string, floor: string, at: string) => `🖥️ ${who}님이 ${floor} 층을 서버 ${at}에 연결했습니다`,
+    unlinked: (who: string, floor: string) => `🖥️ ${who}님이 ${floor} 층의 서버 연결을 해제했습니다`,
     noRepo: '이 서버 층에는 아직 저장소가 없습니다. 엘리베이터에서 옆의 🔑로 실행 중인 저장소를 연결하세요',
     badRepo: 'GitHub 저장소가 아닙니다. owner/name 형식이나 github.com 주소를 입력하세요',
     repoLinked: (who: string, repo: string, at: string) => `🔗 ${who} 님이 ${repo}을(를) 연결했습니다. 코드는 층 폴더의 ${at}에 들어가고, 게시판에 이슈와 PR이 표시됩니다`,
@@ -3480,6 +3482,14 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
     added: (who: string, name: string) => `🖥️ 새 층: 서버 ${name}, ${who} 님이 추가함`,
   },
   serverFloor: {
+    link: '연결',
+    linkTitle: (floor: string) => `${floor}을(를) 서버에 연결`,
+    linkTip: (floor: string) => `${floor}을(를) 프로젝트가 실행되는 서버에 연결`,
+    linkIntro: '이 층의 프로젝트가 실행되는 서버입니다. 워커는 ssh <층>으로 접속하고, 모니터에 서버 상태가 보이며, 데이터베이스는 🗄️ 데이터베이스 탭에 나옵니다. 층은 프로젝트의 것으로 남습니다: 체크아웃과 모습은 그대로이고 저장소에는 아무것도 쓰지 않습니다.',
+    linkedNote: '이 프로젝트 층은 서버에 연결되어 있습니다. Claude Code 워커는 시작할 때 이를 안내받습니다(지금 실행 중인 워커는 다시 시작할 때).',
+    unlink: '서버 연결 해제',
+    unlinkQ: (floor: string) => `${floor}의 서버 연결을 해제할까요?`,
+    unlinkNote: '워커는 접속(ssh)을, 층은 서버 모니터를 잃습니다. 사무실이 만든 키는 삭제됩니다. 서버의 authorized_keys에서 그 줄은 직접 지우세요.',
     restarts: (n: number) => `재시작 ${n}회`,
     online: '온라인',
     offline: '응답 없음',

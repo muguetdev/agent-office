@@ -2,7 +2,9 @@
 // its workers run as on any floor, and an SSH key the office made for it alone, whose public half goes
 // in the server's authorized_keys. Every worker on the floor reaches the server as `ssh <floor id>`
 // (an ssh, scp and sftp of the floor's own, in its bin, that know the way in), and a 🐚 shell at one
-// of its desks opens on the server itself.
+// of its desks opens on the server itself. A project's floor can be linked to the server its project
+// runs on, too: its workers get the same way in and are told about it, and the floor stays a project's
+// (its checkout, its look, its own shells; nothing is written into the repository).
 import { execFile, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -127,10 +129,41 @@ its own away from what's deployed (\`~/build/<name>\`): copy the code over with
 Read, edit, commit and push here; build and test there.
 ${repo ? codeNote(id, repo) : ''}`;
 
+/**
+ * What the agents on a project's floor linked to a server are told (on top of their own instructions,
+ * see providers/claude.ts): a prompt, so it's in English whatever the office speaks.
+ */
+export const linkedNote = (id: string, at: string) => `## The server this project runs on
+
+This floor's project runs on the server ${at}, which the office linked to it. Reach it with \`ssh ${id}\`
+(it already has its address, user and key): \`ssh ${id} '<command>'\` runs a command there, and \`scp\`,
+\`sftp\` and \`rsync -e ssh\` copy files to and from \`${id}:<path>\`.
+
+It's a live server: say what you're going to change there before you do, keep a backup of a file you edit
+on it, don't restart services or reboot it without being asked, and don't edit the code directly on it:
+change it here, commit and push, and deploy the way the project does (its deploy docs, or ask).
+
+The office's machine is shared by every worker on every floor and short on memory: run heavy builds,
+test suites and Docker on the server, in a folder of its own away from what's deployed (\`~/build/<name>\`),
+copying the code over with \`rsync -az --exclude .git ./ ${id}:build/<name>/\`.
+`;
+
+/** Where a linked project floor's note for its agents is kept: in its .agent-office, never in the repository. */
+export const serverNoteFile = (floorData: string) => path.join(floorData, 'server-note.md');
+
 /** Writes the note in the floor's folder, again whenever its repository is linked or unlinked. */
 export function writeAgentNote(folder: string, id: string, t: SshTarget, repo?: string) {
-  const note = agentNote(id, `${t.user}@${t.host}${t.port === SSH_PORT ? '' : `:${t.port}`}`, repo);
+  const note = agentNote(id, atOf(t), repo);
   for (const file of ['AGENTS.md', 'CLAUDE.md']) writeFileSync(path.join(folder, file), note);
+}
+
+/** user@host, with the port when it isn't 22. */
+const atOf = (t: SshTarget) => `${t.user}@${t.host}${t.port === SSH_PORT ? '' : `:${t.port}`}`;
+
+/** A project's floor unlinked from its server: its way in (the ssh, scp and sftp in its bin) and its agents' note go. */
+export function unlinkServer(bin: string) {
+  for (const cmd of ['ssh', 'scp', 'sftp']) rmSync(path.join(bin, cmd), { force: true });
+  rmSync(serverNoteFile(path.dirname(bin)), { force: true });
 }
 
 const shq = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
@@ -141,7 +174,7 @@ const shq = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
  * code is, when it has one). Returns what a 🐚 shell at one of its desks runs: ssh to the server,
  * and a shell here once that's over.
  */
-export function prepareServer(dataDir: string, id: string, t: SshTarget, folder: string, bin: string, repo?: string): string[] {
+export function prepareServer(dataDir: string, id: string, t: SshTarget, folder: string, bin: string, repo?: string, linked = false): string[] {
   makeKey(dataDir, id);
   const config = writeConfig(dataDir, id, t);
   mkdirSync(bin, { recursive: true, mode: 0o700 });
@@ -149,8 +182,11 @@ export function prepareServer(dataDir: string, id: string, t: SshTarget, folder:
     const real = which(cmd);
     if (real) writeFileSync(path.join(bin, cmd), `#!/bin/sh\n# ${cmd} that knows this floor's server (see server/servers.ts).\nexec ${shq(real)} -F ${shq(config)} "$@"\n`, { mode: 0o700 });
   }
-  mkdirSync(folder, { recursive: true });
-  writeAgentNote(folder, id, t, repo);
+  if (linked) writeFileSync(serverNoteFile(path.dirname(bin)), linkedNote(id, atOf(t)), { mode: 0o600 });
+  else {
+    mkdirSync(folder, { recursive: true });
+    writeAgentNote(folder, id, t, repo);
+  }
   return ['-l', '-c', `${shq(path.join(bin, 'ssh'))} ${id}; exec "\${SHELL:-/bin/sh}" -l`];
 }
 

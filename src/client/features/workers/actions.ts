@@ -158,7 +158,7 @@ export function installWorkerActions(ctx: Ctx, core: CoreState, parts: WorkerAct
       countOption: freeSeats().length,
       extras: machine ? [machine.element] : undefined,
       // On a server's floor: a worker for each of its areas (see server-roles.ts), one at a time or all at once.
-      ...(store.currentFloor()?.ssh
+      ...(store.currentFloor()?.ssh && !store.currentFloor()?.linked
         ? {
             presets: serverRoles().map((r) => ({ label: `${r.icon} ${r.label}`, text: r.prompt })),
             extra: {

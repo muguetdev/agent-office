@@ -39,11 +39,11 @@ export function installTv(ctx: Ctx, deps: TvDeps) {
   let drawn: string | undefined;
   function drawIdle() {
     const f = store.currentFloor();
-    const key = f?.ssh ? `${f.name}|${f.ssh.user}@${f.ssh.host}` : '';
+    const key = f?.ssh && !f.linked ? `${f.name}|${f.ssh.user}@${f.ssh.host}` : '';
     if (key === drawn) return;
     drawn = key;
     const g = idleCanvas.getContext('2d')!;
-    if (f?.ssh) {
+    if (f?.ssh && !f.linked) {
       g.fillStyle = '#07090c';
       g.fillRect(0, 0, 1280, 720);
       g.fillStyle = '#39ff7a';

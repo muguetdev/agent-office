@@ -1,6 +1,8 @@
 // Floors that are servers (see server/servers.ts): adding one, its key for the server's
-// authorized_keys, and trying the way in. Admins only: it's a way into a machine.
+// authorized_keys, and trying the way in; and linking a project's floor to the server its project
+// runs on, or unlinking it. Admins only: it's a way into a machine.
 import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 import type { ServersClientMsg } from '../../../shared/protocol.js';
 import { normalizeRepo } from '../../../shared/floors.js';
 import type { Floor } from '../../floor.js';
@@ -8,7 +10,7 @@ import { ServerWatch } from '../../server-watch.js';
 import type { Ctx } from '../../office/context.js';
 import type { Client } from '../../office/client.js';
 import { str } from '../../office/input.js';
-import { publicKey, repoFolder, sshTarget, testServer, writeAgentNote } from '../../servers.js';
+import { forgetServer, prepareServer, publicKey, repoFolder, sshTarget, testServer, unlinkServer, writeAgentNote } from '../../servers.js';
 import { ensureServerRepo } from '../../server-repo.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
@@ -93,7 +95,7 @@ export const serversHandlers = {
     const who = c.peer.name;
     if (!admin(ctx, c)) return;
     const floor = serverFloor(ctx, msg.floor);
-    if (!floor) return ctx.warn(c, L.srv.noSuchFloor);
+    if (!floor || floor.def.linked) return ctx.warn(c, L.srv.noSuchFloor);
     const raw = str(msg.repo, 200).trim();
     const repo = raw ? normalizeRepo(raw) : undefined;
     if (raw && !repo) return ctx.warn(c, L.servers.badRepo);
@@ -106,6 +108,39 @@ export const serversHandlers = {
     ctx.floorsChanged();
     ctx.toastFloor(floor, repo ? L.servers.repoLinked(who, repo, `./${repoFolder(repo)}`) : L.servers.repoUnlinked(who));
     if (repo) cloneServerRepo(ctx, floor);
+  },
+  'server.link'(ctx, c, msg) {
+    const who = c.peer.name;
+    if (!admin(ctx, c)) return;
+    const floor = ctx.floors.get(str(msg.floor, 64));
+    if (!floor || floor.def.ssh) return ctx.sendTo(c, { t: 'server.added', error: L.srv.noSuchFloor });
+    const target = sshTarget(msg.host, msg.user, msg.port);
+    if (typeof target === 'string') return ctx.sendTo(c, { t: 'server.added', error: target });
+    // Its def is the building's own (see Building.list): changed here, and saved to floors.json.
+    floor.def.ssh = target;
+    floor.def.linked = true;
+    ctx.building.save();
+    // Its key, its way in and its agents' note now; the workers it starts from here on are told (see providers/claude.ts).
+    prepareServer(ctx.cfg.dataDir, floor.id, target, floor.dir, path.join(floor.dir, '.agent-office', 'bin'), undefined, true);
+    watchServer(ctx, floor);
+    ctx.floorsChanged();
+    ctx.toastAll(L.servers.linked(who, floor.def.name, `${target.user}@${target.host}`));
+    ctx.sendTo(c, { t: 'server.added', floor: floor.id, publicKey: publicKey(ctx.cfg.dataDir, floor.id) });
+  },
+  'server.unlink'(ctx, c, msg) {
+    const who = c.peer.name;
+    if (!admin(ctx, c)) return;
+    const floor = serverFloor(ctx, msg.floor);
+    if (!floor?.def.linked) return ctx.warn(c, L.srv.noSuchFloor);
+    delete floor.def.ssh;
+    delete floor.def.linked;
+    ctx.building.save();
+    watches.get(floor.id)?.stop();
+    watches.delete(floor.id);
+    unlinkServer(path.join(floor.dir, '.agent-office', 'bin'));
+    forgetServer(ctx.cfg.dataDir, floor.id);
+    ctx.floorsChanged();
+    ctx.toastAll(L.servers.unlinked(who, floor.def.name));
   },
   'server.restart'(ctx, c, msg) {
     const who = c.peer.name;

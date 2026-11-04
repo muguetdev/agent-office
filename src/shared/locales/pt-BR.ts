@@ -3471,6 +3471,8 @@ Opções:
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} colocou ${name} em ${now}${fresh ? ': conversa nova, em outro provedor' : ', continuando de onde parou'}`,
   },
   servers: {
+    linked: (who: string, floor: string, at: string) => `🖥️ ${who} ligou o andar ${floor} ao servidor ${at}`,
+    unlinked: (who: string, floor: string) => `🖥️ ${who} desligou o andar ${floor} do servidor`,
     noRepo: 'O andar deste servidor ainda não tem repositório: ligue o que roda nele pelo 🔑 ao lado do andar no elevador',
     badRepo: 'Isso não é um repositório do GitHub: dono/nome, ou o endereço no github.com',
     repoLinked: (who: string, repo: string, at: string) => `🔗 ${who} ligou ${repo}: o código dele vai para ${at} na pasta do andar, e os quadros mostram os chamados e pull requests dele`,
@@ -3492,6 +3494,14 @@ Opções:
     added: (who: string, name: string) => `🖥️ Novo andar: o servidor ${name}, adicionado por ${who}`,
   },
   serverFloor: {
+    link: 'Ligar',
+    linkTitle: (floor: string) => `Ligar ${floor} ao servidor`,
+    linkTip: (floor: string) => `Ligar ${floor} ao servidor onde o projeto roda`,
+    linkIntro: 'O servidor onde o projeto deste andar roda: os workers entram nele com ssh <andar>, o monitor mostra como ele está, e os bancos dele aparecem na aba 🗄️ Banco. O andar continua sendo do projeto: o checkout, o visual, e nada é escrito no repositório.',
+    linkedNote: 'Este andar de projeto está ligado ao servidor: os workers do Claude Code ficam sabendo dele ao iniciar (os que já estão rodando, quando reiniciarem).',
+    unlink: 'Desligar do servidor',
+    unlinkQ: (floor: string) => `Desligar ${floor} do servidor?`,
+    unlinkNote: 'Os workers perdem o acesso (ssh) e o andar o monitor do servidor. O escritório apaga a chave que criou; tire a linha dela do authorized_keys do servidor você mesmo.',
     restarts: (n: number) => `${n} ${n === 1 ? 'reinício' : 'reinícios'}`,
     online: 'No ar',
     offline: 'Sem resposta',
