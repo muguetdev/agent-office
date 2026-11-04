@@ -24,7 +24,8 @@ export const FOV = 55;
  */
 const FIREFOX = navigator.userAgent.includes('Firefox/');
 export const SHADOW_EVERY = FIREFOX ? 2 : 1;
-const MAX_PIXEL_RATIO = FIREFOX ? 1.5 : 2;
+/** A phone's screen is sharp enough at 1.5, and drawing it at 3 costs four times the frame. */
+const MAX_PIXEL_RATIO = FIREFOX || matchMedia('(pointer: coarse)').matches ? 1.5 : 2;
 
 /** The renderer, the scene with its lights and camera, and what's always in it (see createScene). */
 export interface Stage {

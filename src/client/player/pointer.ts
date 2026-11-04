@@ -60,6 +60,16 @@ export abstract class PlayerInput {
   enabled = true;
   /** False while the mouse picks something else (an emote on the wheel), so it doesn't turn the camera. */
   mouseLook = true;
+  /**
+   * The touch controls (features/touch) have the fingers: a touch on the scene isn't a drag or a click
+   * here. `fingersOnly`: there's no mouse at all, so nothing asks to capture one.
+   */
+  touch = { owned: false, fingersOnly: false };
+  /**
+   * Where a thumbstick steers, x right and z back, as long as 1 (see features/touch): walking takes its
+   * angle and how far it's pushed over the W A S D it also holds down. Null when there's none.
+   */
+  stick: { x: number; z: number } | null = null;
 
   constructor(private dom: HTMLElement) {
     window.addEventListener('keydown', (e) => {
@@ -92,7 +102,7 @@ export abstract class PlayerInput {
     );
 
     dom.addEventListener('pointerdown', (e) => {
-      if (!this.enabled) return;
+      if (!this.enabled || (e.pointerType === 'touch' && this.touch.owned)) return;
       if (this.view === 'first' && e.pointerType === 'mouse' && !this.lockFailed) {
         if (this.locked) {
           if (e.button === 0) this.onClick?.(CENTER);
@@ -191,7 +201,7 @@ export abstract class PlayerInput {
 
   /** Whether clicking the scene will capture the mouse for looking around. */
   get canLock(): boolean {
-    return this.view === 'first' && !this.lockFailed && typeof this.dom.requestPointerLock === 'function';
+    return this.view === 'first' && !this.lockFailed && !this.touch.fingersOnly && typeof this.dom.requestPointerLock === 'function';
   }
 
   unlock() {
@@ -216,6 +226,12 @@ export abstract class PlayerInput {
 
   clearKeys() {
     this.keys.clear();
+  }
+
+  /** Holds a key down or lets it go, as the keyboard would (the touch controls' thumbstick). */
+  setKey(code: string, down: boolean) {
+    if (down && this.enabled) this.keys.add(code);
+    else this.keys.delete(code);
   }
 
   /** Whether any of these keys is held down (and you have the controls). */

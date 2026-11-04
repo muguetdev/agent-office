@@ -182,6 +182,14 @@ export class PlayerController extends PlayerInput {
       if (k.has('KeyA') || k.has('ArrowLeft')) ix -= 1;
       if (k.has('KeyD') || k.has('ArrowRight')) ix += 1;
     }
+    // A thumbstick's angle, and how far it's pushed, over the keys it holds down (see stick).
+    let pace = 1;
+    const st = this.stick;
+    if (st && this.enabled && (ix !== 0 || iz !== 0)) {
+      pace = Math.min(1, Math.hypot(st.x, st.z));
+      ix = st.x;
+      iz = st.z;
+    }
     const steering = ix !== 0 || iz !== 0;
     this.moving = steering;
     this.running = steering && (k.has('ShiftLeft') || k.has('ShiftRight'));
@@ -203,7 +211,7 @@ export class PlayerController extends PlayerInput {
       const cos = Math.cos(this.camYaw + stagger);
       const dx = ix * cos + iz * sin;
       const dz = -ix * sin + iz * cos;
-      const speed = (this.running ? RUN : WALK) * this.effects.speed;
+      const speed = (this.running ? RUN : WALK * Math.max(0.45, pace)) * this.effects.speed;
       this.tryMove(this.pos.x + dx * speed * dt, this.pos.z);
       this.tryMove(this.pos.x, this.pos.z + dz * speed * dt);
       if (this.view === 'third') {

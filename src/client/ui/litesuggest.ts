@@ -33,7 +33,8 @@ export function offerLite(why: 'touch' | 'slow') {
       : L.litesug.slow;
   const stay = h('button.btn', { type: 'button' }, L.litesug.stay);
   const el = h(
-    'div.lite-offer.panel',
+    // On a phone it's a note at the top, out of the way of the touch controls.
+    `div.lite-offer.panel.${why}`,
     { role: 'dialog', 'aria-label': L.litesug.try },
     h('p', {}, say),
     h('div.lite-offer-btns', {}, h('a.btn.primary', { href: '/lite' }, L.litesug.open), stay),

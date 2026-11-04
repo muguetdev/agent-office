@@ -3,3 +3,5 @@
 .lite-offer p { margin: 0 0 12px; font-weight: 800; font-size: 15px; line-height: 1.35; }
 .lite-offer-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .lite-offer-btns .btn { flex: 1; justify-content: center; min-height: 44px; text-decoration: none; }
+.lite-offer.touch { top: calc(64px + env(safe-area-inset-top)); bottom: auto; max-width: 400px; padding: 10px 12px; }
+.lite-offer.touch p { margin-bottom: 8px; font-size: 13px; }

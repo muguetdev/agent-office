@@ -1,0 +1,76 @@
+/* The touch controls (see index.ts): the thumbstick bottom-left, the round buttons bottom-right, and
+   the HUD made room for them on a phone. Everything here hangs off body.touch, so a computer with a
+   mouse never sees any of it. */
+body.touch { overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+body.touch #scene { touch-action: none; }
+#hud > .touch-controls { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+.touch-controls.hidden { display: none; }
+
+/* The thumbstick: waiting faintly in the corner, and under the thumb wherever it lands. */
+.touch-stick {
+  position: absolute; left: calc(84px + env(safe-area-inset-left)); top: calc(100% - 96px - env(safe-area-inset-bottom));
+  width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+  border: 3px solid var(--ink); background: rgba(255, 250, 243, .28); opacity: .55; pointer-events: none;
+  transition: opacity .15s;
+}
+.touch-stick.on { opacity: 1; background: rgba(255, 250, 243, .4); transition: none; }
+.touch-knob {
+  position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%;
+  border: 3px solid var(--ink); background: var(--paper); box-shadow: 0 3px 0 var(--ink);
+}
+
+/* The round buttons. */
+.touch-pad {
+  position: absolute; right: calc(14px + env(safe-area-inset-right)); bottom: calc(16px + env(safe-area-inset-bottom));
+  display: grid; grid-template-columns: 58px 84px; grid-template-rows: 56px 56px 84px; gap: 10px;
+  grid-template-areas: 'more next' 'back .' 'jump use'; align-items: end; justify-items: center; pointer-events: none;
+}
+.touch-btn {
+  pointer-events: auto; touch-action: none; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 56px; height: 56px; padding: 0; border: 3px solid var(--ink); border-radius: 50%;
+  background: var(--paper); color: var(--ink); box-shadow: 0 3px 0 var(--ink); font: 900 11px/1 var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+.touch-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); background: var(--paper-2); }
+.touch-btn .ico { font-size: 22px; line-height: 1; }
+.touch-btn .lbl { max-width: 100%; margin-top: 2px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.touch-btn.use { grid-area: use; width: 84px; height: 84px; background: #ffd166; }
+.touch-btn.use .ico { font-size: 28px; }
+.touch-btn.use .lbl { max-width: 76px; font-size: 11px; white-space: normal; line-height: 1.05; max-height: 2.2em; }
+.touch-btn.use.ready { background: var(--accent); color: #fff; }
+.touch-btn.jump { grid-area: jump; }
+.touch-btn.next { grid-area: next; }
+.touch-btn.next .lbl, .touch-btn.back .lbl { font-size: 9.5px; padding: 0 2px; }
+.touch-btn.next.dim { opacity: .55; }
+.touch-btn.back { grid-area: back; background: #ffe3ea; }
+.touch-btn.back.hidden { display: none; }
+.touch-btn.more { grid-area: more; width: 48px; height: 48px; }
+.touch-btn.more[aria-expanded=true] { background: var(--paper-2); }
+
+/* ⋯: the hint bar's other keys, and the rest. */
+.touch-more {
+  position: absolute; right: calc(14px + env(safe-area-inset-right)); bottom: calc(250px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 6px; padding: 8px; max-height: 50vh; overflow: auto; pointer-events: auto; min-width: 180px; max-width: calc(100vw - 28px);
+}
+.touch-more.hidden { display: none; }
+.touch-more-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.touch-more-row:not(:first-child) { margin-top: 4px; padding-top: 10px; border-top: 2px dashed var(--line, #e2d3bf); }
+.touch-item { justify-content: flex-start; gap: 8px; min-height: 44px; text-align: left; }
+
+/* On a phone, the HUD makes room: the panels down the side and the minimap give way (☰ and J have
+   them), the chat moves up out of the thumbstick's corner, and the hint bar sits over the buttons. */
+@media (pointer: coarse) and (max-width: 640px), (pointer: coarse) and (max-height: 500px) {
+  body.touch #hud .side, body.touch #hud #minimap { display: none; }
+  body.touch #hud .topbar { top: calc(8px + env(safe-area-inset-top)); left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); gap: 6px; }
+  body.touch #hud .project { padding: 5px 10px; max-width: 46vw; }
+  body.touch #hud .project-name { font-size: 15px; }
+  body.touch #hud .dock-btn .lbl { display: none; }
+  body.touch #hud .dock-btn { height: 44px; padding: 0 10px; }
+  body.touch #hud .chat { left: calc(8px + env(safe-area-inset-left)); top: calc(66px + env(safe-area-inset-top)); bottom: auto; width: min(300px, 62vw); }
+  body.touch #hud #chat-log { max-height: 22vh; font-size: 12px; }
+  body.touch #hud #chat-input:not(:focus) { position: absolute; width: 1px; opacity: 0; pointer-events: none; }
+  body.touch #hud .hint {
+    left: 12px; right: 12px; bottom: calc(246px + env(safe-area-inset-bottom)); transform: none; width: fit-content; max-width: none; margin: 0 auto;
+    padding: 6px 12px; gap: 4px 12px; font-size: 13px;
+  }
+}

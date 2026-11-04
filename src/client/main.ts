@@ -77,6 +77,7 @@ import { installCodeLive } from './features/codelive';
 import { installDiorama } from './features/diorama';
 import { installAvatars } from './features/avatars';
 import { installWhiteboard } from './features/whiteboard';
+import { installTouch } from './features/touch';
 import { installWorkerActions } from './features/workers/actions';
 import { installWorkerViews } from './features/workers/views';
 import { L, translatePage } from './i18n';
@@ -91,7 +92,7 @@ const chose3d = new URLSearchParams(location.search).has('3d');
 if (chose3d) history.replaceState(null, '', location.pathname);
 /** Offers the 2D view (/lite) where the 3D is hard going. */
 const offer2d = (why: 'touch' | 'slow') => chose3d || offerLite(why);
-// A phone can't walk around the office: the 2D view is made for it.
+// A phone walks around by touch now (features/touch); the 2D view is still a tap away, out of the way.
 if (touchOnly()) offer2d('touch');
 // The models made in Blender, loaded before the world they're in is built (see world/models.ts).
 await preloadModels();
@@ -215,6 +216,7 @@ installDictation(ctx);
 parts.hud = installHud(ctx, core, parts);
 // After the pointer: it takes over a click on the model (see player.onClick).
 installDiorama(ctx, parts);
+installTouch(ctx);
 
 // ---- Main loop ---------------------------------------------------------------------------------------
 fitWindow(ctx);
