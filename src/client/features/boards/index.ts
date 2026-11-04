@@ -144,11 +144,8 @@ export function installBoards(ctx: Ctx, deps: BoardsDeps) {
   const meetingSignTex = new MeetingSignTexture();
   mountBoard(office.meetingSign, meetingSignTex.texture, () => meetingSignTex.render(store.meeting), ['meeting']);
   // A server's floor's own: the monitor shows its server, and the services board what runs on it (see server.ts).
-  // A project's floor linked to its server shows the server on the monitor and keeps its workers' services on the board.
-  const serverBoard = () => {
-    const f = store.currentFloor();
-    return !!f?.ssh && !f.linked;
-  };
+  // A project's floor linked to its server shows that server the same way.
+  const serverBoard = () => !!store.currentFloor()?.ssh;
   const serverMonTex = new ServerMonitorTexture();
   const serverSvcTex = new ServerServicesTexture();
   const dressServer = () => {
