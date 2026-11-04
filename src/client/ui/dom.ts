@@ -35,6 +35,8 @@ export interface Modal {
   doing?: string;
   /** You're reading while it's open: your character holds an open book (see PeerInfo.reading). */
   reading?: boolean;
+  /** Esc doesn't close it (it wants an answer), so neither does the back gesture. */
+  sticky?: boolean;
   close(): void;
 }
 
@@ -97,6 +99,7 @@ export function openModal(content: HTMLElement, opts: { escCloses?: boolean; onC
     }
   };
   const modal: Modal = {
+    sticky: opts.escCloses === false,
     el: content,
     backdrop,
     doing: opts.doing,
@@ -130,6 +133,19 @@ function addCloseButton(content: HTMLElement, close: () => void) {
   if (header) return header.append(x);
   x.classList.add('corner');
   content.append(x);
+}
+
+/** How many windows are open, one over another. */
+export function modalsOpen(): number {
+  return stack.length;
+}
+
+/** Closes the window on top, as Esc would (the phone's back gesture, see mobile/pwa.ts); false when none is open. */
+export function closeTopModal(): boolean {
+  const top = stack[stack.length - 1];
+  if (!top || top.sticky) return false;
+  top.close();
+  return true;
 }
 
 export function closeAllModals() {

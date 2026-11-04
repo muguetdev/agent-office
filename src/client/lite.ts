@@ -11,8 +11,8 @@ import { cloneLabel } from '../shared/floors';
 import { ROOF } from '../shared/rooftop';
 import { DESK_BY_ID, nextFreeSeat } from '../shared/layout';
 import { isAsleep } from '../shared/status';
-import type { AgentEffort, AgentProvider, FloorInfo, WorkerInfo } from '../shared/protocol';
-import { $, clip, closeAllModals, doingNow, h, onDoingChange, onModalChange, openModal, readingNow, STATUS_LABEL, timeAgo, toast } from './ui/dom';
+import type { AgentEffort, AgentProvider, WorkerInfo } from '../shared/protocol';
+import { $, closeAllModals, doingNow, h, onDoingChange, onModalChange, openModal, readingNow, toast } from './ui/dom';
 import { openTerminal, openTerminalFor, routeTerminalMessage } from './ui/terminal';
 import { openChanges, openChangesFor, routeChangesMessage } from './ui/changes';
 import { linkCodeLive } from './ui/code-live/link';
@@ -24,13 +24,16 @@ import { openQueue } from './ui/queue';
 import { openAsk } from './ui/ask';
 import { openMeeting, type MeetingPreset } from './ui/meeting';
 import { openSignIns } from './ui/signins';
-import { modelBadge, providerLabel } from './ui/provider';
 import { byUrgency, waitingInOrder, waitingLabel } from './nextup';
-import { askNotifyPermission, DesktopNotifier, notifyPermission, waitingOnSomeone } from './notify';
+import { DesktopNotifier, waitingOnSomeone } from './notify';
 import { repoChoices } from './shared/hiring';
 // The tab title counts the workers waiting on someone, on every floor, as the 3D office's does.
 import { renderTitle } from './shared/title';
 import { L, placeLabel, translatePage } from './i18n';
+import { registerApp, setBadge, type SwMessage } from './mobile/pwa';
+import { pushState, refresh as refreshPush } from './mobile/push';
+import { openFloors, openMore } from './mobile/menu';
+import { workerCard as card, type Filter, FILTERS, matches } from './mobile/cards';
 
 translatePage();
 
@@ -46,12 +49,17 @@ const saved = loadProfile();
 store.profile = { name: saved?.name ?? 'Guest', color: saved?.color ?? AVATAR_COLORS[1], look: saved?.look ?? randomLook() };
 const net = new Net(() => store.profile, () => null, true);
 const settings = loadSettings();
-const notifier = new DesktopNotifier(() => settings.notify, (id) => openWorker(id));
+/** This phone gets the office's push notifications (mobile/push.ts): those show instead of the page's own. */
+let pushOn = false;
+const notifier = new DesktopNotifier(() => settings.notify && !pushOn, (id) => openWorker(id));
 
 /** The server version this page was loaded with. */
 let bootVersion = '';
 
-net.onStatus((up) => $('conn').classList.toggle('hidden', up));
+net.onStatus((up) => {
+  $('conn').classList.toggle('hidden', up);
+  $('conn-dot').classList.toggle('down', !up);
+});
 // A worker's Code tab hears what changes in its folder as it happens (see ui/code-live/).
 linkCodeLive(net);
 net.onMessage((msg) => {
@@ -66,6 +74,8 @@ net.onMessage((msg) => {
       if (!bootVersion) bootVersion = msg.version;
       else if (msg.version !== bootVersion) return location.reload();
       offTheRoof();
+      pendingFloor();
+      void refreshPush();
       // After a reconnect the server has forgotten which terminal we had open, and what we're doing.
       sendDoing(true);
       const openId = openTerminalFor();
@@ -100,18 +110,11 @@ function offTheRoof() {
 }
 
 // ---- The floor you're on ------------------------------------------------------------------------
-const floorSelect = $('floor') as HTMLSelectElement;
-const floorLabel = (f: FloorInfo) => `${f.name}${f.cloning ? ` (${cloneLabel(f.clone)})` : f.waiting ? ` · 🙋 ${f.waiting}` : ''}`;
-
 function renderFloors() {
-  const options = store.floors.map((f) => h('option', { value: f.id, disabled: !!f.cloning || !!f.locked }, floorLabel(f)));
-  if (!store.floors.length) options.push(h('option', { value: '' }, L.lite.noFloors));
-  floorSelect.replaceChildren(...options);
-  floorSelect.value = store.floor ?? '';
-  floorSelect.disabled = store.floors.length < 2;
-  const p = store.project;
   const f = store.currentFloor();
-  $('floor-meta').textContent = p ? [p.branch && `⎇ ${p.branch}`, f?.repo ?? p.dir, f && `👥 ${L.lite.here(f.people)}`].filter(Boolean).join(' · ') : store.floors.length ? '' : L.lite.addProject;
+  $('floor-name').textContent = f ? `${f.name}${f.cloning ? ` (${cloneLabel(f.clone)})` : ''}` : store.floors.length ? '…' : L.lite.noFloors;
+  const p = store.project;
+  $('floor-meta').textContent = p ? [p.branch && `⎇ ${p.branch}`, f?.repo ?? p.dir.split(/[\\/]/).pop(), f && `👥 ${L.lite.here(f.people)}`].filter(Boolean).join(' · ') : store.floors.length ? '' : L.lite.addProject;
   // Someone waiting on another floor: a way straight there.
   const elsewhere = store.floors.filter((o) => o.id !== store.floor && o.waiting > 0 && !o.cloning);
   const box = $('elsewhere');
@@ -121,11 +124,11 @@ function renderFloors() {
       h('button.btn.lite-go', { type: 'button', onclick: () => net.send({ t: 'floor.go', floor: o.id }) }, `🙋 ${L.lite.waitingOn(o.waiting, o.name)}`, h('span', { 'aria-hidden': 'true' }, '→')),
     ),
   );
+  // Everyone waiting, on every floor, on the app's icon.
+  setBadge(store.floors.reduce((n, o) => n + (o.waiting || 0), 0));
   renderTitle();
 }
-floorSelect.addEventListener('change', () => {
-  if (floorSelect.value && floorSelect.value !== store.floor) net.send({ t: 'floor.go', floor: floorSelect.value });
-});
+$('floor-btn').addEventListener('click', () => openFloors(net));
 store.on('floors', renderFloors);
 store.on('floor', renderFloors);
 store.on('project', renderFloors);
@@ -134,58 +137,45 @@ store.on('project', renderFloors);
 /** What each worker was last, to tell when one starts waiting on someone. */
 const lastStatus = new Map<string, string>();
 
-function renderWorkers() {
-  const list = byUrgency(store.workers.values());
-  const ul = $('workers');
-  ul.replaceChildren(...list.map(workerCard));
-  if (!list.length) ul.append(h('li.lite-empty', {}, store.project ? L.lite.nobody : L.lite.noWorkers));
-  $('waiting-now').textContent = waitingLabel(waitingInOrder(list));
-  renderTitle();
+/** Which workers the list shows (the chips over it), kept for next time. */
+let filter: Filter = (() => {
+  try {
+    const f = localStorage.getItem('agent-office.lite-filter') as Filter | null;
+    return f && FILTERS.includes(f) ? f : 'all';
+  } catch {
+    return 'all';
+  }
+})();
+
+function setFilter(f: Filter) {
+  filter = f;
+  try {
+    localStorage.setItem('agent-office.lite-filter', f);
+  } catch {
+    // only this visit then
+  }
+  renderWorkers();
 }
 
-function workerCard(w: WorkerInfo): HTMLElement {
-  const desk = DESK_BY_ID.get(w.deskId);
-  const waiting = waitingOnSomeone(w);
-  const asleep = isAsleep(w.status);
-  const badge = w.kind === 'agent' ? modelBadge(w.provider, w.model, w.effort, w.usage?.model) : undefined;
-  const task = w.task?.name ?? w.title ?? (w.prompt ? clip(w.prompt, 90) : undefined);
-  // What it's asking, doing or did, in a line.
-  const now = w.lost
-    ? L.lite.lost
-    : w.status === 'needs_input'
-      ? `🙋 ${w.activity ?? L.lite.waitingAnswer}`
-      : asleep
-        ? L.lite.asleep
-        : w.status === 'done'
-          ? w.task?.summary && `✅ ${w.task.summary}`
-          : (w.task?.summary ?? w.activity);
-  const sub = [
-    w.kind === 'agent' ? `⚙️ ${providerLabel(w.provider, store.project)}${badge ? ` · ${badge}` : ''}` : '🐚 shell',
-    desk && (desk.station ? `📌 ${desk.label}` : desk.label),
-    w.worktree && `🌿 ${w.worktree.branch}`,
-    w.pr && `🔀 PR #${w.pr.number}`,
-    w.lastInput && `⌨️ ${w.lastInput.by} ${timeAgo(w.lastInput.at)}`,
-  ].filter(Boolean);
-  return h(
-    'li.lite-worker',
-    { class: `${w.status}${waiting ? ' waiting' : ''}` },
-    h(
-      'button.lite-card',
-      { type: 'button', onclick: () => openWorker(w.id), 'aria-label': L.lite.openTerminal(w.name, STATUS_LABEL[w.status] ?? w.status) },
-      h('span.dot', { style: `background:${w.color}` }),
-      h(
-        'span.lite-info',
-        {},
-        h('span.lite-name', {}, w.name),
-        task ? h('span.lite-task', {}, task) : null,
-        now ? h('span.lite-now', {}, now) : null,
-        h('span.lite-sub', {}, sub.join(' · ')),
-      ),
-      h('span.lite-state', {}, h('span.pill', { class: w.status }, STATUS_LABEL[w.status] ?? w.status), waiting && w.waitingSince ? h('small', {}, timeAgo(w.waitingSince)) : null),
-    ),
-    // One that's asking something is answered in its terminal, where the question is.
-    asleep || w.lost || w.status === 'needs_input' ? null : h('button.btn.lite-say', { type: 'button', title: L.lite.sendPrompt(w.name), 'aria-label': L.lite.sendPrompt(w.name), onclick: () => promptWorker(w.id) }, '✍️'),
+function renderWorkers() {
+  const all = byUrgency(store.workers.values());
+  const list = all.filter((w) => matches(w, filter));
+  const ul = $('workers');
+  ul.replaceChildren(...list.map((w) => card(w, { open: openWorker, prompt: promptWorker })));
+  if (!all.length) ul.append(h('li.lite-empty', {}, h('span.lite-empty-art', { 'aria-hidden': 'true' }, '🪑'), store.project ? L.lite.nobody : L.lite.noWorkers));
+  else if (!list.length) ul.append(h('li.lite-empty', {}, h('span.lite-empty-art', { 'aria-hidden': 'true' }, '🌤️'), L.mobile.noneHere, h('button.btn', { type: 'button', onclick: () => setFilter('all') }, L.mobile.showAll)));
+  $('filters').replaceChildren(
+    ...FILTERS.map((f) => {
+      const n = all.filter((w) => matches(w, f)).length;
+      if (f !== 'all' && f !== filter && !n) return '';
+      return h('button.lite-chip', { type: 'button', role: 'tab', 'aria-selected': String(f === filter), class: `${f}${f === filter ? ' on' : ''}`, onclick: () => setFilter(f) }, L.mobile.filter[f], h('span.n', {}, String(n)));
+    }),
   );
+  const waiting = waitingInOrder(all);
+  const n = $('btn-workers').querySelector('.n')!;
+  n.textContent = waiting.length ? String(waiting.length) : '';
+  n.setAttribute('title', waitingLabel(waiting));
+  renderTitle();
 }
 
 /** A worker needs input or is done: a notification while you're elsewhere, and a buzz. */
@@ -203,6 +193,7 @@ function noticeWorkers() {
 store.on('workers', () => {
   noticeWorkers();
   renderWorkers();
+  pendingWorker();
 });
 store.on('project', renderWorkers);
 // "3m ago" moves on by itself.
@@ -326,7 +317,13 @@ function showMeeting(preset?: MeetingPreset) {
 $('btn-issues').addEventListener('click', () => openBoard('issues', net, boardActions()));
 $('btn-pulls').addEventListener('click', () => openBoard('pulls', net, boardActions()));
 $('btn-queue').addEventListener('click', () => openQueue(net, { openTerminal: openWorker }));
-$('btn-new').addEventListener('click', () => sendToWorker('✨ New task'));
+$('btn-new').addEventListener('click', () => sendToWorker(L.lite.newTask));
+$('btn-more').addEventListener('click', () => openMore({ meeting: () => showMeeting() }));
+// Back to the list, at the top.
+$('btn-workers').addEventListener('click', () => {
+  closeAllModals();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
 
 function renderNav() {
   const count = (id: string, n: number) => ($(id).querySelector('.n')!.textContent = n ? String(n) : '');
@@ -356,14 +353,44 @@ function sendDoing(reconnected = false) {
 onModalChange(() => sendDoing());
 onDoingChange(() => sendDoing());
 
-// ---- Notifications ------------------------------------------------------------------------------
-// The browser only asks from a tap, so there's a button for it while it hasn't been asked.
-const bell = h('button.btn', { type: 'button', title: L.lite.notifyTip, 'aria-label': L.lite.notifyLabel }, '🔔');
-bell.addEventListener('click', async () => {
-  await askNotifyPermission();
-  bell.remove();
+// ---- The app: installed on a phone, push, and links straight to a worker --------------------------
+/** A worker to open once you're on its floor and it's arrived (a tapped notification, a link). */
+let want: { floor?: string; worker?: string } = {};
+
+function goTo(floor?: string, worker?: string) {
+  want = { floor, worker };
+  pendingFloor();
+  pendingWorker();
+}
+function pendingFloor() {
+  if (!want.floor || !store.floor) return;
+  if (want.floor !== store.floor && store.floors.some((f) => f.id === want.floor)) net.send({ t: 'floor.go', floor: want.floor });
+  want.floor = undefined;
+}
+function pendingWorker() {
+  if (!want.worker || want.floor || !store.workers.has(want.worker)) return;
+  const id = want.worker;
+  want.worker = undefined;
+  closeAllModals();
+  openWorker(id);
+}
+
+registerApp((m: SwMessage) => {
+  if (m.t === 'open') goTo(m.floor, m.workerId);
+  else if (m.data.kind === 'needs_input') navigator.vibrate?.([120, 60, 120]);
 });
-if (notifyPermission() === 'default' && settings.notify) $('to-3d').before(bell);
+const checkPush = () => void pushState().then((st) => (pushOn = st === 'on'));
+checkPush();
+window.addEventListener('focus', checkPush);
+
+{
+  const q = new URLSearchParams(location.search);
+  if (q.get('worker')) goTo(q.get('floor') ?? undefined, q.get('worker')!);
+  const f = q.get('filter') as Filter | null;
+  if (f && FILTERS.includes(f)) filter = f;
+  if (q.get('new')) setTimeout(() => store.project && sendToWorker(L.lite.newTask), 1500);
+  if ([...q.keys()].length) history.replaceState(null, '', location.pathname);
+}
 
 // ---- In ----------------------------------------------------------------------------------------
 /** Your name, the first time this browser comes in on the shared password. */

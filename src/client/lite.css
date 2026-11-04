@@ -1,66 +1,160 @@
 @import './styles/base.css';
 
-/* The 2D view (lite.html): a page that scrolls, made for a phone, rather than a HUD over the 3D office. */
-html, body { height: auto; min-height: 100%; overflow: auto; }
-body.lite { min-height: 100dvh; background: var(--paper); -webkit-tap-highlight-color: transparent; }
-
-.lite-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); background: var(--paper-2); border-bottom: 3px solid var(--ink); }
-.lite-bar .btn { height: 44px; flex: none; text-decoration: none; }
-.lite-floor { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; margin: 0; }
-.lite-floor-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
-.lite-floor select {
-  width: auto; max-width: 100%; min-width: 0; padding: 0 22px 0 0; border: 0; background: none; color: var(--ink);
-  font: 900 19px/1.2 var(--font); text-overflow: ellipsis; appearance: none; -webkit-appearance: none; cursor: pointer;
-  background: no-repeat right 2px center / 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%232b2d42' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+/* The 2D view (lite.html): an app made for a phone (installed as one, see mobile/pwa.ts), rather than
+   a HUD over the 3D office. A bar on top with the floor, the list, and tabs at the bottom. */
+html, body { height: auto; min-height: 100%; overflow: auto; overscroll-behavior-y: none; }
+body.lite {
+  min-height: 100dvh; background: var(--paper); -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  --nav-h: 64px;
 }
-.lite-floor select:disabled { background-image: none; opacity: 1; cursor: default; }
+body.lite input, body.lite textarea, body.lite .xterm, body.lite .modal .body { -webkit-user-select: text; user-select: text; }
 
-.lite-main { width: 100%; max-width: 760px; margin: 0 auto; padding: 12px 12px calc(96px + env(safe-area-inset-bottom)); }
-.lite-meta { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ---- The bar on top ---- */
+.lite-bar {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; padding-top: max(8px, env(safe-area-inset-top));
+  padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right));
+  background: color-mix(in srgb, var(--paper-2) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 3px solid var(--ink);
+}
+.lite-floor {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 4px 8px; margin-left: -8px; border: 0; border-radius: 12px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.lite-floor:active { background: rgba(43, 45, 66, .08); }
+.lite-floor-label { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.lite-floor-name { display: flex; align-items: center; gap: 6px; max-width: 100%; font: 900 20px/1.2 var(--font); }
+#floor-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lite-caret { flex: none; width: 12px; height: 8px; background: no-repeat center / 12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%232b2d42' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.lite-conn { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--good); border: 2px solid var(--ink); transition: background .2s; }
+.lite-conn.down { background: var(--bad); animation: lite-blink 1s infinite; }
+@keyframes lite-blink { 50% { opacity: .3; } }
+.lite-3d { height: 40px; flex: none; text-decoration: none; }
+/* Installed, the 3D office is in ☰ More. */
+@media (display-mode: standalone) { .lite-3d { display: none; } }
+
+/* ---- The list ---- */
+.lite-main {
+  width: 100%; max-width: 760px; margin: 0 auto;
+  padding: 12px max(12px, env(safe-area-inset-right)) calc(var(--nav-h) + 96px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.lite-meta { margin: 0 2px 10px; font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lite-meta:empty { display: none; }
-.lite-elsewhere { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.lite-go { justify-content: space-between; min-height: 44px; background: #ffd6e0; white-space: normal; text-align: left; }
+.lite-elsewhere { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.lite-go { justify-content: space-between; min-height: 48px; background: #ffd6e0; white-space: normal; text-align: left; }
 .lite-go:hover { background: #ffc2d1; }
-.lite-h { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 10px; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; }
-.lite-waiting { font-size: 13px; text-transform: none; letter-spacing: 0; color: #c9184a; }
 
-/* A card per worker, the ones waiting on someone first (see byUrgency). */
-.lite-workers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.lite-worker { display: flex; align-items: stretch; background: #fff; border: 3px solid var(--ink); border-radius: var(--radius); box-shadow: 0 3px 0 var(--ink); overflow: hidden; }
-.lite-worker.waiting { box-shadow: 0 3px 0 var(--ink), inset 6px 0 0 var(--bad); }
-.lite-worker.done.waiting { box-shadow: 0 3px 0 var(--ink), inset 6px 0 0 var(--good); }
+.lite-filters { display: flex; gap: 8px; margin: 0 -12px 12px; padding: 2px 12px 4px; overflow-x: auto; scrollbar-width: none; }
+.lite-filters::-webkit-scrollbar { display: none; }
+.lite-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+  border: 2.5px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink);
+  font: 800 14px var(--font); cursor: pointer; box-shadow: 0 2px 0 var(--ink);
+}
+.lite-chip .n { min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--paper-2); font-size: 12px; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.lite-chip.on { background: var(--ink); color: #fff; }
+.lite-chip.on .n { background: #fff; color: var(--ink); }
+.lite-chip.waiting:not(.on) .n { background: var(--bad); color: #fff; }
+
+.lite-workers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.lite-worker {
+  position: relative; display: flex; flex-direction: column; background: #fff;
+  border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 4px 0 var(--ink); overflow: hidden;
+}
+.lite-worker.waiting { background: #fff4f6; }
+.lite-worker.waiting::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 7px; background: var(--bad); }
+.lite-worker.done.waiting { background: #f0fff9; }
+.lite-worker.done.waiting::before { background: var(--good); }
 .lite-worker.exited, .lite-worker.offline { background: #f3f1ee; }
-.lite-card { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 10px; padding: 12px 10px 12px 14px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.lite-card:active { background: var(--paper-2); }
+.lite-worker.exited .lite-face, .lite-worker.offline .lite-face { filter: grayscale(.7); opacity: .75; }
+.lite-card { flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 12px 16px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.lite-card:active { background: rgba(43, 45, 66, .05); }
 .lite-card:focus-visible { outline: none; box-shadow: inset 0 0 0 3px var(--accent); }
-.lite-card .dot { flex: none; width: 14px; height: 14px; margin-top: 4px; border-radius: 50%; border: 2px solid var(--ink); }
-.lite-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.lite-name { font-size: 16px; font-weight: 900; }
-.lite-task { font-size: 14px; font-weight: 800; overflow-wrap: anywhere; }
-.lite-now { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+.lite-face {
+  position: relative; flex: none; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  background: var(--c); border: 3px solid var(--ink); color: #fff; font: 900 17px var(--font); text-shadow: 0 1px 0 rgba(0, 0, 0, .35); letter-spacing: .02em;
+}
+.lite-face-dot { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; border-radius: 50%; border: 3px solid #fff; background: #b8b2aa; }
+.lite-face-dot.working, .lite-face-dot.starting { background: var(--info); animation: lite-pulse 1.4s infinite; }
+.lite-face-dot.needs_input { background: var(--bad); animation: lite-pulse 1s infinite; }
+.lite-face-dot.done { background: var(--good); }
+.lite-face-dot.idle { background: var(--warn); }
+@keyframes lite-pulse { 50% { transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .lite-face-dot { animation: none !important; } }
+.lite-face-mail { position: absolute; top: -6px; right: -8px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #25d366; color: #fff; border: 2px solid var(--ink); font-size: 11px; line-height: 16px; text-align: center; text-shadow: none; }
+
+.lite-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.lite-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lite-name { font-size: 17px; font-weight: 900; }
+.lite-top .pill { font-size: 11px; padding: 1px 8px; }
+.lite-since { margin-left: auto; font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.lite-task { font-size: 14px; font-weight: 800; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lite-now { font-size: 13px; font-weight: 700; color: #4a4c63; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .lite-worker.needs_input .lite-now { color: #c9184a; }
 .lite-sub { font-size: 12px; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
-.lite-state { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.lite-state small { font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; }
-.lite-say { flex: none; align-self: center; width: 44px; height: 44px; margin-right: 10px; padding: 0; justify-content: center; font-size: 18px; }
-.lite-empty { padding: 28px 12px; text-align: center; font-weight: 800; color: var(--muted); }
 
-.lite-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom)); background: var(--paper-2); border-top: 3px solid var(--ink); }
-.lite-nav .btn { min-height: 48px; padding: 6px; justify-content: center; flex-wrap: wrap; gap: 4px; white-space: normal; text-align: center; line-height: 1.15; font-size: 14px; }
-.lite-nav .n:empty { display: none; }
-.lite-nav .n { min-width: 20px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 12px; line-height: 20px; font-variant-numeric: tabular-nums; }
-.lite-nav .btn.primary .n { background: #fff; color: var(--ink); }
-/* A wide window: the bars line up with the list. */
-@media (min-width: 761px) { .lite-bar, .lite-nav { padding-left: calc(50% - 368px); padding-right: calc(50% - 368px); } }
+.lite-say {
+  position: absolute; right: 10px; bottom: 10px; display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  border: 2.5px solid var(--ink); border-radius: 12px; background: var(--paper-2); font-size: 17px; cursor: pointer; box-shadow: 0 2px 0 var(--ink);
+}
+.lite-say:active { transform: translateY(2px); box-shadow: none; }
+.lite-worker:has(.lite-say) .lite-card { padding-right: 60px; }
+.lite-answer {
+  margin: 0 14px 14px 76px; height: 44px; border: 3px solid var(--ink); border-radius: 12px; background: var(--bad); color: #fff;
+  font: 900 15px var(--font); cursor: pointer; box-shadow: 0 3px 0 var(--ink);
+}
+.lite-answer:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+
+.lite-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 44px 16px; text-align: center; font-weight: 800; color: var(--muted); }
+.lite-empty-art { font-size: 44px; }
+
+/* ---- New task: the round button over the tabs ---- */
+.lite-fab {
+  position: fixed; z-index: 21; right: max(16px, env(safe-area-inset-right)); bottom: calc(var(--nav-h) + 16px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 20px 0 16px;
+  border: 3px solid var(--ink); border-radius: 999px; background: var(--accent); color: #fff;
+  font: 900 17px var(--font); box-shadow: 0 4px 0 var(--ink); cursor: pointer;
+}
+.lite-fab span:first-child { font-size: 22px; }
+.lite-fab:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+
+/* ---- The tabs at the bottom ---- */
+.lite-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 4px max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--paper-2) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 3px solid var(--ink);
+}
+.lite-tab {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  height: var(--nav-h); padding: 4px 2px; border: 0; background: none; color: var(--muted); font: 800 11px var(--font); cursor: pointer;
+}
+.lite-tab .ic { font-size: 22px; line-height: 1; filter: grayscale(.6); transition: transform .12s; }
+.lite-tab.on { color: var(--ink); }
+.lite-tab.on .ic { filter: none; transform: translateY(-1px) scale(1.08); }
+.lite-tab.on::after { content: ''; position: absolute; top: 2px; width: 28px; height: 4px; border-radius: 999px; background: var(--accent); }
+.lite-tab:active .ic { transform: scale(.9); }
+.lite-tab .n:empty { display: none; }
+.lite-tab .n {
+  position: absolute; top: 6px; left: calc(50% + 6px); min-width: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--ink); color: #fff; font-size: 11px; line-height: 18px; font-variant-numeric: tabular-nums;
+}
+#btn-workers .n { background: var(--bad); }
+@media (min-width: 761px) {
+  .lite-bar, .lite-nav { padding-left: calc(50% - 368px); padding-right: calc(50% - 368px); }
+  .lite-fab { right: calc(50% - 368px); }
+}
 
 /* The page scrolls here, so what floats over it stays put on the screen. */
-#toasts { position: fixed; top: 84px; z-index: 60; width: calc(100% - 24px); }
+#toasts { position: fixed; top: calc(72px + env(safe-area-inset-top)); z-index: 60; width: calc(100% - 24px); }
 .toast { text-align: center; }
-.conn { position: fixed; top: 84px; z-index: 60; }
+.conn { position: fixed; top: calc(72px + env(safe-area-inset-top)); z-index: 60; }
 .backdrop { z-index: 50; }
 
 /* No zooming in on a box as you tap it (iOS does, for text under 16px). */
-.modal textarea, .modal input[type=text], .modal input[type=password], .modal select { font-size: 16px; }
+.modal textarea, .modal input[type=text], .modal input[type=password], .modal input[type=url], .modal select { font-size: 16px; }
 .lite-name .body p { margin: 0 0 12px; font-weight: 700; }
 
 /* On a phone, the big windows take the whole screen; the small ones stay dialogs. */
@@ -69,10 +163,21 @@ body.lite { min-height: 100dvh; background: var(--paper); -webkit-tap-highlight-
   .backdrop:has(> .modal.term, > .modal.board, > .modal.gh-window, > .modal.desk-changes, > .modal.meeting-window, > .modal[aria-label="Task queue"]) { padding: 0; }
   /* body.lite outranks the windows' own sizes and padding, whatever order the sheets load in. */
   body.lite .modal.term, body.lite .modal.board, body.lite .modal.gh-window, body.lite .modal.desk-changes, body.lite .modal.meeting-window,
-  body.lite .modal[aria-label="Task queue"] { width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+  body.lite .modal[aria-label="Task queue"] {
+    width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  }
   .modal { max-height: calc(100dvh - 16px); }
   body.lite .modal.term .term-host { padding: 6px 2px 2px 6px; }
-  body.lite .modal.board .body { padding: 10px; overflow-x: auto; }
-  .modal.board .column { min-width: 78vw; }
+  /* The terminal's header in two short rows: who it is and ✕, then its tools, small. */
+  body.lite .modal.term > header { flex-wrap: wrap; gap: 6px 6px; padding: 8px 10px; }
+  body.lite .modal.term > header h2 { flex: 1 1 calc(100% - 80px); order: 0; min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.lite .modal.term > header .close { order: 1; }
+  body.lite .modal.term > header > :not(.dot, h2, .close) { order: 2; }
+  body.lite .modal.term > header .btn:not(.close) { height: 34px; padding: 3px 9px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+  body.lite .modal.term > header .term-hide, body.lite .modal.term > header .typed, body.lite .modal.term > header .viewers { display: none; }
+  body.lite .modal.term > header .cost { display: none; }
+  body.lite .modal.board .body { padding: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .modal.board .column { min-width: 84vw; scroll-snap-align: center; }
   .modal.board header .board-status { display: none; }
 }

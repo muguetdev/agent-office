@@ -25,6 +25,20 @@ export const pageRoutes = {
   claim: { path: ['/claim', '/claim.html'], auth: 'public', handle: page('claim.html') },
   join: { path: ['/join', '/join.html'], auth: 'public', handle: page('join.html') },
   favicon: { path: '/favicon.svg', auth: 'public', handle: page('favicon.svg') },
+  // The installed app's pieces (the 2D view as a PWA, see client/mobile/pwa.ts): its manifest, icons
+  // and service worker, which phones fetch without the session cookie. None of them say anything
+  // about the office. The worker is never cached, so a new one is picked up at once.
+  manifest: { path: '/manifest.webmanifest', auth: 'public', handle: page('manifest.webmanifest') },
+  serviceWorker: { path: '/sw.js', auth: 'public', handle: page('sw.js') },
+  icons: {
+    prefix: '/icons/',
+    auth: 'public',
+    handle(ctx, { res, path: p }) {
+      const file = publicFile(ctx.publicDir, p);
+      if (file) return serveFile(res, file, false);
+      res.writeHead(404).end();
+    },
+  },
   office: { path: ['/', '/index.html'], auth: 'session', guests: true, handle: page('index.html') },
   // The 2D view: the workers, their terminals and the boards, without the 3D office (lite.ts).
   lite: { path: ['/lite', '/lite.html'], auth: 'session', handle: page('lite.html') },

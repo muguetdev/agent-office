@@ -13,6 +13,7 @@ import { fileRoutes } from './files.js';
 import { githubRoutes } from './github.js';
 import { machineRoutes } from './machines.js';
 import { pageRoutes } from './pages.js';
+import { pushRoutes } from './push.js';
 import { searchRoutes } from './search.js';
 import { serviceRoutes } from './services.js';
 import { youtubeRoutes } from './youtube.js';
@@ -34,6 +35,9 @@ export const routes: readonly Route[] = [
   pageRoutes.claim,
   pageRoutes.join,
   pageRoutes.favicon,
+  pageRoutes.manifest,
+  pageRoutes.serviceWorker,
+  pageRoutes.icons,
   // Signed in.
   authRoutes.whoami,
   agentRoutes.models,
@@ -53,6 +57,8 @@ export const routes: readonly Route[] = [
   dbviewRoutes.read,
   whatsOfficeRoutes.read,
   serverFileRoutes.get,
+  pushRoutes.key,
+  pushRoutes.change,
   pageRoutes.office,
   pageRoutes.lite,
   pageRoutes.bundle,

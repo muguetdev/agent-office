@@ -13,6 +13,7 @@ import { prepareServer } from '../servers.js';
 import { cloneServerRepo, watchServer } from '../ws/handlers/servers.js';
 import { machinesOf } from '../machines/index.js';
 import { whatsOfficeOf } from '../whatsoffice/index.js';
+import { pushOf } from '../push/index.js';
 
 /** Finding floors, the elevator's list of them, and taking one off the building. */
 export function floorHelpers(ctx: Ctx): FloorHelpers {
@@ -116,6 +117,7 @@ export async function openFloors(ctx: Ctx, hookPort: number): Promise<FloorsOpen
       ctx.machine.workersChanged();
       machinesOf(ctx).workerChanged(floor, w);
       whatsOfficeOf(ctx).workerChanged(floor.id, w);
+      pushOf(ctx).workerChanged(floor, w);
       ctx.floorsChanged();
     },
     people: (floor) => {

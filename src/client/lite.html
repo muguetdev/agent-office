@@ -4,30 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#fff1de" />
+    <meta name="color-scheme" content="light" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Command" />
     <title>Command Express</title>
     <link rel="icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="./lite.css" />
   </head>
   <body class="lite">
     <!-- The 2D view (lite.ts): the office without the 3D, for a phone or a computer the 3D is too much for. -->
     <header class="lite-bar">
-      <label class="lite-floor" data-t-title="lite.floorTip" title="The floor you're on: pick another to see its workers">
+      <button id="floor-btn" class="lite-floor" type="button" data-t-title="lite.floorTip" title="The floor you're on: pick another to see its workers">
         <span class="lite-floor-label" data-t="lite.floor">Floor</span>
-        <select id="floor" data-t-aria-label="lite.floor" aria-label="Floor"></select>
-      </label>
-      <a id="to-3d" class="btn" href="/?3d=1" data-t-title="lite.to3dTip" title="The 3D office, where you walk around">🏢 3D</a>
+        <span class="lite-floor-name"><span id="floor-name">…</span><span class="lite-caret" aria-hidden="true"></span></span>
+      </button>
+      <span id="conn-dot" class="lite-conn" aria-hidden="true"></span>
+      <a id="to-3d" class="btn lite-3d" href="/?3d=1" data-t-title="lite.to3dTip" title="The 3D office, where you walk around">🏢 3D</a>
     </header>
     <main class="lite-main">
       <p id="floor-meta" class="lite-meta"></p>
       <div id="elsewhere" class="lite-elsewhere hidden"></div>
-      <h2 class="lite-h"><span data-t="page.workers">Workers</span> <span id="waiting-now" class="lite-waiting"></span></h2>
+      <div id="filters" class="lite-filters" role="tablist"></div>
       <ul id="workers" class="lite-workers"></ul>
     </main>
+    <button id="btn-new" class="lite-fab" type="button" data-t-aria-label="lite.newTask" aria-label="New task"><span aria-hidden="true">✨</span><span class="lite-fab-label" data-t="mobile.newShort">New</span></button>
     <nav class="lite-nav" data-t-aria-label="page.office" aria-label="Office">
-      <button id="btn-issues" class="btn" type="button"><span data-t="lite.issues">📌 Issues</span> <span class="n"></span></button>
-      <button id="btn-pulls" class="btn" type="button"><span data-t="lite.prs">🔀 PRs</span> <span class="n"></span></button>
-      <button id="btn-queue" class="btn" type="button"><span data-t="lite.queue">📋 Queue</span> <span class="n"></span></button>
-      <button id="btn-new" class="btn primary" type="button" data-t="lite.newTask">✨ New task</button>
+      <button id="btn-workers" class="lite-tab on" type="button"><span class="ic" aria-hidden="true">👷</span><span data-t="page.workers">Workers</span><span class="n"></span></button>
+      <button id="btn-issues" class="lite-tab" type="button"><span class="ic" aria-hidden="true">📌</span><span data-t="mobile.issues">Issues</span><span class="n"></span></button>
+      <button id="btn-pulls" class="lite-tab" type="button"><span class="ic" aria-hidden="true">🔀</span><span>PRs</span><span class="n"></span></button>
+      <button id="btn-queue" class="lite-tab" type="button"><span class="ic" aria-hidden="true">📋</span><span data-t="mobile.queue">Queue</span><span class="n"></span></button>
+      <button id="btn-more" class="lite-tab" type="button"><span class="ic" aria-hidden="true">☰</span><span data-t="mobile.more">More</span><span class="n"></span></button>
     </nav>
     <div id="toasts"></div>
     <div id="conn" class="conn hidden" data-t="page.reconnecting">Reconnecting…</div>
