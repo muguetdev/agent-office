@@ -1,2 +1,6 @@
 /* The controls help (openHelp). The HUD panels (people.ts, workers-panel.ts, chat.ts, features/coffee/meter.ts) are styled in styles/hud.css. */
 .help-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; font-weight: 700; }
+@media (max-width: 640px) {
+  .help-grid { grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; font-size: 14px; }
+  .help-grid .key { justify-self: start; margin-right: 0; }
+}

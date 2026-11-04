@@ -77,3 +77,8 @@
   .pd-side { width: auto; max-height: 38%; border-right: 0; border-bottom: 3px solid var(--ink); }
   .pd-thread { margin-left: 12px; }
 }
+@media (max-width: 640px) {
+  .pd-keys { display: none; }
+  .pd-n { width: 34px; padding-right: 4px; }
+  .pd-files li { padding-top: 7px; padding-bottom: 7px; }
+}

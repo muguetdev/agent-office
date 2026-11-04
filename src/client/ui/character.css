@@ -19,3 +19,8 @@
   .charsel .body { grid-template-columns: 1fr; }
   .charsel-stage { min-height: 230px; }
 }
+@media (max-width: 640px) {
+  .charsel-opts { max-height: none; overflow: visible; padding-right: 0; }
+  .charsel .seg .btn { padding: 6px 12px; font-size: 14px; }
+  .charsel .swatch { width: 38px; height: 38px; }
+}

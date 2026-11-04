@@ -19,3 +19,12 @@
 .team-list .name { flex: 1; }
 .team-list .keys { font-size: 12px; color: var(--muted); font-weight: 700; }
 .team-list .btn { padding: 3px 10px; font-size: 13px; }
+@media (max-width: 640px) {
+  .invite-row { flex-wrap: wrap; }
+  .invite-row input { flex: 1 1 100%; }
+  .team-list li { flex-wrap: wrap; row-gap: 4px; }
+  .team-list .name { flex: 1 1 60%; min-width: 0; overflow-wrap: anywhere; }
+  .team-head { flex-wrap: wrap; }
+  .cmd { flex-wrap: wrap; }
+  .cmd pre { flex: 1 1 100%; }
+}

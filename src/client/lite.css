@@ -153,31 +153,7 @@ body.lite input, body.lite textarea, body.lite .xterm, body.lite .modal .body { 
 .conn { position: fixed; top: calc(72px + env(safe-area-inset-top)); z-index: 60; }
 .backdrop { z-index: 50; }
 
-/* No zooming in on a box as you tap it (iOS does, for text under 16px). */
+/* No zooming in on a box as you tap it (iOS does, for text under 16px), at any width: styles/base.css
+   does it for every page under 640px, and makes the big windows full screen there. */
 .modal textarea, .modal input[type=text], .modal input[type=password], .modal input[type=url], .modal select { font-size: 16px; }
 .lite-name .body p { margin: 0 0 12px; font-weight: 700; }
-
-/* On a phone, the big windows take the whole screen; the small ones stay dialogs. */
-@media (max-width: 640px) {
-  .backdrop { padding: 8px; }
-  .backdrop:has(> .modal.term, > .modal.board, > .modal.gh-window, > .modal.desk-changes, > .modal.meeting-window, > .modal[aria-label="Task queue"]) { padding: 0; }
-  /* body.lite outranks the windows' own sizes and padding, whatever order the sheets load in. */
-  body.lite .modal.term, body.lite .modal.board, body.lite .modal.gh-window, body.lite .modal.desk-changes, body.lite .modal.meeting-window,
-  body.lite .modal[aria-label="Task queue"] {
-    width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none;
-    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-  }
-  .modal { max-height: calc(100dvh - 16px); }
-  body.lite .modal.term .term-host { padding: 6px 2px 2px 6px; }
-  /* The terminal's header in two short rows: who it is and ✕, then its tools, small. */
-  body.lite .modal.term > header { flex-wrap: wrap; gap: 6px 6px; padding: 8px 10px; }
-  body.lite .modal.term > header h2 { flex: 1 1 calc(100% - 80px); order: 0; min-width: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  body.lite .modal.term > header .close { order: 1; }
-  body.lite .modal.term > header > :not(.dot, h2, .close) { order: 2; }
-  body.lite .modal.term > header .btn:not(.close) { height: 34px; padding: 3px 9px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
-  body.lite .modal.term > header .term-hide, body.lite .modal.term > header .typed, body.lite .modal.term > header .viewers { display: none; }
-  body.lite .modal.term > header .cost { display: none; }
-  body.lite .modal.board .body { padding: 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
-  .modal.board .column { min-width: 84vw; scroll-snap-align: center; }
-  .modal.board header .board-status { display: none; }
-}

@@ -53,3 +53,9 @@
 .qchip { padding: 1px 6px; border-radius: 999px; border: 1.5px solid var(--ink); background: #e0f2fe; color: var(--ink); font-size: 10px; font-weight: 900; }
 .qchip.running { background: #d8f5e3; }
 .qchip.done { background: #fff1de; }
+/* A phone: one column across the screen at a time, swiped between. */
+@media (max-width: 640px) {
+  .modal.board .body { padding: 10px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; }
+  .modal.board .column { min-width: 84vw; scroll-snap-align: center; }
+  .modal.board > header .board-status { display: none; }
+}

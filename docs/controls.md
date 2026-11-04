@@ -36,7 +36,7 @@ Back to the [README](../README.md).
 
 You can also click a nearby desk to interact with it, or click a worker in the Workers panel (**🤖 Workers**, top right) to open its terminal.
 
-On a phone, use the 2D view at `/lite` instead: a worker opens on its conversation as a chat (**💬 Chat**), with a box to send a prompt and buttons to answer a permission prompt, and its terminal on the next tab, with a row of keys under it (**1** **2** **3**, the arrows, Enter, Tab, Esc, Ctrl+C); a finger dragged over the terminal scrolls it, as a mouse wheel would. See [Features](features.md).
+On a phone, use the 2D view at `/lite` instead: a worker opens on its conversation as a chat (**💬 Chat**), with a box to send a prompt and buttons to answer a permission prompt, and its terminal on the next tab, with a row of keys under it (**1** **2** **3**, the arrows, Enter, Tab, Esc, Ctrl+C); a finger dragged over the terminal scrolls it, as a mouse wheel would. See [Features](features.md). The 3D office's windows fit a phone too: under 640px wide the big ones (a terminal, the boards, settings, the queue, the changes, an issue or PR) take the whole screen and the small ones stay dialogs, each with its ✕ top right, and on a touch screen a worker's terminal opens on its chat with the same row of keys and prompt box as the 2D view's.
 
 ## In a terminal
 

@@ -230,3 +230,18 @@
 .code-menu { position: fixed; z-index: 1000; min-width: 200px; padding: 4px; background: #282a36; border: 1px solid #44475a; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
 .code-menu-item { display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: #f8f8f2; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .code-menu-item:hover { background: #44475a; }
+/* A phone: the files over the editor rather than beside it, and the tools wrap under the file's name. */
+@media (max-width: 640px) {
+  .modal.term .term-codehost { flex-direction: column; }
+  /* Over the width the split's drag leaves on it (inline). */
+  .code-side { width: auto !important; max-height: 32%; border-bottom: 2px solid var(--code-line); }
+  .code-split { display: none; }
+  .code-row { padding: 8px 10px; }
+  .code-bar { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
+  .code-path { flex: 1 1 100%; }
+  .code-tool { min-height: 34px; min-width: 34px; }
+  .code-media .cm-bar { flex-wrap: wrap; }
+  .cm-img { max-height: calc(100dvh - 260px); }
+  .code-menu { max-width: calc(100vw - 16px); }
+  .code-menu-item { padding: 11px 12px; font-size: 15px; }
+}

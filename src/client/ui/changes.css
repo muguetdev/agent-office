@@ -65,3 +65,14 @@
   .changes-files { width: auto; max-height: 38%; border-right: 0; border-bottom: 3px solid var(--ink); }
   .img-preview { flex-direction: column; }
 }
+/* A phone: the header's branch under the name, and the file list a little shorter. */
+@media (max-width: 640px) {
+  .modal.desk-changes > header .branch { max-width: none; }
+  .changes-files { max-height: 32%; }
+  .changes-files li { padding: 8px; }
+  .changes-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .changes-tabs .btn { flex: none; }
+  .changes-diff .dh { flex-wrap: wrap; }
+  .dl .ln { width: 34px; }
+  .diff-lines { font-size: 12px; }
+}

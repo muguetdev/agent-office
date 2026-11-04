@@ -38,3 +38,15 @@
 .elevator .dir-pick { margin-top: 8px; }
 .elevator .err { margin: 8px 0 0; font-size: 13px; font-weight: 800; color: var(--bad); overflow-wrap: anywhere; }
 .elevator .floor-btn.locked { opacity: 0.55; cursor: not-allowed; }
+/* A phone: the repository search's button under its box, and a repository's description under its name. */
+@media (max-width: 640px) {
+  .elevator .repo-search { flex-wrap: wrap; }
+  .elevator .repo-search input { flex: 1 1 100%; }
+  .elevator .repo { flex-wrap: wrap; padding: 10px; }
+  .elevator .repo .desc { flex-basis: 100%; order: 2; }
+  .elevator .floor-btn { grid-template-columns: auto minmax(0, 1fr); padding: 9px 10px; gap: 4px 10px; }
+  .elevator .floor-stats { grid-column: 2; }
+  .elevator .floor-name { flex-wrap: wrap; gap: 0 8px; overflow-wrap: anywhere; }
+  .elevator .floor-off { padding: 0 10px; }
+  .elevator .repo-list { max-height: 40dvh; }
+}

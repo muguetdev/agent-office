@@ -15,3 +15,7 @@
 .machine-setting .machine-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; }
 .machine-setting .machine-tested { margin: 8px 0 0; font-weight: 700; }
 @media (max-width: 520px) { .machine-setting .machine-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) {
+  .machine-bar { flex-wrap: wrap; row-gap: 6px; }
+  .machine-note { flex: 1 1 100%; }
+}

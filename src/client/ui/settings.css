@@ -23,6 +23,15 @@
   .settings-tab { flex: none; width: auto; white-space: nowrap; }
   .settings-pane { padding: 14px; }
 }
+/* A phone: the categories a row of chips to swipe along, and a setting's scope under its name if it must. */
+@media (max-width: 640px) {
+  .settings-nav { padding: 8px 10px; gap: 6px; scrollbar-width: none; }
+  .settings-tab { min-height: 40px; padding: 6px 12px; font-size: 14px; }
+  .settings-pane { padding: 12px 12px calc(20px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+  .setting { padding: 12px; }
+  .setting-head { flex-wrap: wrap; }
+  .volume { flex-wrap: wrap; }
+}
 .outside-now { margin: 0; font-size: 15px; font-weight: 800; }
 
 /* Settings: office sounds volume */

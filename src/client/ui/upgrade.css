@@ -15,3 +15,7 @@
 .modal.restart .note { font-size: 13px; color: var(--muted); }
 .restart-art { font-size: 64px; line-height: 1; animation: bob 1.6s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-6px); } }
+@media (max-width: 640px) {
+  .restart-art { font-size: 48px; }
+  .upgrade code, .restart code { overflow-wrap: anywhere; }
+}

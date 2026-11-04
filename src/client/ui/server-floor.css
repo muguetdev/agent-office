@@ -12,3 +12,11 @@
 .server-floor .dot.bad { background: var(--bad); }
 .server-floor .repo-row { display: flex; gap: 8px; align-items: center; }
 .server-floor .repo-pick { flex: 1; font: inherit; font-weight: 700; border: 3px solid var(--ink); border-radius: 12px; padding: 7px 10px; background: #fff; color: var(--ink); }
+@media (max-width: 640px) {
+  .server-floor .server-row { flex-wrap: wrap; }
+  .server-floor .server-row .server-field:last-child { flex: 1 1 100%; }
+  .server-floor .server-field input, .server-floor .repo-pick { font-size: 16px; }
+  .server-floor .repo-row { flex-wrap: wrap; }
+  .server-floor .repo-pick { flex-basis: 100%; }
+  .server-floor .server-result { overflow-x: auto; }
+}

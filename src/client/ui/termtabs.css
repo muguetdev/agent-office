@@ -13,3 +13,13 @@
 .term-tab-form input[type=url] { flex: 1; min-width: 160px; }
 .modal.term .term-webhost { flex: 1; min-height: 0; position: relative; background: #fff; }
 .term-webframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+/* A phone: tabs big enough for a finger, and the pinned page's form a row of its own. */
+@media (max-width: 640px) {
+  .term-tabbar { padding: 6px 8px; flex-wrap: nowrap; }
+  .term-tabs { scrollbar-width: none; }
+  .term-tab-label, .term-tab-add { padding: 8px 12px; }
+  .term-tab-close { width: 32px; height: 32px; }
+  .term-tab-form input { font-size: 16px; }
+  .term-tab-form input[type=url] { min-width: 0; flex-basis: 100%; }
+}
+.term-tabbar:has(.term-tab-form) { flex-wrap: wrap; }

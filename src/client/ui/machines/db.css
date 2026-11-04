@@ -44,4 +44,9 @@
 @media (max-width: 640px) {
   .db-body { flex-direction: column; }
   .db-side { width: auto; max-height: 34%; border-right: 0; border-bottom: 2px solid var(--ink); }
+  .db-item { padding: 8px 8px; }
+  .db-head { flex-wrap: wrap; }
+  .db-query { font-size: 16px; }
+  .db-grid { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .db-grid th, .db-grid td { max-width: 60vw; }
 }

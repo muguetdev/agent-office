@@ -226,6 +226,21 @@ body.telescope-active #hud { visibility: hidden; }
   .shot-meter { bottom: 254px; }
   .chat { width: calc(100vw - 24px); }
 }
+/* A phone: the floor's name takes what the dock leaves, inside the notch's safe area; the dock wraps
+   onto a second row rather than off the edge, and the panels and screen shares fit beside the 3D. */
+@media (max-width: 640px) {
+  .topbar { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); gap: 8px; }
+  .project { flex: 1 1 auto; max-width: none; padding: 6px 12px; }
+  .project-name { font-size: 16px; }
+  .dock { max-width: 72%; gap: 6px; }
+  .dock-btn { height: 40px; padding: 0 10px; }
+  .dock-menu { width: 40px; }
+  .side { top: calc(64px + env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); max-height: calc(100dvh - 300px); }
+  #waiting { font-size: 12px; }
+  #waiting .key { display: none; }
+  .share-thumb { width: 150px; }
+  .modal.viewer video { max-height: calc(100dvh - 80px); }
+}
 
 /* A teammate with their own account, in the people panel. */
 .acct { font-size: 11px; color: var(--good); font-weight: 900; }

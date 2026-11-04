@@ -46,7 +46,7 @@ export function openQueue(net: Net, actions: QueueActions) {
   minus.addEventListener('click', () => net.send({ t: 'queue.limit', maxWorkers: store.queue.maxWorkers - 1 }));
   plus.addEventListener('click', () => net.send({ t: 'queue.limit', maxWorkers: store.queue.maxWorkers + 1 }));
   const el = h(
-    'div.modal',
+    'div.modal.queue-window',
     { role: 'dialog', 'aria-label': L.menu.queue, style: 'width:min(800px,100%)' },
     h('header', {}, h('h2', {}, L.hints.taskQueue), limit, close),
     body,
