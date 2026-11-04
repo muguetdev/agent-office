@@ -15,3 +15,8 @@
 .accounts .floor-pick { display: block; padding: 4px 0 10px 18px; }
 .accounts li .btn { white-space: nowrap; }
 .accounts .bar-btns { display: inline-flex; gap: 6px; }
+@media (max-width: 640px) {
+  .accounts .invite-row select { flex: 1 1 auto; min-height: 44px; font-size: 16px; }
+  .accounts .bar-btns { flex-wrap: wrap; }
+  .accounts .floor-check { padding: 6px 10px; }
+}

@@ -12,3 +12,7 @@
 .search-meta { display: flex; gap: 8px; align-items: baseline; font-size: 12px; font-weight: 700; color: var(--muted); }
 .search-text { overflow-wrap: anywhere; }
 .search-hit mark { background: var(--warn); color: var(--ink); border-radius: 3px; padding: 0 1px; }
+@media (max-width: 640px) {
+  .search-meta { flex-wrap: wrap; }
+  .search-hit { padding: 8px 10px; }
+}

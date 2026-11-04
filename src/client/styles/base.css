@@ -126,3 +126,43 @@ a.when:hover { text-decoration: underline; }
 .pd-side input[type=text] { width: 100%; font: inherit; font-size: 13px; border: 2px solid var(--ink); border-radius: 10px; padding: 5px 9px; background: #fff; outline: none; }
 .elevator .dir-change { margin-left: 6px; padding: 1px 8px; font-size: 12px; border-width: 2px; border-radius: 9px; box-shadow: 0 2px 0 var(--ink); vertical-align: baseline; }
 .meeting-field label { margin: 0; }
+
+/* ---------- On a phone ----------
+   The windows fit a narrow touch screen. The big ones (a terminal, a board, settings…) take the whole
+   screen, as an app's screens do; the small ones stay dialogs, with a margin round them. A header keeps
+   its title and ✕ on the top row and wraps the rest under them, footers wrap, and a window's body
+   scrolls rather than the page. Selectors here start with body or .modal > so they outrank the
+   windows' own sizes, whatever order the sheets load in. The 2D view's own touches are in lite.css. */
+@media (max-width: 640px) {
+  .backdrop {
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  }
+  body .modal { max-width: 100%; max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 18px; }
+  .backdrop:has(> .modal:is(.term, .board, .gh-window, .desk-changes, .meeting-window, .queue-window, .settings, .prompts, .search, .charsel, .minimap-big, .viewer, .bookshelf), > .wb-window) { padding: 0; }
+  body .modal:is(.term, .term.full, .board, .gh-window, .desk-changes, .meeting-window, .queue-window, .settings, .prompts, .search, .charsel, .minimap-big, .viewer, .bookshelf), body .wb-window {
+    width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  /* A full-screen window's body fills it, so its footer sits on the bottom. */
+  body .modal:is(.queue-window, .meeting-window, .search) > .body { flex: 1 1 auto; min-height: 0; }
+  .modal > header { flex-wrap: wrap; gap: 6px 8px; padding: 8px 10px 8px 14px; }
+  .modal > header h2 { flex: 1 1 calc(100% - 96px); font-size: 16px; }
+  .modal > header > .close { order: 1; }
+  .modal > header > :not(h2, .close, .dot) { order: 2; }
+  .modal > header > .btn:not(.close) { height: 36px; padding: 3px 10px; font-size: 13px; box-shadow: 0 2px 0 var(--ink); }
+  .modal > footer { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .modal > footer .grow:not(:empty) { flex: 1 1 100%; }
+  .modal .body { padding: 12px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  /* No zooming in on a box as you tap it (iOS does, for text under 16px). */
+  .modal :is(textarea, input[type=text], input[type=password], input[type=url], input[type=number], input[type=search], input[type=email], select) { font-size: 16px; }
+  .close { width: 40px; height: 40px; flex: none; }
+  .webhook { flex-wrap: wrap; }
+  #toasts { width: calc(100% - 24px); top: calc(64px + env(safe-area-inset-top)); }
+  .toast { max-width: 100%; text-align: center; overflow-wrap: anywhere; }
+  .conn { max-width: calc(100% - 24px); text-align: center; }
+  .svc-list li { flex-wrap: wrap; }
+}
+/* Touch: no hover, so what a mouse finds on hover is out all the time, and buttons are big enough for a finger. */
+@media (hover: none) and (pointer: coarse) {
+  .btn { min-height: 36px; }
+}

@@ -122,8 +122,8 @@ async function uploadDrop(workerId: string, f: File): Promise<string> {
 export interface TerminalOptions {
   /**
    * The keys a phone's keyboard hasn't got (1 2 3 for a menu, arrows, Enter, Tab, Esc, Ctrl+C) and a
-   * box to send a prompt from, under the terminal, for the 2D view (lite.ts). The terminal doesn't
-   * take the focus as it opens either, so a phone's keyboard stays down until you tap into it.
+   * box to send a prompt from, under the terminal: the 2D view's (lite.ts), and any on a touch screen. The terminal
+   * doesn't take the focus as it opens either, so a phone's keyboard stays down until you tap into it.
    */
   keypad?: boolean;
 }
@@ -153,7 +153,7 @@ export function openTerminalFor(): string | null {
   return current?.workerId ?? null;
 }
 
-export function openTerminal(net: Net, workerId: string, onChanges?: () => void, find?: TerminalFind, opts: TerminalOptions = {}) {
+export function openTerminal(net: Net, workerId: string, onChanges?: () => void, find?: TerminalFind, opts: TerminalOptions = { keypad: matchMedia('(hover: none) and (pointer: coarse)').matches }) {
   if (current?.workerId === workerId) {
     if (find) current.find(find);
     return;

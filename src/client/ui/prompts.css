@@ -29,3 +29,8 @@
   .prompts-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 180px minmax(0, 1fr); }
   .prompt-list { border-right: 0; border-bottom: 3px solid var(--ink); }
 }
+@media (max-width: 640px) {
+  .prompts-body { grid-template-rows: 150px minmax(0, 1fr); }
+  .prompt-item { padding: 9px 10px; }
+  .prompt-var small { max-width: 50vw; }
+}

@@ -12,3 +12,10 @@
 .palette-kind { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; flex: none; }
 .palette-row mark { background: var(--warn); color: var(--ink); border-radius: 3px; padding: 0 1px; }
 .palette-empty { margin: 4px 20px 14px; font-size: 13px; font-weight: 700; color: var(--muted); }
+/* A phone: just under the top, so the keyboard leaves room for the list. */
+@media (max-width: 640px) {
+  .backdrop:has(> .modal.palette) { padding-top: max(12px, env(safe-area-inset-top)); }
+  body .modal.palette { max-height: calc(100dvh - 24px - env(safe-area-inset-top)); }
+  .palette-row { padding: 10px; }
+  .palette-kind { display: none; }
+}
