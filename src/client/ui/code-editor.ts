@@ -14,6 +14,7 @@ import { h, toast } from './dom';
 import { L } from '../i18n';
 import { keyLabels } from './termkeys';
 import { codeUploads } from './code-upload';
+import { codeDownloads } from './code-download';
 import './code-theme';
 import { attachLive, type LiveHandle } from './code-live';
 import { mediaPane } from './code-media';
@@ -181,6 +182,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
             {
               type: 'button',
               'data-dir': full,
+              draggable: 'true',
               style: `padding-left:${8 + depth * 14}px`,
               onclick: () => {
                 if (on) expanded.delete(full);
@@ -199,7 +201,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     list.replaceChildren(...rows);
   }
   function fileRow(file: string, label: string, depth: number): HTMLElement {
-    return h('button.code-row', { type: 'button', 'data-file': file, class: `${open?.path === file || media.path === file ? 'on' : ''} ${live?.rowClass(file) ?? ''}`, style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
+    return h('button.code-row', { type: 'button', draggable: 'true', 'data-file': file, class: `${open?.path === file || media.path === file ? 'on' : ''} ${live?.rowClass(file) ?? ''}`, style: `padding-left:${8 + depth * 14 + 12}px`, title: file, onclick: () => void openFile(file) }, label);
   }
 
   async function loadTree() {
@@ -400,6 +402,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     if (e.key === 'Escape' && !e.defaultPrevented && surface.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
     e.stopPropagation();
   });
+  codeDownloads({ list, before: uploadBtn, q, openPath: () => open?.path ?? media.path ?? undefined, dirty });
   codeUploads({
     host,
     list,

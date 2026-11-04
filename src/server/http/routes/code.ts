@@ -1,4 +1,6 @@
 import { createReadStream } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { ZipWriter } from '../../zip.js';
 import type http from 'node:http';
 import type { Route } from '../router.js';
 import { mediaKind, mediaType } from '../../../shared/media.js';
@@ -7,6 +9,9 @@ import { UPLOAD_MAX_BYTES } from '../../../shared/uploads.js';
 import { str } from '../../office/input.js';
 import { floorParam } from './files.js';
 import { readBytes, sameOrigin, send } from '../util.js';
+
+/** The most a folder downloaded as a zip may hold. */
+const ZIP_MAX = 300 * 1024 * 1024;
 
 // The code editor beside a worker's terminal (see code.ts): its files, one file to read, its version
 // now (to see whether it changed under you), saving one, uploading any file into the folder, and one
@@ -25,6 +30,22 @@ export const codeRoutes = {
       if (p === '/api/code/tree' && req.method === 'GET') return answer(await floor.code.tree(workerId));
       if (p === '/api/code/version' && req.method === 'GET') return answer(await floor.code.version(workerId, file));
       if (p === '/api/code/file' && req.method === 'GET') return answer(await floor.code.read(workerId, file));
+      if (p === '/api/code/zip' && req.method === 'GET') {
+        // A folder (or the whole project) as a .zip: the project's files only, up to ZIP_MAX.
+        const r = await floor.code.folder(workerId, file, ZIP_MAX);
+        if ('error' in r) return send(res, r.status, r);
+        // Asked first by the page, so a folder too big shows as a message rather than a broken download.
+        if (url.searchParams.get('check') === '1') return send(res, 200, { files: r.files.length, bytes: r.files.reduce((n, f) => n + f.size, 0) });
+        const name = encodeURIComponent(`${(file || floor.def.name).split('/').filter(Boolean).pop() ?? 'files'}.zip`);
+        res.writeHead(200, { 'content-type': 'application/zip', 'content-disposition': `attachment; filename*=UTF-8''${name}`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+        const zip = new ZipWriter((chunk) => res.write(chunk));
+        for (const f of r.files) {
+          if (res.destroyed) return;
+          zip.add(f.rel, await readFile(f.abs), f.mtime);
+        }
+        zip.finish();
+        return void res.end();
+      }
       if (p === '/api/code/raw' && (req.method === 'GET' || req.method === 'HEAD')) {
         const r = await floor.code.raw(workerId, file);
         if ('error' in r) return send(res, r.status, r);

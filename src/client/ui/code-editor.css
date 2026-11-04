@@ -226,3 +226,7 @@
 .cm-note { max-width: 460px; margin: 0 16px 12px; text-align: center; font-size: 14px; line-height: 1.5; color: #d9d5e8; }
 .cm-stage:has(> .cm-note) { flex-direction: column; }
 .code-surface.hidden, .code-media.hidden { display: none; }
+/* The list's right-click menu (code-download.ts). */
+.code-menu { position: fixed; z-index: 1000; min-width: 200px; padding: 4px; background: #282a36; border: 1px solid #44475a; border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.code-menu-item { display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: #f8f8f2; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.code-menu-item:hover { background: #44475a; }

@@ -100,6 +100,30 @@ export class CodeFiles {
     return { files: all.slice(0, MAX_FILES), truncated: all.length > MAX_FILES };
   }
 
+  /**
+   * The project's files under `folder` ('' for all of them), to download as a zip: as the tree has them
+   * (what git keeps, not what it ignores), each with where it is, up to `maxBytes` in all.
+   */
+  async folder(workerId: string, folder: string, maxBytes: number): Promise<{ files: { rel: string; abs: string; size: number; mtime: Date }[] } | CodeError> {
+    const t = await this.tree(workerId);
+    if ('error' in t) return t;
+    const prefix = folder ? `${folder.replace(/\/+$/, '')}/` : '';
+    const out: { rel: string; abs: string; size: number; mtime: Date }[] = [];
+    let total = 0;
+    for (const rel of t.files) {
+      if (prefix && !rel.startsWith(prefix)) continue;
+      const abs = await this.locate(workerId, rel);
+      if (typeof abs !== 'string') continue;
+      const s = await stat(abs).catch(() => undefined);
+      if (!s?.isFile()) continue;
+      total += s.size;
+      if (total > maxBytes) return { status: 413, error: `Over ${Math.round(maxBytes / 1024 / 1024)} MB: download a smaller folder` };
+      out.push({ rel: rel.slice(prefix.length), abs, size: s.size, mtime: s.mtime });
+    }
+    if (!out.length) return { status: 404, error: 'No files there' };
+    return { files: out };
+  }
+
   /** Where `file` is, if it's a file of the worker's own (inside its folder, not under .git). */
   private async locate(workerId: string, file: string): Promise<string | CodeError> {
     const dir = this.dirOf(workerId);
