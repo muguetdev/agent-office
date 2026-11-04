@@ -76,6 +76,8 @@ export type ServersClientMsg =
   | { t: 'server.link'; floor: string; host: string; user: string; port?: number }
   /** Takes a project's floor's server link away. */
   | { t: 'server.unlink'; floor: string }
+  /** Points a floor (a server's, or a project's linked to one) at another server, keeping its key: the answer is `server.key`. */
+  | { t: 'server.move'; floor: string; host: string; user: string; port?: number }
   /** Restarts a container or a service the server was last seen running. */
   | ({ t: 'server.restart'; floor: string } & ServerUnit);
 

@@ -10,7 +10,7 @@ import { ServerWatch } from '../../server-watch.js';
 import type { Ctx } from '../../office/context.js';
 import type { Client } from '../../office/client.js';
 import { str } from '../../office/input.js';
-import { forgetServer, prepareServer, publicKey, repoFolder, sshTarget, testServer, unlinkServer, writeAgentNote } from '../../servers.js';
+import { forgetHostKey, forgetServer, prepareServer, publicKey, repoFolder, sshTarget, testServer, unlinkServer, writeAgentNote } from '../../servers.js';
 import { ensureServerRepo } from '../../server-repo.js';
 import type { HandlerMap, ViewPieces } from './types.js';
 import { L } from '../../i18n.js';
@@ -126,6 +126,27 @@ export const serversHandlers = {
     ctx.floorsChanged();
     ctx.toastAll(L.servers.linked(who, floor.def.name, `${target.user}@${target.host}`));
     ctx.sendTo(c, { t: 'server.added', floor: floor.id, publicKey: publicKey(ctx.cfg.dataDir, floor.id) });
+  },
+  'server.move'(ctx, c, msg) {
+    const who = c.peer.name;
+    if (!admin(ctx, c)) return;
+    const floor = serverFloor(ctx, msg.floor);
+    if (!floor?.def.ssh) return ctx.warn(c, L.srv.noSuchFloor);
+    const target = sshTarget(msg.host, msg.user, msg.port);
+    if (typeof target === 'string') return ctx.warn(c, target);
+    const before = floor.def.ssh;
+    // Its def is the building's own (see Building.list): changed here, and saved to floors.json.
+    floor.def.ssh = target;
+    ctx.building.save();
+    // The old server's key, and any the new address had before, are forgotten: the next way in takes what's there now.
+    forgetHostKey(ctx.cfg.dataDir, before.host, before.port);
+    forgetHostKey(ctx.cfg.dataDir, target.host, target.port);
+    // The same key, its config and way in pointed at the new server, and its agents' note saying so.
+    prepareServer(ctx.cfg.dataDir, floor.id, target, floor.dir, path.join(floor.dir, '.agent-office', 'bin'), floor.def.repo, floor.def.linked);
+    watchServer(ctx, floor);
+    ctx.floorsChanged();
+    ctx.toastAll(L.servers.moved(who, floor.def.name, `${target.user}@${target.host}`));
+    ctx.sendTo(c, { t: 'server.key', floor: floor.id, publicKey: publicKey(ctx.cfg.dataDir, floor.id) });
   },
   'server.unlink'(ctx, c, msg) {
     const who = c.peer.name;

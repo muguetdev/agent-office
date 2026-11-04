@@ -3470,6 +3470,7 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} 님이 ${name}을(를) ${now}(으)로 변경했습니다${fresh ? ': 다른 에이전트에서 새 대화로 시작' : ', 하던 작업을 이어갑니다'}`,
   },
   servers: {
+    moved: (who: string, floor: string, at: string) => `🖥️ ${who}님이 ${floor} 층의 서버를 ${at}(으)로 바꿨습니다`,
     linked: (who: string, floor: string, at: string) => `🖥️ ${who}님이 ${floor} 층을 서버 ${at}에 연결했습니다`,
     unlinked: (who: string, floor: string) => `🖥️ ${who}님이 ${floor} 층의 서버 연결을 해제했습니다`,
     noRepo: '이 서버 층에는 아직 저장소가 없습니다. 엘리베이터에서 옆의 🔑로 실행 중인 저장소를 연결하세요',
@@ -3493,6 +3494,11 @@ ${dir}/ 아래의 worktree와 office/* 브랜치를 제거합니다.
     added: (who: string, name: string) => `🖥️ 새 층: 서버 ${name}, ${who} 님이 추가함`,
   },
   serverFloor: {
+    move: '다른 서버',
+    moveGo: '이 서버로 바꾸기',
+    moveNote: '층은 그대로(워커, 대화, 저장소) 키도 그대로입니다. 새 서버의 authorized_keys에 같은 줄을 넣고 연결 테스트를 누르세요.',
+    moveQ: (to: string) => `이 층의 서버를 ${to}(으)로 바꿀까요?`,
+    moveConfirm: '이제부터 워커는 ssh <층>으로 새 서버에 접속하고, 모니터와 서비스 보드도 새 서버를 보여 줍니다. 지금 실행 중인 워커는 다시 시작할 때 안내받습니다.',
     badPath: '서버의 경로를 입력하세요: 절대 경로(/var/log/app.log) 또는 홈 아래(~/app/.env)',
     notThere: (path: string) => `서버의 ${path}에 아무것도 없습니다`,
     link: '연결',

@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { forgetServer, isSshTarget, prepareServer, publicKey, serverNoteFile, sshTarget, unlinkServer } from '../src/server/servers.js';
+import { forgetHostKey, forgetServer, isSshTarget, prepareServer, publicKey, serverNoteFile, sshTarget, unlinkServer } from '../src/server/servers.js';
 import { UNIT_RE, read } from '../src/server/server-watch.js';
 
 test('a server is an address, a user and a port, nothing that could be an ssh option', () => {
@@ -74,6 +74,18 @@ test("a project's floor linked to its server gets the way in and a note kept out
   assert.equal(existsSync(path.join(bin, 'ssh')), false);
   assert.equal(existsSync(serverNoteFile(path.join(checkout, '.agent-office'))), false);
   assert.equal(readFileSync(path.join(checkout, 'CLAUDE.md'), 'utf8'), '# meta-system\n');
+});
+
+test('moving a floor to another server forgets the old one\'s host key, and only that', (t) => {
+  const data = mkdtempSync(path.join(tmpdir(), 'ao-hostkeys-'));
+  t.after(() => rmSync(data, { recursive: true, force: true }));
+  mkdirSync(path.join(data, 'ssh'), { recursive: true });
+  const known = path.join(data, 'ssh', 'known_hosts');
+  const key = 'AAAAC3NzaC1lZDI1NTE5AAAAIGv2Qn9oG0QeOy3ZVYUZrVvXx0b8QeGq3c2vA2bS1wLm';
+  writeFileSync(known, [`203.0.113.7 ssh-ed25519 ${key}`, `[203.0.113.7]:2222 ssh-ed25519 ${key}`, `198.51.100.1 ssh-ed25519 ${key}`, ''].join('\n'));
+  forgetHostKey(data, '203.0.113.7', 2222);
+  assert.deepEqual(readFileSync(known, 'utf8').trim().split('\n').map((l) => l.split(' ')[0]), ['198.51.100.1']);
+  forgetHostKey(path.join(data, 'nowhere'), '1.2.3.4', 22);
 });
 
 test("the server's reading: its load, memory, disk and uptime, its containers, and its own services and failed ones", () => {

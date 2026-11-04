@@ -3482,6 +3482,7 @@ Opções:
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} colocou ${name} em ${now}${fresh ? ': conversa nova, em outro provedor' : ', continuando de onde parou'}`,
   },
   servers: {
+    moved: (who: string, floor: string, at: string) => `🖥️ ${who} trocou o servidor do andar ${floor} para ${at}`,
     linked: (who: string, floor: string, at: string) => `🖥️ ${who} ligou o andar ${floor} ao servidor ${at}`,
     unlinked: (who: string, floor: string) => `🖥️ ${who} desligou o andar ${floor} do servidor`,
     noRepo: 'O andar deste servidor ainda não tem repositório: ligue o que roda nele pelo 🔑 ao lado do andar no elevador',
@@ -3505,6 +3506,11 @@ Opções:
     added: (who: string, name: string) => `🖥️ Novo andar: o servidor ${name}, adicionado por ${who}`,
   },
   serverFloor: {
+    move: 'Trocar servidor',
+    moveGo: 'Trocar para este servidor',
+    moveNote: 'O andar continua igual (workers, conversas, repositório) e mantém a chave: coloque a mesma linha no authorized_keys do servidor novo e clique em Testar conexão.',
+    moveQ: (to: string) => `Trocar o servidor deste andar para ${to}?`,
+    moveConfirm: 'Os workers passam a entrar no servidor novo com ssh <andar>, e o monitor e o quadro de serviços passam a mostrar ele. Os workers que já estão rodando ficam sabendo quando reiniciarem.',
     badPath: 'Informe um caminho no servidor: absoluto (/var/log/app.log) ou na home (~/app/.env)',
     notThere: (path: string) => `Não há nada em ${path} no servidor`,
     link: 'Ligar',

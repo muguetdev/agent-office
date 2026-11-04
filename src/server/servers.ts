@@ -197,6 +197,23 @@ export function prepareServer(dataDir: string, id: string, t: SshTarget, folder:
   return ['-l', '-c', `${shq(path.join(bin, 'ssh'))} ${id}; exec "\${SHELL:-/bin/sh}" -l`];
 }
 
+/**
+ * The office forgets `host`'s key (the server a floor reached before it moved, or one reinstalled at
+ * the same address), so the next way in takes the one there now instead of refusing it.
+ */
+export function forgetHostKey(dataDir: string, host: string, port: number) {
+  const file = path.join(keysDir(dataDir), 'known_hosts');
+  if (!existsSync(file)) return;
+  for (const name of [host, `[${host}]:${port}`]) {
+    try {
+      execFileSync('ssh-keygen', ['-R', name, '-f', file], { stdio: 'ignore' });
+    } catch {
+      // not there
+    }
+  }
+  rmSync(`${file}.old`, { force: true });
+}
+
 /** Whether the office gets in with its key: what the server said, or why it didn't. */
 export function testServer(dataDir: string, id: string): Promise<{ ok: boolean; output: string }> {
   return new Promise((resolve) => {

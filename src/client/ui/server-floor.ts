@@ -44,6 +44,7 @@ export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
 
   /** Its key, how to let it in, and trying the way in. */
   const showKey = (floor: string, key: string | undefined) => {
+    shownFloor = floor;
     const f = store.floors.find((o) => o.id === floor);
     title.textContent = `🖥️ ${f?.name ?? (name.value.trim() || L.serverFloor.title)}`;
     const result = h('pre.server-result.hidden');
@@ -69,6 +70,9 @@ export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
       h('p.note', {}, L.serverFloor.then(floor)),
       h('div.seg', {}, test),
       result,
+      // Another server for the floor: the same key, put in the new one's authorized_keys.
+      h('h4', {}, `✏️ ${L.serverFloor.move}`),
+      moveForm(floor, f?.ssh),
       // A project's floor linked to its server: its code is its own, and the link can go.
       ...(f?.linked
         ? [h('p.note', {}, L.serverFloor.linkedNote), h('div.seg', {}, unlinkButton(floor, f.name))]
@@ -87,6 +91,22 @@ export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
       store.repos = { ...r, loading: true };
       net.send({ t: 'floor.repos' });
     }
+  };
+  /** Points the floor at another server: its address, user and port, the floor and its key the same. */
+  const moveForm = (floor: string, now: { host: string; user: string; port: number } | undefined) => {
+    const mHost = h('input', { type: 'text', maxlength: 253, value: now?.host ?? '', autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
+    const mUser = h('input', { type: 'text', maxlength: 32, value: now?.user ?? 'root', autocomplete: 'off', spellcheck: 'false' }) as HTMLInputElement;
+    const mPort = h('input', { type: 'number', min: 1, max: 65535, value: now?.port ?? 22 }) as HTMLInputElement;
+    const go = h('button.btn', { type: 'submit' }, L.serverFloor.moveGo);
+    const form = h('form.server-form', {}, field(L.serverFloor.host, mHost), h('div.server-row', {}, field(L.serverFloor.user, mUser), field(L.serverFloor.port, mPort)), h('p.note', {}, L.serverFloor.moveNote), h('div.seg', {}, go)) as HTMLFormElement;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const to = `${mUser.value.trim()}@${mHost.value.trim()}`;
+      confirmDialog(L.serverFloor.moveQ(to), L.serverFloor.moveConfirm, L.serverFloor.moveGo, () =>
+        net.send({ t: 'server.move', floor, host: mHost.value.trim(), user: mUser.value.trim(), port: Number(mPort.value) || undefined }),
+      );
+    });
+    return form;
   };
   /** Takes the floor's server link away, once you've said so. */
   const unlinkButton = (floor: string, floorName: string) =>
@@ -115,6 +135,8 @@ export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
     repoSelect.value = linked;
   };
   let tested: ((ok: boolean, output: string) => void) | null = null;
+  /** The floor whose key shows, to show it again once it's moved to another server. */
+  let shownFloor: string | undefined;
 
   onMessage = (msg) => {
     if (msg.t === 'server.added') {
@@ -124,7 +146,7 @@ export function openServerFloor(net: Net, floorId?: string, linkTo?: string) {
         return error.classList.remove('hidden');
       }
       showKey(msg.floor, msg.publicKey);
-    } else if (msg.t === 'server.key' && msg.floor === floorId) showKey(msg.floor, msg.publicKey);
+    } else if (msg.t === 'server.key' && (msg.floor === floorId || msg.floor === shownFloor)) showKey(msg.floor, msg.publicKey);
     else if (msg.t === 'server.tested') tested?.(msg.ok, msg.output);
   };
   if (floorId) {

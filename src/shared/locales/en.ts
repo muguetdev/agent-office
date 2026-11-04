@@ -3493,6 +3493,7 @@ Options:
     changed: (who: string, name: string, now: string, fresh: boolean) => `⚙️ ${who} put ${name} on ${now}${fresh ? ': a new conversation, on another provider' : ', carrying on where it was'}`,
   },
   servers: {
+    moved: (who: string, floor: string, at: string) => `🖥️ ${who} moved the ${floor} floor to the server ${at}`,
     linked: (who: string, floor: string, at: string) => `🖥️ ${who} linked the ${floor} floor to its server ${at}`,
     unlinked: (who: string, floor: string) => `🖥️ ${who} unlinked the ${floor} floor from its server`,
     noRepo: 'This server’s floor has no repository yet: link the one it runs with the 🔑 beside it in the elevator',
@@ -3516,6 +3517,11 @@ Options:
     added: (who: string, name: string) => `🖥️ New floor: the server ${name}, added by ${who}`,
   },
   serverFloor: {
+    move: 'Another server',
+    moveGo: 'Move to this server',
+    moveNote: 'The floor stays as it is (its workers, chats, repository) and keeps its key: put the same line in the new server’s authorized_keys, then Try the connection.',
+    moveQ: (to: string) => `Move this floor to ${to}?`,
+    moveConfirm: 'Its workers reach the new server as ssh <floor> from now on, and the monitor and services board show it. Workers running now are told once they start again.',
     badPath: 'Give a path on the server: absolute (/var/log/app.log) or in its home (~/app/.env)',
     notThere: (path: string) => `Nothing at ${path} on the server`,
     link: 'Link',
