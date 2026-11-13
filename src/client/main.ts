@@ -78,6 +78,7 @@ import { installDiorama } from './features/diorama';
 import { installAvatars } from './features/avatars';
 import { installWhiteboard } from './features/whiteboard';
 import { installTouch } from './features/touch';
+import { installPowerSave } from './features/powersave';
 import { installWorkerActions } from './features/workers/actions';
 import { installWorkerViews } from './features/workers/views';
 import { L, translatePage } from './i18n';
@@ -217,6 +218,7 @@ parts.hud = installHud(ctx, core, parts);
 // After the pointer: it takes over a click on the model (see player.onClick).
 installDiorama(ctx, parts);
 installTouch(ctx);
+installPowerSave(ctx);
 
 // ---- Main loop ---------------------------------------------------------------------------------------
 fitWindow(ctx);

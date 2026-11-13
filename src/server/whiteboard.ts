@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { WB_MAX_BYTES, WB_MAX_ELEMENTS, WB_MAX_ELEMENT_BYTES, WB_MAX_FILES_BYTES, byIndex, checkElement, checkFile, newer, type WbElement, type WbFile } from '../shared/whiteboard.js';
-import { L } from './i18n.js';
+import { EN, L } from './i18n.js';
 
 /** How long after the last stroke the drawing is written to disk. */
 const SAVE_DELAY_MS = 2000;
@@ -81,7 +81,7 @@ export class Whiteboard {
   file(id: string): WbFile | undefined {
     if (!this.files.has(id)) return undefined;
     try {
-      const f = checkFile(JSON.parse(readFileSync(path.join(this.filesDir, `${id}.json`), 'utf8')));
+      const f = checkFile(JSON.parse(readFileSync(path.join(this.filesDir, `${id}.json`), 'utf8')), EN);
       return typeof f === 'string' ? undefined : f;
     } catch {
       return undefined;

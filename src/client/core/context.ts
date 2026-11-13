@@ -21,7 +21,7 @@ import type { Interactable, Office } from '../world/types';
 import type { Sky } from '../world/sky';
 import type { Smoke } from '../world/smoke';
 import type { World } from '../world/world';
-import type { Activities, Hooks, Interactions, Keys, Messages, Ticks, Usables, View } from './registry';
+import type { Activities, Hooks, Interactions, Keys, Messages, Pace, Ticks, Usables, View } from './registry';
 
 /** What the hint bar says. */
 export interface Hint {
@@ -138,4 +138,6 @@ export interface Ctx {
   readonly usables: Usables<Interactable, THREE.Object3D>;
   /** What lets go when a window opens: the shot you were winding up, the emote wheel (see input/focus.ts). */
   readonly windowOpened: Hooks;
+  /** How many frames a second the office draws, at most (see Pace, and features/powersave). */
+  readonly pace: Pace;
 }

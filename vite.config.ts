@@ -47,10 +47,34 @@ function monacoDompurify(): Plugin {
   };
 }
 
+// Each page loads only its own language's dictionary (see src/client/i18n.ts), which it can't ask for
+// until its code has downloaded and run: a round trip more. This has it fetched alongside the rest
+// instead, by a few lines in the page's head that pick the language as i18n.ts does (?lang=, the one
+// picked in Settings, the browser's) and preload that dictionary's file.
+function localePreload(): Plugin {
+  return {
+    name: 'locale-preload',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        if (!ctx.bundle) return html;
+        const files: Record<string, string> = {};
+        for (const c of Object.values(ctx.bundle)) {
+          const m = c.type === 'chunk' && c.isDynamicEntry ? /[\\/]shared[\\/]locales[\\/]([\w-]+)\.ts$/.exec(c.facadeModuleId ?? '') : null;
+          if (m) files[m[1].toLowerCase()] = `/${c.fileName}`;
+        }
+        if (!files.en) return html;
+        const script = `(function(){try{var f=${JSON.stringify(files)},t=[new URLSearchParams(location.search).get('lang')];try{t.push(localStorage.getItem('agent-office-lang'))}catch(e){}t=t.concat(navigator.languages||[navigator.language]);var l='en';for(var i=0;i<t.length;i++){var c=String(t[i]||'').split('.')[0].split('@')[0].replace('_','-').trim().toLowerCase();if(!c)continue;if(f[c]){l=c;break}var p=c.split('-')[0],k=Object.keys(f).filter(function(x){return x.split('-')[0]===p})[0];if(k){l=k;break}}var e=document.createElement('link');e.rel='modulepreload';e.crossOrigin='';e.href=f[l];document.head.appendChild(e)}catch(e){}})()`;
+        return [{ tag: 'script', children: script, injectTo: 'head-prepend' }];
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: resolve(import.meta.dirname, 'src/client'),
   publicDir: resolve(import.meta.dirname, 'src/client/public'),
-  plugins: [excalidrawFonts(), monacoDompurify()],
+  plugins: [excalidrawFonts(), monacoDompurify(), localePreload()],
   define: {
     __EXCALIDRAW_ASSETS__: JSON.stringify(EXCALIDRAW_ASSETS),
   },

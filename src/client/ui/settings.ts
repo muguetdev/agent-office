@@ -13,6 +13,7 @@ import { openPromptEditor, rewrittenPrompts } from './prompts';
 import { outsideSetting } from './settings-sky';
 import { autoModelSetting } from './settings-automodel';
 import { charactersSetting, lookSetting } from './settings-look';
+import { graphicsSetting } from './settings-graphics';
 import { choiceRow } from './settings-rows';
 import { L } from '../i18n';
 import { languageSettings } from './settings-language';
@@ -476,6 +477,7 @@ export function openSettings(net: Net, settings: Settings, onChange: (s: Setting
           (characters) => onChange((settings = { ...settings, characters })),
         ),
       ),
+      setting(L.graphics.title, 'you', ...graphicsSetting()),
       langs.yours,
       setting(L.settings.signedIn, null, h('div.volume', {}, signOut), h('p.setting-note', {}, account ? L.settings.asAccount(account.name, account.role) : L.settings.sharedPassword)),
     ],

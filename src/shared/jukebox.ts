@@ -1,4 +1,4 @@
-import { type Messages, messages } from './i18n.js';
+import type { Messages } from './i18n-core.js';
 // The lounge jukebox: the tunes it has and what it's playing, shared by the server (which keeps one
 // per floor) and the browser (which synthesizes the tunes, see client/sound/music.ts).
 
@@ -43,7 +43,7 @@ export interface JukeboxState {
 export const tuneById = (id: string): JukeboxTune | undefined => JUKEBOX_TUNES.find((t) => t.id === id);
 
 /** What's on, for the hint bar and the jukebox's own display: a tune's title, or where the stream comes from. */
-export function trackTitle(s: Pick<JukeboxState, 'track' | 'url' | 'title'>, m: Messages = messages('en')): string {
+export function trackTitle(s: Pick<JukeboxState, 'track' | 'url' | 'title'>, m: Messages): string {
   if (s.track === YOUTUBE) return s.title ? `▶ ${s.title}` : 'YouTube';
   if (s.track !== STREAM) return tuneById(s.track)?.title ?? m.shared.aTune;
   try {
@@ -55,7 +55,7 @@ export function trackTitle(s: Pick<JukeboxState, 'track' | 'url' | 'title'>, m: 
   }
 }
 
-export function checkStreamUrl(raw: unknown, m: Messages = messages('en')): { url: string } | { error: string } {
+export function checkStreamUrl(raw: unknown, m: Messages): { url: string } | { error: string } {
   const s = typeof raw === 'string' ? raw.trim() : '';
   if (!s) return { error: m.shared.pasteStream };
   if (s.length > 2048) return { error: m.shared.linkTooLong };

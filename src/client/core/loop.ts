@@ -49,8 +49,13 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
   /** Frames coming too slowly for the 3D to be any fun: the 2D view is offered. */
   const slowFrames = new SlowFrames();
 
+  /** The last time frames were held back on purpose (see ctx.pace): those aren't slow ones. */
+  let pacedAt = -Infinity;
+
   /** Frames coming too slowly for the 3D to be any fun: the 2D view is offered. */
   function watchFrameRate({ now, delta }: Frame) {
+    if (ctx.pace.limit() < 25) pacedAt = now;
+    if (now - pacedAt < 1000) return;
     if (slowFrames.frame(now, delta * 1000)) deps.offer2d('slow');
   }
 
@@ -213,13 +218,25 @@ export function installLoop(ctx: Ctx, core: CoreState, parts: Pick<Parts, 'stage
   }
 }
 
+/** How early (ms) a frame held back by the pace may run anyway: the screen's frames don't come exactly on time. */
+const PACE_SLACK_MS = 4;
+
 /**
  * The frame loop: each frame, every phase's ticks, in order (see TICK_PHASES, and installLoop). Its
  * clock starts now; hand what it returns to requestAnimationFrame to start it.
  */
 export function frameLoop(ctx: Ctx, loading: { drew(): void }): (ts?: number) => void {
   const timer = new THREE.Timer();
+  /** When the last frame was run, to keep to the pace (see ctx.pace). */
+  let ranAt = -Infinity;
   function frame(ts?: number) {
+    const at = ts ?? performance.now();
+    // A frame due less than PACE_SLACK_MS from now still runs, so 30 a second on a 60 Hz screen is every other one.
+    if (at - ranAt < 1000 / ctx.pace.limit() - PACE_SLACK_MS) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    ranAt = at;
     timer.update(ts);
     const delta = timer.getDelta();
     ctx.ticks.run({ delta, dt: Math.min(delta, 0.1), t: timer.getElapsed(), now: performance.now() });

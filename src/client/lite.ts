@@ -13,7 +13,7 @@ import { DESK_BY_ID, nextFreeSeat } from '../shared/layout';
 import { isAsleep } from '../shared/status';
 import type { AgentEffort, AgentProvider, WorkerInfo } from '../shared/protocol';
 import { $, closeAllModals, doingNow, h, onDoingChange, onModalChange, openModal, readingNow, toast } from './ui/dom';
-import { openTerminal, openTerminalFor, routeTerminalMessage } from './ui/terminal';
+import { openTerminal, openTerminalFor, preloadTerminal, routeTerminalMessage } from './ui/terminal';
 import { openChanges, openChangesFor, routeChangesMessage } from './ui/changes';
 import { linkCodeLive } from './ui/code-live/link';
 import { lostWorktreeDialog, openPrompt, routeWorktreeMessage, sendHomeDialog } from './ui/prompt';
@@ -196,8 +196,9 @@ store.on('workers', () => {
   pendingWorker();
 });
 store.on('project', renderWorkers);
-// "3m ago" moves on by itself.
-setInterval(renderWorkers, 30_000);
+// "3m ago" moves on by itself, while there's anyone to see it (and at once when there is again).
+setInterval(() => document.hidden || renderWorkers(), 30_000);
+document.addEventListener('visibilitychange', () => document.hidden || renderWorkers());
 
 /** Its terminal, with the keypad, waking it up first if it's asleep. */
 function openWorker(id: string) {
@@ -437,6 +438,7 @@ void (async () => {
 renderFloors();
 renderWorkers();
 renderNav();
+preloadTerminal();
 
 // Debug handle for quick checks from the console / headless screenshots.
 (window as any).__lite = { store, net };

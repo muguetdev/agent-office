@@ -1,4 +1,4 @@
-import { messages, type Messages } from './i18n.js';
+import type { Messages } from './i18n-core.js';
 // The whiteboard: an Excalidraw drawing everyone on a floor draws on together. The server keeps
 // each floor's elements and passes every change on; browsers merge them the way Excalidraw's own
 // live collaboration does, by each element's version (see `newer`).
@@ -85,7 +85,7 @@ export function checkElement(raw: unknown): WbElement | undefined {
 }
 
 /** A picture as someone sent it, or why it can't go on the board. */
-export function checkFile(raw: unknown, m: Messages = messages('en')): WbFile | string {
+export function checkFile(raw: unknown, m: Messages): WbFile | string {
   if (!raw || typeof raw !== 'object') return m.shared.badPicture;
   const f = raw as Record<string, unknown>;
   if (typeof f.id !== 'string' || !ID_RE.test(f.id)) return m.shared.badPicture;

@@ -3225,6 +3225,7 @@ Opções:
     'BMW 328i M Sport': 'BMW 328i M Sport cinza',
   } as Record<string, string>,
   term2: {
+    loadFailed: 'Não deu para abrir o terminal: confira a conexão e tente de novo',
     thatFile: 'Esse arquivo',
     cantDrop: (name: string) => `Não deu para soltar ${name} no terminal`,
     pick1: 'Escolher 1 (sim, num pedido de permissão)',
@@ -3423,6 +3424,15 @@ Opções:
     classic: '🙂 Clássicos',
     avatarNote: 'Todo mundo com os avatares do escritório: o cabelo, a pele e a cor da roupa que cada um escolheu, e uma roupa própria.',
     classicNote: 'Todo mundo como os bonequinhos clássicos.',
+  },
+  graphics: {
+    title: 'Gráficos',
+    auto: '✨ Automático',
+    high: '🖥️ Alto',
+    low: '🔋 Leve',
+    autoNote: (light: boolean) => `Escolhido para este aparelho: ${light ? 'leve, como num celular ou tablet' : 'alto'}. Em todo caso a imagem fica um pouco mais suave enquanto os quadros vêm devagar. A página recarrega quando você muda.`,
+    highNote: 'Tudo no máximo: bordas suaves, sombras finas, tantos quadros quanto a tela mostra. A página recarrega quando você muda.',
+    lowNote: 'Poupa a bateria e o processador gráfico: imagem mais suave, sombras mais grossas, no máximo 30 quadros por segundo, menos quando você deixa parado. A página recarrega quando você muda.',
   },
   diorama: {
     title: 'Visual',

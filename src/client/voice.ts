@@ -37,9 +37,20 @@ export class Voice {
   muted = false;
   localLevel = 0;
 
-  constructor(private net: Net) {
-    // Often enough for mouths to keep up with syllables.
-    setInterval(() => this.sampleLevels(), 40);
+  /** Sampling everyone's levels, while there's anyone to hear (see levels). */
+  private levelTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor(private net: Net) {}
+
+  /** Samples the levels often enough for mouths to keep up with syllables, only while there's a mic or a call: a timer that wakes 25 times a second for nothing costs a phone its battery. */
+  private levels() {
+    const wanted = !!this.mic || this.conns.size > 0;
+    if (wanted && !this.levelTimer) this.levelTimer = setInterval(() => this.sampleLevels(), 40);
+    else if (!wanted && this.levelTimer) {
+      clearInterval(this.levelTimer);
+      this.levelTimer = null;
+      this.localLevel = 0;
+    }
   }
 
   get inVoice() {
@@ -64,6 +75,7 @@ export class Voice {
   }
 
   private changed() {
+    this.levels();
     this.listeners.forEach((fn) => fn());
     this.net.send({ t: 'voice', voice: this.inVoice, muted: this.muted, sharing: this.sharing });
   }
@@ -252,6 +264,7 @@ export class Voice {
     audio.autoplay = true;
     const c: Conn = { pc, polite: store.you < id, makingOffer: false, ignoreOffer: false, audio, level: 0 };
     this.conns.set(id, c);
+    this.levels();
 
     pc.onnegotiationneeded = async () => {
       try {
@@ -311,6 +324,7 @@ export class Voice {
     c.pc.close();
     c.audio.srcObject = null;
     this.conns.delete(id);
+    this.levels();
     this.listeners.forEach((fn) => fn());
   }
 

@@ -28,6 +28,7 @@ They're in `core/registry.ts`, and each is a field of `ctx`. Every registration 
 | `ctx.view` | What what you're doing does to your view each frame: something you hold on to, the field of view, covering the screen, or a filter (the drunk vision). |
 | `ctx.windowOpened` | What lets go when a window opens (a shot being wound up, the emote wheel). |
 | `ctx.usables` | Things to use that aren't part of the building and move about (the pictures, the dog, the ball): what each has to use, and what the aim can land on. |
+| `ctx.pace` | How many frames a second the office draws: `cap(fn)`, where `fn` says how many it wants at most just now (Infinity for no limit), and the frame loop keeps to the least of them. `features/powersave` caps it by the graphics quality (`core/quality.ts`), when idle and while a window covers the view. |
 
 `tests/client-registry.test.ts` pins how each one orders and dispatches.
 

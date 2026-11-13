@@ -27,7 +27,7 @@ export function installJukebox(ctx: Ctx, deps: JukeboxDeps) {
   function playJukebox() {
     const j = store.jukebox;
     ctx.sound.setJukebox(j.on && ctx.inOffice() ? { track: j.track, url: j.url, list: j.list, video: j.video, title: j.title, startedAt: j.startedAt, since: j.since } : null);
-    ctx.office.jukebox.show(j.on, trackTitle(j));
+    ctx.office.jukebox.show(j.on, trackTitle(j, L));
   }
   store.on('jukebox', playJukebox);
   youtube.report = (msg) => ctx.net.send(msg);
@@ -35,7 +35,7 @@ export function installJukebox(ctx: Ctx, deps: JukeboxDeps) {
     reach: 4,
     hint: () => {
       const j = store.jukebox;
-      const what = j.on ? trackTitle(j) : '';
+      const what = j.on ? trackTitle(j, L) : '';
       return { k: `${j.on}|${what}`, parts: [hintTitle(L.hints.jukebox), aside(j.on ? `♪ ${clip(what, 40)}` : L.hints.off), key('E', j.on ? L.hints.changeSong : L.hints.putSong)] };
     },
     use: onE(() => showJukebox()),

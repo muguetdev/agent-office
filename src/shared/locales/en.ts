@@ -1,6 +1,7 @@
 // English: the source every other language is checked against (see ../i18n.ts).
 
 import type { StationKind } from '../layout.js';
+import { enPlaces } from './en-places.js';
 
 export const en = {
   setup: {
@@ -140,27 +141,7 @@ Options:
     coffee: 'Coffee buzz left',
     reconnecting: 'Reconnecting…',
   },
-  places: {
-    desk: (n: number) => `Desk ${n}`,
-    beanBag: (n: number) => `Bean bag ${n}`,
-    headOfTable: 'Head of the table',
-    meetingChair: (n: number) => `Meeting chair ${n}`,
-    /** By id, without a trailing number (see placeLabel in client/i18n.ts). */
-    fixed: {
-      'station-issues': 'Issues board',
-      'station-pulls': 'PR board',
-      'station-queue': 'Task queue',
-      couch: '🛋️ Couch',
-      'lounge-beanbag': '🫘 Beanbag',
-      'loft-couch': '🛋️ Couch',
-      'boss-chair': "🪑 Boss's chair",
-      bench: '🪑 Bench',
-      stool: '🪑 Stool',
-      'roof-stool': '🪑 Bar stool',
-      'roof-sofa': '🛋️ Sofa',
-      'roof-lounger': '🏖️ Lounger',
-    },
-  },
+  places: enPlaces,
   main: {
     needsYou: (who: string) => `🙋 ${who} needs you`,
     stations: {
@@ -3236,6 +3217,7 @@ Options:
     'BMW 328i M Sport': 'BMW 328i M Sport',
   } as Record<string, string>,
   term2: {
+    loadFailed: 'Couldn’t open the terminal: check the connection and try again',
     thatFile: 'That file',
     cantDrop: (name: string) => `${name} could not be dropped into the terminal`,
     pick1: 'Pick 1 (yes, in a permission prompt)',
@@ -3434,6 +3416,15 @@ Options:
     classic: '🙂 Classic',
     avatarNote: 'Everyone as the office avatars: the hair, skin and shirt colour each person picked, and an outfit of their own.',
     classicNote: 'Everyone as the classic cartoon people.',
+  },
+  graphics: {
+    title: 'Graphics',
+    auto: '✨ Auto',
+    high: '🖥️ High',
+    low: '🔋 Light',
+    autoNote: (light: boolean) => `Picked for this device: ${light ? 'light, as on a phone or tablet' : 'high'}. Either way the picture gets a little softer while the frames come slowly. The page reloads when you change it.`,
+    highNote: 'Everything at its sharpest: smooth edges, fine shadows, as many frames as the screen shows. The page reloads when you change it.',
+    lowNote: 'Easier on the battery and the graphics: a softer picture, coarser shadows, at most 30 frames a second, fewer when you leave it alone. The page reloads when you change it.',
   },
   diorama: {
     title: 'Look',

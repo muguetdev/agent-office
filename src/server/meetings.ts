@@ -10,7 +10,7 @@ import { validateWorkerEffort, validateWorkerModel } from './agents.js';
 import { providerMeta, takesEffort, takesModel } from '../shared/providers.js';
 import { gitError, type WorktreeRef, type WorktreeState } from './worktrees.js';
 import { PROMPTS, fillPrompt, type PromptId, type PromptVars } from '../shared/prompts.js';
-import { L } from './i18n.js';
+import { EN, L } from './i18n.js';
 
 const execFileP = promisify(execFile);
 
@@ -152,7 +152,7 @@ export class MeetingRoom {
     const id = randomBytes(4).toString('hex');
     const slug = slugify(title, 32);
     const output = String(req.output ?? '').trim() || pattern.output(slug, pr);
-    const outputBad = outputProblem(output);
+    const outputBad = outputProblem(output, EN);
     if (outputBad) return outputBad;
 
     // The last meeting's workers make room: they go home, and their worktree is tidied away after them.
@@ -479,7 +479,7 @@ export class MeetingRoom {
 
   /** Puts a finished meeting on the list of earlier ones. */
   private archive(m: Meeting) {
-    this.past = [meetingRecord(m), ...this.past.filter((r) => r.id !== m.id)].slice(0, PAST_MAX);
+    this.past = [meetingRecord(m, EN), ...this.past.filter((r) => r.id !== m.id)].slice(0, PAST_MAX);
   }
 
   /** Adds up what the workers at the table have used. Returns whether it changed. */

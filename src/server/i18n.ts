@@ -8,6 +8,9 @@ import { envLocale, messages, type Locale, type Messages } from '../shared/i18n.
 
 export let locale: Locale = envLocale({ AGENT_OFFICE_LANG: process.env.AGENT_OFFICE_LANG });
 
+/** English, whatever the office speaks: what's checked when loading the office's own files, where nobody reads the error. */
+export const EN: Messages = messages('en');
+
 /** The words, looked up as they're used (L.srv.namedDog(…)), so a new language takes at once. */
 export const L: Messages = { ...messages(locale) };
 

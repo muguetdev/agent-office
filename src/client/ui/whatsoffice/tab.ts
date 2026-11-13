@@ -140,7 +140,8 @@ export function woTab(workerId: string): WoTab {
       void refresh();
       timer = setInterval(() => {
         if (!el.isConnected) return void clearInterval(timer);
-        void refresh();
+        // Not while the page is out of sight: the next tick once it's back asks again.
+        if (!document.hidden) void refresh();
       }, POLL_MS);
     },
   };

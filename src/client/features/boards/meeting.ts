@@ -185,7 +185,7 @@ export class MeetingSignTexture {
       if (m.tokens) lines(L.meeting.soFar(meetingSpend(m)), `800 30px ${FONT}`, '#fffaf3', H - 40, 1, 38);
     } else {
       // The summary line after the pattern, which is up top already.
-      lines(meetingSummary(m).split(' · ').slice(1).join(' · '), `700 30px ${FONT}`, '#e9ecef', y, Math.floor((H - y) / 38), 38);
+      lines(meetingSummary(m, L).split(' · ').slice(1).join(' · '), `700 30px ${FONT}`, '#e9ecef', y, Math.floor((H - y) / 38), 38);
     }
     this.texture.needsUpdate = true;
   }

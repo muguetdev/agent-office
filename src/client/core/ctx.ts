@@ -9,7 +9,7 @@ import { store } from '../state';
 import type { Interactable } from '../world/types';
 import type { Ctx, OfficeInteraction, StopWhy, Trip } from './context';
 import type { Parts } from './parts';
-import { Activities, Hooks, Interactions, Keys, Messages, Ticks, Usables, View } from './registry';
+import { Activities, Hooks, Interactions, Keys, Messages, Pace, Ticks, Usables, View } from './registry';
 
 /** What you can be in the middle of, in the order it gets keys, has the hint bar and stops in (see Activities). */
 const ACTIVITY_ORDER = ['hanger', 'climber', 'golf', 'thrower', 'driver'];
@@ -114,6 +114,7 @@ export function createCtx(parts: Parts): { ctx: Ctx; core: CoreState } {
     view: new View<Grip>(),
     usables: new Usables<Interactable, THREE.Object3D>(),
     windowOpened: new Hooks(),
+    pace: new Pace(),
   };
   return { ctx, core };
 }

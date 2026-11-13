@@ -2,7 +2,7 @@
 // in frames, loading each image through the office (GET /api/image), so any image host works.
 
 import { FLOOR, LOFT, WALL_HEIGHT } from './layout.js';
-import { messages, type Messages } from './i18n.js';
+import type { Messages } from './i18n-core.js';
 
 export type WallId = 'north' | 'south' | 'east' | 'west';
 
@@ -181,7 +181,7 @@ export function pictureSize(size: number, aspect: number): { w: number; h: numbe
 }
 
 /** Checks a link someone wants to hang. Returns the tidied URL, or why it won't do. */
-export function checkImageUrl(raw: unknown, m: Messages = messages('en')): { url: string } | { error: string } {
+export function checkImageUrl(raw: unknown, m: Messages): { url: string } | { error: string } {
   const s = typeof raw === 'string' ? raw.trim() : '';
   if (!s) return { error: m.shared.pasteImage };
   if (s.length > 2048) return { error: m.shared.linkTooLong };
@@ -198,7 +198,7 @@ export function checkImageUrl(raw: unknown, m: Messages = messages('en')): { url
 const WALL_IDS = new Set<string>(Object.keys(WALLS));
 
 /** Checks and tidies a placement from a client: moves it onto its wall, or says why it can't hang. */
-export function sanitizePlacement(x: unknown, m: Messages = messages('en')): DecorPlacement | string {
+export function sanitizePlacement(x: unknown, m: Messages): DecorPlacement | string {
   const o = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
   const url = checkImageUrl(o.url, m);
   if ('error' in url) return url.error;

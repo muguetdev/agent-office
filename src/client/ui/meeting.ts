@@ -243,7 +243,7 @@ function meetingForm(net: Net, preset: MeetingPreset | undefined, done: () => vo
       return partsIn.focus();
     }
     const output = outputIn.value.trim();
-    if (outputProblem(output)) return outputIn.focus();
+    if (outputProblem(output, L)) return outputIn.focus();
     if (!provider.valid()) return;
     net.send({
       t: 'meeting.start',

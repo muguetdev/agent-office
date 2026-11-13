@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { JUKEBOX_TUNES, STREAM, YOUTUBE, checkStreamUrl, trackTitle, tuneById, type JukeboxState } from '../shared/jukebox.js';
 import { VIDEO_RE, youtubeLink } from '../shared/youtube.js';
-import { L } from './i18n.js';
+import { EN, L } from './i18n.js';
 
 interface Saved {
   on: boolean;
@@ -102,7 +102,7 @@ export class Jukebox {
     try {
       const s = JSON.parse(readFileSync(this.file, 'utf8')) as Partial<Saved>;
       const linked = s.track === STREAM || s.track === YOUTUBE;
-      const url = linked ? checkStreamUrl(s.url) : undefined;
+      const url = linked ? checkStreamUrl(s.url, EN) : undefined;
       if (linked ? !url || 'error' in url : typeof s.track !== 'string' || !tuneById(s.track)) return;
       const yt = s.track === YOUTUBE && url && 'url' in url ? youtubeLink(url.url) : null;
       if (s.track === YOUTUBE && !yt) return;

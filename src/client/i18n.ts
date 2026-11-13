@@ -1,4 +1,4 @@
-import { LOCALES, matchLocale, messages, placeName, type Locale } from '../shared/i18n';
+import { bare, LOCALES, matchLocale, placeName, type Locale, type Messages } from '../shared/i18n-core';
 import { localizeMaps, type MapConfig } from '../shared/maps';
 
 // The language the page speaks: the browser's, the first of its languages the office knows.
@@ -49,8 +49,19 @@ export function chooseLocale(l: Locale | null) {
 }
 if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = locale;
 
+/**
+ * Each language's dictionary, a file of its own: a page loads only the one it speaks (the three
+ * together are most of a phone's first download otherwise). vite.config.ts has the page start
+ * fetching it before the rest of its code (localePreload).
+ */
+const DICTIONARIES: Record<Locale, () => Promise<Messages>> = {
+  en: () => import('../shared/locales/en').then((m) => m.en),
+  'pt-BR': () => import('../shared/locales/pt-BR').then((m) => m.ptBR),
+  ko: () => import('../shared/locales/ko').then((m) => m.ko),
+};
+
 /** The page's words, in its language (see ../shared/locales). */
-export const L = messages(locale);
+export const L: Messages = bare(await DICTIONARIES[locale]());
 
 // The built-in maps in the page's language: their names, lines, tables and boards (ids stay as they are).
 localizeMaps({

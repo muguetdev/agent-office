@@ -19,7 +19,7 @@ import { providerLabel } from '../ui/provider';
 import { routePullMessage } from '../ui/pull';
 import { needsSigningIn, openSignIns } from '../ui/signins';
 import { routeTeamMessage } from '../ui/team';
-import { openTerminalFor, routeTerminalMessage } from '../ui/terminal';
+import { openTerminalFor, preloadTerminal, routeTerminalMessage } from '../ui/terminal';
 import { restarting, showRestarting, showUpgraded } from '../ui/upgrade';
 import { routeWhiteboardMessage } from '../features/whiteboard/ui';
 import type { Ctx } from './context';
@@ -65,6 +65,7 @@ export function installArrival(ctx: Ctx, core: CoreState, parts: ArrivalParts) {
   // Once the store has it (the cars have their own, registered with them, first).
   ctx.messages.onAny(() => parts.views.settled());
   ctx.messages.onAny(routeTerminalMessage);
+  preloadTerminal();
   ctx.messages.onAny(routeChangesMessage);
   ctx.messages.onAny(routeTeamMessage);
   ctx.messages.onAny(routeAccountsMessage);

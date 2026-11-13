@@ -11,21 +11,15 @@ import type { Office } from '../world/types';
 import { HAZE_MAX, Sky } from '../world/sky';
 import type { Ctx } from './context';
 import { noOutline } from './outline';
+import { QUALITY } from './quality';
 
 /** How far the camera sees in the office: as far as the haze ever is, from the top floor. */
 export const FAR = HAZE_MAX + 20;
 /** How wide the camera sees (degrees), unless what you're doing has it otherwise (see ctx.view). */
 export const FOV = 55;
 
-/**
- * Firefox's WebGL pays a lot of main-thread time per draw call, and the sun's shadow is hundreds of
- * them each time it's drawn, so there it's redrawn every other frame. A Retina screen there is drawn
- * at 1.5 pixels to a CSS pixel, not 2: a touch softer, with half as many pixels to fill and hold.
- */
-const FIREFOX = navigator.userAgent.includes('Firefox/');
-export const SHADOW_EVERY = FIREFOX ? 2 : 1;
-/** A phone's screen is sharp enough at 1.5, and drawing it at 3 costs four times the frame. */
-const MAX_PIXEL_RATIO = FIREFOX || matchMedia('(pointer: coarse)').matches ? 1.5 : 2;
+/** The sun's shadow is redrawn every this many frames (see QUALITY). */
+export const SHADOW_EVERY = QUALITY.shadowEvery;
 
 /** The renderer, the scene with its lights and camera, and what's always in it (see createScene). */
 export interface Stage {
@@ -47,7 +41,7 @@ export interface Stage {
 
 export function makeRenderer(canvas: HTMLCanvasElement): THREE.WebGLRenderer | null {
   try {
-    return new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    return new THREE.WebGLRenderer({ canvas, antialias: QUALITY.antialias, powerPreference: QUALITY.level === 'low' ? 'default' : 'high-performance' });
   } catch (err) {
     console.error(err);
     return null;
@@ -62,7 +56,7 @@ export function noWebGL(): Promise<never> {
 
 /** Sets up the renderer on `canvas`, and builds the scene: its lights, the camera, the office, the sky. */
 export function createScene(canvas: HTMLCanvasElement, renderer: THREE.WebGLRenderer): Stage {
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY.maxPixelRatio));
   renderer.shadowMap.enabled = true;
   // Redrawn every SHADOW_EVERY frames, by drawScene (core/loop.ts).
   renderer.shadowMap.autoUpdate = false;
@@ -83,9 +77,9 @@ export function createScene(canvas: HTMLCanvasElement, renderer: THREE.WebGLRend
   const sun = new THREE.DirectionalLight('#fff1d6', 2.2);
   sun.position.set(-8, 18, 10);
   sun.castShadow = true;
-  // Twice as fine where the GPU takes it (any desktop's does): the finer its texels, the less a surface the
+  // As fine as the quality takes (see QUALITY.shadowSize): the finer its texels, the less a surface the
   // light comes across side-on speckles in stripes with its own shadow ("shadow acne").
-  const size = renderer.capabilities.maxTextureSize >= 8192 ? 4096 : 2048;
+  const size = QUALITY.shadowSize(renderer.capabilities.maxTextureSize);
   sun.shadow.mapSize.set(size, size);
   // Wide enough for the office, the garage under it and the balcony and lot out front, from wherever the sun is.
   Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 30, bottom: -30, near: 1, far: 100 });

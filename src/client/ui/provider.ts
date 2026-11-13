@@ -3,7 +3,7 @@ import type { AgentChoice, AgentEffort, AgentProvider, ProjectInfo, Usage, Worke
 import { AGENT_EFFORTS, isAgentEffort } from '../../shared/protocol';
 import { AGENT_PROVIDERS, CLAUDE_MODEL_NAMES, PROVIDER_META, claudeModelName, isAgentProvider, isClaudeModel, takesEffort, type ModelOption } from '../../shared/providers';
 import { store } from '../state';
-import { h } from './dom';
+import { h, onModalChange } from './dom';
 import { L } from '../i18n';
 
 export const PROVIDER_LABEL = Object.fromEntries(AGENT_PROVIDERS.map((p) => [p, p === 'custom' ? L.provider.custom : PROVIDER_META[p].label])) as Record<AgentProvider, string>;
@@ -315,8 +315,10 @@ export function providerPicker(project: ProjectInfo | null, id: string, label: s
     (fields.element.querySelector('select') as HTMLSelectElement | null)?.focus();
   });
   paint();
-  // The default can change while this is open; it goes once its window has closed.
-  const off = store.on('prompts', () => (element.isConnected ? paint() : off()));
+  // The default can change while this is open. Once its window has closed, it lets go (or the store
+  // would hold on to the whole window until the default next changed).
+  const offs = [store.on('prompts', () => (element.isConnected ? paint() : off())), onModalChange(() => element.isConnected || off())];
+  const off = () => offs.forEach((o) => o());
   return {
     element,
     value: () => (editing ? fields.value() : officeChoice(project).provider),

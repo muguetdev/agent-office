@@ -2,7 +2,7 @@
 // office's, under Building (what the server says in toasts and errors; admins pick it).
 import type { Net } from '../net';
 import { store } from '../state';
-import { LOCALES, type Locale } from '../../shared/i18n';
+import { LOCALES, type Locale } from '../../shared/i18n-core';
 import { h, timeAgo } from './dom';
 import { L, chooseLocale, chosenLocale } from '../i18n';
 

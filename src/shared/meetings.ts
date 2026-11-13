@@ -2,7 +2,7 @@
 // The server runs them (server/meetings.ts); the client offers them when a meeting is called.
 
 import { fmtCost, fmtTokens, type Meeting, type MeetingPattern, type MeetingRecord } from './protocol.js';
-import { messages, type Messages } from './i18n.js';
+import type { Messages } from './i18n-core.js';
 
 export interface PatternDef {
   icon: string;
@@ -111,7 +111,7 @@ export function slugify(s: string, max = 40): string {
  * Why an output path can't be used, or undefined when it's fine: a file inside the checkout, not in
  * the office's own folder or git's.
  */
-export function outputProblem(p: string, m: Messages = messages('en')): string | undefined {
+export function outputProblem(p: string, m: Messages): string | undefined {
   if (!p.trim()) return m.shared.sayFile;
   if (p.length > 200) return m.shared.pathTooLong;
   if (/^[/\\]|^[a-zA-Z]:/.test(p)) return m.shared.relativePath;
@@ -148,7 +148,7 @@ const rounds = (n: number) => `${n} round${n === 1 ? '' : 's'}`;
  * the line ("3 rounds · fixed by the Lead & team workflow"), its rounds by name, and why, for the
  * tooltip. Undefined when the limit is a range to pick from.
  */
-export function fixedRounds(p: PatternDef, t: Messages = messages('en')): { line: string; stages: string; why: string } | undefined {
+export function fixedRounds(p: PatternDef, t: Messages): { line: string; stages: string; why: string } | undefined {
   if (p.rounds.min !== p.rounds.max) return undefined;
   const n = t.shared.rounds(p.rounds.max);
   const stages = (p.stages ?? []).map((s) => t.meetings.stages[s] ?? s).join(' → ');
@@ -163,7 +163,7 @@ export function meetingSpend(m: Pick<Meeting, 'tokens' | 'cost' | 'costKnown'>):
 }
 
 /** What's on the table in a line: "Round 2 of 3 · critiquing". */
-export function meetingStage(m: Meeting, t: Messages = messages('en')): string {
+export function meetingStage(m: Meeting, t: Messages): string {
   const doing = [...new Set(m.turns.filter((s) => s.state !== 'done').map((s) => t.meetings.doing[s.doing] ?? s.doing))].join(', ');
   return `${t.meeting.roundOf(m.round, m.rounds)}${doing ? ` · ${doing}` : ''}`;
 }
@@ -172,7 +172,7 @@ export function meetingStage(m: Meeting, t: Messages = messages('en')): string {
  * The line on the room's door once a meeting is over: pattern, rounds, tokens, cost, and the output
  * file it wrote (and where), or why it stopped.
  */
-export function meetingSummary(m: Meeting, t: Messages = messages('en')): string {
+export function meetingSummary(m: Meeting, t: Messages): string {
   const p = MEETING_PATTERNS[m.pattern];
   const ran = m.status === 'done' ? t.shared.rounds(m.round) : m.status === 'stopped' ? t.shared.inRoundOf(m.round, m.rounds) : t.shared.roundOf(m.round, m.rounds);
   const head = `${p.icon} ${t.meetings.patterns[m.pattern]?.label ?? p.label} · ${ran} · ${meetingSpend(m)}`;
@@ -182,6 +182,6 @@ export function meetingSummary(m: Meeting, t: Messages = messages('en')): string
   return `${head} · ✅ ${m.output}${where}`;
 }
 
-export function meetingRecord(m: Meeting, t: Messages = messages('en')): MeetingRecord {
+export function meetingRecord(m: Meeting, t: Messages): MeetingRecord {
   return { id: m.id, pattern: m.pattern, title: m.title, status: m.status, summary: meetingSummary(m, t), calledBy: m.calledBy, finishedAt: m.finishedAt ?? Date.now(), branch: m.worktree?.branch, output: m.output };
 }

@@ -44,8 +44,10 @@ const stack: Modal[] = [];
 const listeners = new Set<(open: boolean) => void>();
 const doingListeners = new Set<() => void>();
 
-export function onModalChange(fn: (open: boolean) => void) {
+/** `fn` on every window opened or closed (true while any is open); what it returns stops that. */
+export function onModalChange(fn: (open: boolean) => void): () => void {
   listeners.add(fn);
+  return () => void listeners.delete(fn);
 }
 
 export function modalOpen(): boolean {

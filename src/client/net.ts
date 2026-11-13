@@ -4,6 +4,9 @@ import { lastFloor, store, type Profile, type Spot } from './state';
 
 type Handler = (msg: ServerMsg) => void;
 
+/** How long (ms) at most between tries at reconnecting while the page is out of sight. */
+const HIDDEN_RETRY_MS = 60_000;
+
 /** The sign-in page, coming back to the 2D view afterwards if that's where you are (see login.ts). */
 export function loginUrl(): string {
   return location.pathname === '/lite' ? '/login?next=/lite' : '/login';
@@ -17,6 +20,8 @@ export class Net {
   private closedByUs = false;
   /** The server is restarting on purpose: retry every second instead of backing off. */
   private restartExpected = false;
+  /** The next try at reconnecting, while one's waiting (see retryNow). */
+  private again: ReturnType<typeof setTimeout> | null = null;
   up = false;
 
   constructor(
@@ -36,6 +41,8 @@ export class Net {
   }
 
   connect() {
+    if (this.again) clearTimeout(this.again);
+    this.again = null;
     const { name, color, look } = this.profile();
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     const q = new URLSearchParams({ name, color, skin: String(look.skin), hair: String(look.hair), style: String(look.style), ...(look.outfit ? { outfit: outfitParam(look.outfit) } : {}) });
@@ -79,9 +86,24 @@ export class Net {
       } catch {
         // offline; keep retrying
       }
-      const delay = this.restartExpected ? 1000 : Math.min(8000, 500 * 2 ** this.retry++);
-      setTimeout(() => this.connect(), delay);
+      // Out of sight (a phone in a pocket), it tries less often: coming back, or back online, it tries at once (see retryNow).
+      const delay = this.restartExpected ? 1000 : Math.min(document.hidden ? HIDDEN_RETRY_MS : 8000, 500 * 2 ** this.retry++);
+      this.again = setTimeout(() => this.connect(), delay);
     };
+    if (!this.watching) {
+      this.watching = true;
+      document.addEventListener('visibilitychange', () => document.hidden || this.retryNow());
+      window.addEventListener('online', () => this.retryNow());
+    }
+  }
+
+  private watching = false;
+
+  /** Down and waiting to try again: tries now instead. */
+  private retryNow() {
+    if (!this.again) return;
+    this.retry = 0;
+    this.connect();
   }
 
   expectRestart() {

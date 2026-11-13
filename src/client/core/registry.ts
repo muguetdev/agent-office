@@ -497,3 +497,23 @@ export class Usables<I, O> {
     return out;
   }
 }
+
+/**
+ * How many frames a second the office draws: each cap says how many it wants at most just now
+ * (Infinity for no limit: a window covering the whole view wants hardly any, a phone left alone
+ * fewer), and the frame loop keeps to the least of them (see frameLoop in core/loop.ts).
+ */
+export class Pace {
+  private readonly caps = new List<() => number>();
+
+  cap(fn: () => number): Off {
+    return this.caps.add(fn);
+  }
+
+  /** Frames a second, at most, just now. */
+  limit(): number {
+    let fps = Infinity;
+    for (const c of this.caps.items) fps = Math.min(fps, c());
+    return fps;
+  }
+}

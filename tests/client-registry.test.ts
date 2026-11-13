@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { Activities, Hooks, Interactions, Keys, Messages, TICK_PHASES, Ticks, Usables, View, type KeyPress } from '../src/client/core/registry.js';
+import { Activities, Hooks, Interactions, Keys, Messages, Pace, TICK_PHASES, Ticks, Usables, View, type KeyPress } from '../src/client/core/registry.js';
 
 type Msg = { t: 'hello'; n: number } | { t: 'bye' };
 
@@ -444,4 +444,17 @@ test('every kind of thing you can use has exactly one definition, in the file th
     [],
     'kinds defined somewhere other than where they are added',
   );
+});
+
+test('pace: the least of the caps, none of them no limit, and a cap taken off no longer counts', () => {
+  const pace = new Pace();
+  assert.equal(pace.limit(), Infinity);
+  let covered = false;
+  pace.cap(() => 30);
+  const off = pace.cap(() => (covered ? 4 : Infinity));
+  assert.equal(pace.limit(), 30);
+  covered = true;
+  assert.equal(pace.limit(), 4);
+  off();
+  assert.equal(pace.limit(), 30);
 });
