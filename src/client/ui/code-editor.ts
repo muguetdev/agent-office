@@ -113,15 +113,19 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
   const liveTools = h('span.cl-tools');
   const above = h('div.cl-above');
   const media = mediaPane((file, download) => `/api/code/raw?${q({ path: file, ...(download ? { download: '1' } : {}) })}`);
-  const main = h('div.code-main', {}, h('div.code-bar', {}, pathEl, state, liveTools, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, above, banner, surface, media.el);
+  // On a phone the files and the editor take turns at the whole tab (code-editor.css): this goes back to the files.
+  const filesBtn = h('button.code-tool.code-files', { type: 'button', onclick: () => host.classList.add('code-browsing') }, L.code.files);
+  const main = h('div.code-main', {}, h('div.code-bar', {}, filesBtn, pathEl, state, liveTools, uploadBtn, themeBtn, smaller, bigger, wrapBtn, fullBtn, saveBtn), askBar, above, banner, surface, media.el);
   host.replaceChildren(side, split, main);
+  host.classList.add('code-browsing');
 
   const editor = monaco.editor.create(surface, {
     theme: prefs.light ? 'github-light' : 'dracula',
     automaticLayout: true,
     fontSize: prefs.font,
     wordWrap: prefs.wrap ? 'on' : 'off',
-    minimap: { enabled: true },
+    // Not on a phone, where it would take a quarter of the width.
+    minimap: { enabled: !matchMedia('(max-width: 640px)').matches },
     scrollBeyondLastLine: false,
     tabSize: 2,
     model: null,
@@ -218,6 +222,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     open = null;
     editor.setModel(null);
     surface.classList.add('hidden');
+    host.classList.remove('code-browsing');
     media.show(file, kind);
     pathEl.textContent = file;
     hideBanner();
@@ -237,6 +242,7 @@ export function mountCode(host: HTMLElement, workerId: string, floor: string) {
     if (!r.ok) return void toast(why(r.status, r.body.error), 'warn');
     media.hide();
     surface.classList.remove('hidden');
+    host.classList.remove('code-browsing');
     open?.model.dispose();
     const model = monaco.editor.createModel(r.body.text, languageOf(file));
     open = { path: file, model, version: r.body.version, saved: model.getAlternativeVersionId() };

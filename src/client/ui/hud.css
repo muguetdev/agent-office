@@ -1,6 +1,12 @@
 /* The controls help (openHelp). The HUD panels (people.ts, workers-panel.ts, chat.ts, features/coffee/meter.ts) are styled in styles/hud.css. */
 .help-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; font-weight: 700; }
+/* By touch, the fingers' controls over the keys, set apart from them. */
+.help-touch { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 2px dashed rgba(43, 45, 66, .18); }
 @media (max-width: 640px) {
-  .help-grid { grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; font-size: 14px; }
-  .help-grid .key { justify-self: start; margin-right: 0; }
+  /* A key over what it does, so the words get the whole width instead of a column beside the widest key. */
+  .help-grid { grid-template-columns: minmax(0, 1fr); gap: 2px; font-size: 14px; }
+  .help-grid .key { justify-self: start; margin: 10px 0 0; }
+  .help-grid .key:first-child { margin-top: 0; }
+  .help-touch { grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; }
+  .help-touch .key { margin: 0; }
 }

@@ -89,3 +89,21 @@ article.gh-card > header { display: flex; align-items: center; gap: 8px; padding
 /* .modal.gh-labeler outranks the frame's .modal footer .grow, whatever order the sheets load in. */
 .modal.gh-labeler footer .grow { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .gh-labeler .gh-quiet a { color: #1d6fd6; font-weight: 800; }
+/* A phone: the conversation gets the screen. The actions are one row to swipe along, the main one
+   first and "Open on GitHub" last, and the tabs scroll sideways rather than wrap. */
+@media (max-width: 640px) {
+  .modal.gh-window > footer {
+    flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .modal.gh-window > footer::-webkit-scrollbar { display: none; }
+  .modal.gh-window > footer > *, .modal.gh-window .gh-foot > * { flex: none; white-space: nowrap; }
+  body .modal.gh-window > footer > a.grow:not(:empty) { flex: none; order: 9; padding: 0 16px 0 4px; }
+  .modal.gh-window .gh-foot { flex: none; flex-wrap: nowrap; }
+  .modal.gh-window > footer > .btn.primary, .modal.gh-window .gh-foot > .btn.primary { order: -1; }
+  .modal.gh-window > footer .provider-choice { flex-direction: row; align-items: center; margin: 0; }
+  .gh-tabs { overflow-x: auto; scrollbar-width: none; padding: 0 6px; }
+  .gh-tab { flex: none; white-space: nowrap; padding: 10px 10px 8px; }
+  .gh-meta { padding: 8px 12px; }
+  .gh-conv { padding: 12px 10px 20px; }
+}

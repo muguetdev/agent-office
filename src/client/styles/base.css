@@ -134,13 +134,15 @@ a.when:hover { text-decoration: underline; }
    scrolls rather than the page. Selectors here start with body or .modal > so they outrank the
    windows' own sizes, whatever order the sheets load in. The 2D view's own touches are in lite.css. */
 @media (max-width: 640px) {
+  /* Over what's visible, which the keyboard shrinks (ui/viewport.ts), so the box you type in stays above it. */
   .backdrop {
+    top: var(--vv-top, 0px); bottom: auto; height: var(--vv-h, 100dvh);
     padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
   }
-  body .modal { max-width: 100%; max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 18px; }
+  body .modal { max-width: 100%; max-height: calc(var(--vv-h, 100dvh) - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 18px; }
   .backdrop:has(> .modal:is(.term, .board, .gh-window, .desk-changes, .meeting-window, .queue-window, .settings, .prompts, .search, .charsel, .minimap-big, .viewer, .bookshelf), > .wb-window) { padding: 0; }
   body .modal:is(.term, .term.full, .board, .gh-window, .desk-changes, .meeting-window, .queue-window, .settings, .prompts, .search, .charsel, .minimap-big, .viewer, .bookshelf), body .wb-window {
-    width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; box-shadow: none;
+    width: 100%; max-width: 100%; height: var(--vv-h, 100dvh); max-height: var(--vv-h, 100dvh); border: 0; border-radius: 0; box-shadow: none;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
   /* A full-screen window's body fills it, so its footer sits on the bottom. */

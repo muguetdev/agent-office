@@ -1,4 +1,6 @@
 import { L } from '../i18n';
+// The windows fit above a phone's keyboard.
+import './viewport';
 
 type Attrs = Record<string, string | number | boolean | EventListener | undefined | null>;
 type Child = Node | string | number | null | undefined | false;

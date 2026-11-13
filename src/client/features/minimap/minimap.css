@@ -107,3 +107,12 @@
   font-weight: 800;
   opacity: 0.75;
 }
+/* A phone: the window is the whole screen (styles/base.css); the map in the middle of it, the zoom
+   buttons big enough for a finger, and the tip under the map. */
+@media (max-width: 640px) {
+  .modal.minimap-big { gap: 12px; }
+  .minimap-big-canvas { margin-top: auto; }
+  .modal.minimap-big > header { align-self: stretch; }
+  .minimap-zoom .btn { min-width: 44px; min-height: 40px; }
+  .minimap-tip { margin-bottom: auto; padding: 0 14px; text-align: center; }
+}

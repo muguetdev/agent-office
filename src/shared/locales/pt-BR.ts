@@ -3250,6 +3250,16 @@ Opções:
     map: 'Mapa',
     help: 'Ajuda',
     menu: 'Menu',
+    workers: 'Workers',
+    find: 'Procurar',
+    helpRows: [
+      ['🕹️', 'O polegar esquerdo no direcional anda; empurre até o fim para correr'],
+      ['👆', 'Arraste em qualquer outro lugar para olhar em volta, e toque numa coisa para usá-la'],
+      ['✋', 'Usar faz o que a dica acima dos botões diz (o E no teclado)'],
+      ['🙋', 'Próximo leva você ao próximo worker esperando alguém'],
+      ['🤖', 'Os workers, no canto de cima: toque num para abrir o terminal dele'],
+      ['⋯', 'Chat, o mapa, procurar qualquer coisa, esta ajuda e o menu'],
+    ] as [string, string][],
   },
   litesug: {
     phone: '📱 Agora o escritório 3D funciona no toque: o polegar esquerdo anda, arrastar olha em volta e um toque usa o que estiver ali. A visão 2D é mais leve, com todos os workers, o terminal de cada um e os quadros.',
@@ -3322,6 +3332,7 @@ Opções:
     stopped: (who: string) => `${who} encerrou a festa`,
   },
   code: {
+    files: '📁 Arquivos',
     downloadTip: 'Baixar o arquivo aberto (como está no disco)',
     downloadPick: 'Abra um arquivo primeiro, ou clique com o botão direito em um na lista',
     downloadSaved: 'Baixando a versão salva: as mudanças não salvas não vão junto',
@@ -3432,6 +3443,8 @@ Opções:
     dioramaNote: 'O escritório como uma maquete vista do alto, com as paredes cortadas: arraste para girar, role para dar zoom, WASD para andar, e clique no chão para ir até lá ou em qualquer coisa para ir usar.',
   },
   minimap: {
+    touchTip: 'Arraste para mover, pince ou + − para zoom · toque em alguém para ir até lá, ou no chão para andar até ali',
+    cityTouchTip: 'Arraste para mover, pince ou + − para zoom · ⌖ volta para você',
     title: 'Mapa do andar',
     cityTitle: 'Mapa',
     zoomIn: 'Aproximar (+)',

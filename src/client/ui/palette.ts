@@ -44,7 +44,9 @@ export function togglePalette(entries: () => PaletteEntry[]) {
     {},
     h('span.grow', {}, h('span.key', {}, '↵'), L.palette.open, h('span.key', {}, '⇧↵'), L.palette.walkFirst, h('span.key', {}, '↑↓'), L.palette.choose, h('span.key', {}, 'Esc'), L.palette.close),
   );
-  const el = h('div.modal.palette', { role: 'dialog', 'aria-label': L.palette.title }, h('div.palette-find', {}, input), list, empty, hint);
+  // Esc or a click outside puts it away; by touch there's no Esc, so it has a ✕ there too (palette.css).
+  const x = h('button.btn.close.palette-x', { type: 'button', 'aria-label': L.common.close, onclick: () => modal.close() }, '✕');
+  const el = h('div.modal.palette', { role: 'dialog', 'aria-label': L.palette.title }, h('div.palette-find', {}, input, x), list, empty, hint);
 
   let found: PaletteMatch<PaletteEntry>[] = [];
   let at = 0;

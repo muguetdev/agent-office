@@ -198,7 +198,7 @@ export function openTerminal(net: Net, workerId: string, onChanges?: () => void,
   const host = h('div.term-host', { 'data-drop': '📎 Drop screenshots or files here to put them in the terminal' });
   const keys = h('div.term-keys', { role: 'group', 'aria-label': 'Keys' });
   const say = h('input', { type: 'text', placeholder: L.term2.reply, 'aria-label': L.hints.prompt, enterkeyhint: 'send', autocomplete: 'off' }) as HTMLInputElement;
-  const sayBtn = h('button.btn.primary', { type: 'submit' }, 'Send');
+  const sayBtn = h('button.btn.primary', { type: 'submit' }, L.transcript.send);
   const sayForm = h('form.term-say', {}, dictateField(say), sayBtn);
   const keypad = opts.keypad ? h('div.term-keypad', {}, keys, sayForm) : null;
   // A Claude Code worker's conversation as a chat, a tab beside the terminal: the one a phone opens on (see transcript.ts).
