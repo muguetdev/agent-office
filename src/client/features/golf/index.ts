@@ -175,12 +175,16 @@ export function installGolf(ctx: Ctx, deps: GolfDeps) {
   function renderGolfHint(el: HTMLElement) {
     const title = (text: string) => h('span.title', {}, text);
     const stage = golf.doing;
-    ctx.hint.draw(el, `golf|${stage}`, () =>
+    // By touch (features/touch): a finger dragged aims, the stick's up and down loft, and the Space button swings.
+    const touch = document.body.classList.contains('touch');
+    ctx.hint.draw(el, `golf|${stage}|${touch}`, () =>
       stage === 'watch'
         ? [title(L.hints.fore), key(L.hints.space, L.hints.backToTee), key('E', L.hints.done)]
         : stage === 'charge' || stage === 'swing'
           ? [title(L.hints.letGoHit), aside(L.hints.fuller)]
-          : [key(L.hints.space, L.hints.holdSwing), key('A D', L.hints.aim), key('W S', L.hints.loft), key('E', L.hints.done)],
+          : touch
+            ? [key(L.hints.space, L.hints.holdSwing), key('👆', L.touch.dragAim), key('🕹️', L.hints.loft), key('E', L.hints.done)]
+            : [key(L.hints.space, L.hints.holdSwing), key('A D', L.hints.aim), key('W S', L.hints.loft), key('E', L.hints.done)],
     );
   }
 

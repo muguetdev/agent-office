@@ -39,6 +39,10 @@ body.touch #scene { touch-action: none; }
 .touch-btn.use .lbl { max-width: 76px; font-size: 11px; white-space: normal; line-height: 1.05; max-height: 2.2em; }
 .touch-btn.use.ready { background: var(--accent); color: #fff; }
 .touch-btn.jump { grid-area: jump; }
+/* Space does something here (a swing at the tee): the button says what, and stands out. */
+.touch-btn.jump.act { width: 76px; height: 76px; background: var(--accent); color: #fff; }
+.touch-btn.jump.act .ico { display: none; }
+.touch-btn.jump.act .lbl { max-width: 70px; margin: 0; font-size: 11px; white-space: normal; line-height: 1.1; max-height: 3.3em; }
 .touch-btn.next { grid-area: next; }
 .touch-btn.next .lbl, .touch-btn.back .lbl { font-size: 9.5px; padding: 0 2px; }
 .touch-btn.next.dim { opacity: .55; }
@@ -69,8 +73,19 @@ body.touch #scene { touch-action: none; }
   body.touch #hud .chat { left: calc(8px + env(safe-area-inset-left)); top: calc(66px + env(safe-area-inset-top)); bottom: auto; width: min(300px, 62vw); }
   body.touch #hud #chat-log { max-height: 22vh; font-size: 12px; }
   body.touch #hud #chat-input:not(:focus) { position: absolute; width: 1px; opacity: 0; pointer-events: none; }
+  /* The games on a screen (Minesweeper, BLOCKFALL): their bar wraps rather than running off the sides, and the ✕ sits over the screen's corner instead of beside it. */
+  body.touch .arcade-bar { flex-wrap: wrap; justify-content: center; white-space: normal; width: max-content; max-width: calc(100vw - 20px); text-align: center; }
+  @media (orientation: portrait) { body.touch .arcade > .close.corner { top: auto; bottom: calc(100% + 10px); left: auto; right: 0; } }
   body.touch #hud .hint {
     left: 12px; right: 12px; bottom: calc(246px + env(safe-area-inset-bottom)); transform: none; width: fit-content; max-width: none; margin: 0 auto;
     padding: 6px 12px; gap: 4px 12px; font-size: 13px;
   }
 }
+
+/* The telescope by touch (features/telescope/touch.ts): what a finger does, over the eyepiece. */
+.telescope-touch-tip { display: none; }
+body.touch .telescope-touch-tip {
+  display: block; position: absolute; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 2;
+  padding: 6px 12px; border-radius: 12px; background: rgba(10, 14, 20, .55); color: #eef6f6; font: 800 13px/1.2 var(--font); white-space: nowrap;
+}
+body.touch .telescope-exit .key { display: none; }

@@ -5,6 +5,8 @@ import { L } from '../../i18n';
 
 /** How much of the view (across or down, whichever runs out first) a screen fills while you play on it. */
 const FILL = 0.8;
+/** A finger held on a cell this long (ms) flags it, as the right button does. */
+const FLAG_HOLD = 420;
 
 /**
  * Glides the camera up to a screen in the office while you use it, and back after. The camera looks
@@ -104,12 +106,21 @@ export class Arcade {
       'div.arcade',
       { role: 'dialog', 'aria-label': L.arcade.mines },
       h('div.arcade-screen', {}, board),
-      h('div.arcade-bar', {}, h('span', {}, `💣 ${L.arcade.mines}`), h('span.tip', {}, L.arcade.minesTip), stop),
+      h('div.arcade-bar', {}, h('span', {}, `💣 ${L.arcade.mines}`), h('span.tip', {}, document.body.classList.contains('touch') ? L.touch.minesTip : L.arcade.minesTip), stop),
     );
 
     // Where the mouse is, in the game's 960×540.
     const spot = (e: MouseEvent) => ({ x: (e.offsetX * W) / board.clientWidth, y: (e.offsetY * H) / board.clientHeight });
     let holding = false;
+    // There's no right button on a touch screen: a finger held on a cell flags it instead.
+    let flagTimer = 0;
+    /** When the finger went down (its event's timeStamp), and the cell the held finger flagged (-1: none). */
+    let downAt = 0;
+    let heldFlag = -1;
+    const noFlag = () => {
+      clearTimeout(flagTimer);
+      flagTimer = 0;
+    };
     board.addEventListener('pointerdown', (e) => {
       const { x, y } = spot(e);
       const i = game.cellAt(x, y);
@@ -122,6 +133,21 @@ export class Arcade {
         holding = true;
         game.pressed = i;
         board.setPointerCapture(e.pointerId);
+        if (e.pointerType === 'touch') {
+          noFlag();
+          downAt = e.timeStamp;
+          heldFlag = -1;
+          flagTimer = window.setTimeout(() => {
+            flagTimer = 0;
+            if (!holding || game.pressed !== i) return;
+            holding = false;
+            game.pressed = -1;
+            game.flag(i);
+            heldFlag = i;
+            navigator.vibrate?.(15);
+            this.draw();
+          }, FLAG_HOLD);
+        }
       }
       this.draw();
     });
@@ -130,10 +156,22 @@ export class Arcade {
       const i = game.cellAt(x, y);
       if (i === game.hover) return;
       game.hover = i;
-      if (holding) game.pressed = i;
+      if (holding) {
+        game.pressed = i;
+        noFlag();
+      }
       this.draw();
     });
     board.addEventListener('pointerup', (e) => {
+      noFlag();
+      // A busy page can run the flag's timer before a quick tap's lift: by when the finger really came up, that was a dig.
+      const flagged = heldFlag;
+      heldFlag = -1;
+      if (flagged >= 0 && e.timeStamp - downAt < FLAG_HOLD) {
+        game.flag(flagged);
+        holding = true;
+        game.pressed = flagged;
+      }
       if (e.button !== 0 || !holding) return;
       holding = false;
       const i = game.pressed;
@@ -177,6 +215,7 @@ export class Arcade {
       onClose: () => {
         window.removeEventListener('resize', fit);
         clearInterval(clock);
+        noFlag();
         this.modal = null;
         this.board = null;
         game.hover = game.pressed = -1;

@@ -1,7 +1,8 @@
 /**
  * Fingers on the scene: a thumb landing low on the left is a thumbstick that walks you (and runs,
  * pushed all the way), any other finger drags to look around, and a tap uses what's there, as a click
- * would: in first person the view turns to it first, so it's what the crosshair is on.
+ * would: in first person the view turns to it first, so it's what the crosshair is on. Two fingers
+ * pinched together or apart in third person zoom the camera out or in, as the mouse wheel does.
  */
 import * as THREE from 'three';
 import type { Ctx } from '../../core/context';
@@ -19,6 +20,8 @@ const STICK_TOP = 0.3;
 /** Looking around: radians per px dragged, in first person and orbiting in third. */
 const LOOK = 0.0065;
 const ORBIT = 0.008;
+/** How much finer a drag turns you while something else has the camera (lining up a shot at the golf tee). */
+const AIM = 0.35;
 /** A tap: a finger that moved less than this (px) and was down less than TAP_MS. */
 const TAP_PX = 10;
 const TAP_MS = 400;
@@ -33,6 +36,10 @@ export function mountFingers(ctx: Ctx, layer: HTMLElement) {
 
   let stick: Finger | null = null;
   let look: Finger | null = null;
+  /** A second finger beside the look one: the two pinch (see pinched). */
+  let pinch: Finger | null = null;
+  /** How far apart the pinching fingers were when they last moved. */
+  let spread = 0;
   /** The keys the stick holds down now (see hold). */
   let held = new Set<string>();
 
@@ -86,7 +93,7 @@ export function mountFingers(ctx: Ctx, layer: HTMLElement) {
 
   /** Lets go of every finger (a window opened). */
   function release() {
-    look = null;
+    look = pinch = null;
     dropStick();
   }
 
@@ -132,7 +139,12 @@ export function mountFingers(ctx: Ctx, layer: HTMLElement) {
       base.classList.add('on');
       moveStick(f);
     } else if (!look) look = f;
-    else return;
+    else if (!pinch) {
+      pinch = f;
+      spread = Math.hypot(f.x - look.x, f.y - look.y);
+      // Two fingers down aren't a tap.
+      look.moved = Math.max(look.moved, TAP_PX);
+    } else return;
     canvas.setPointerCapture?.(e.pointerId);
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -143,6 +155,7 @@ export function mountFingers(ctx: Ctx, layer: HTMLElement) {
       moveStick(stick);
       return;
     }
+    if (pinch && (pinch.id === e.pointerId || look?.id === e.pointerId)) return pinched(e);
     if (look?.id !== e.pointerId) return;
     const dx = e.clientX - look.x;
     const dy = e.clientY - look.y;
@@ -151,17 +164,37 @@ export function mountFingers(ctx: Ctx, layer: HTMLElement) {
     look.moved += Math.abs(dx) + Math.abs(dy);
     // The first few px of a tap aren't a look.
     if (look.moved < TAP_PX || !player.enabled || !player.mouseLook) return;
+    // At the tee, a drag lines up the shot: finer than looking around.
+    const fine = ctx.activities.any('takesCamera') ? AIM : 1;
     if (player.view === 'first') {
-      player.camYaw -= dx * LOOK;
+      player.camYaw -= dx * LOOK * fine;
       player.lookPitch = THREE.MathUtils.clamp(player.lookPitch - dy * LOOK, -1.45, 1.45);
     } else {
-      player.camYaw -= dx * ORBIT;
+      player.camYaw -= dx * ORBIT * fine;
       player.camPitch = THREE.MathUtils.clamp(player.camPitch + dy * ORBIT * 0.6, 0.05, 1.3);
     }
   });
+  /** A pinching finger moved: in third person the camera comes in as they spread and goes out as they close. */
+  function pinched(e: PointerEvent) {
+    const f = pinch!.id === e.pointerId ? pinch! : look!;
+    f.x = e.clientX;
+    f.y = e.clientY;
+    const now = Math.hypot(pinch!.x - look!.x, pinch!.y - look!.y);
+    if (spread > 0 && now > 0 && player.enabled && player.view === 'third') player.camDist = THREE.MathUtils.clamp((player.camDist * spread) / now, 2.5, 16);
+    spread = now;
+  }
+
   const up = (e: PointerEvent) => {
     if (e.pointerType !== 'touch') return;
     if (stick?.id === e.pointerId) return dropStick();
+    // One of a pinch up: the other carries on looking, from where it is.
+    if (pinch?.id === e.pointerId) return void (pinch = null);
+    if (pinch && look?.id === e.pointerId) {
+      look = pinch;
+      look.moved = Math.max(look.moved, TAP_PX);
+      pinch = null;
+      return;
+    }
     if (look?.id !== e.pointerId) return;
     const f = look;
     look = null;

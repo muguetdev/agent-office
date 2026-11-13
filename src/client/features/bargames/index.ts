@@ -207,7 +207,11 @@ export function installBarGames(ctx: Ctx, deps: BarGamesDeps) {
   /** At the dart board or the axe lane: how to aim and throw, and how to step back. */
   function renderThrowHint(el: HTMLElement) {
     const stage = thrower.doing;
-    ctx.hint.draw(el, `throw|${stage === 'wind'}`, () => (stage === 'wind' ? [h('span.title', {}, L.game.letGo)] : [key(L.game.mouse, L.hints.aim), key(L.hints.space, L.game.holdThrow), key('E', L.game.stepBack)]));
+    // By touch (features/touch), a finger on the target is the mouse and the button at once: down, drag, let go.
+    const touch = document.body.classList.contains('touch');
+    ctx.hint.draw(el, `throw|${stage === 'wind'}|${touch}`, () =>
+      stage === 'wind' ? [h('span.title', {}, L.game.letGo)] : touch ? [key('👆', L.touch.dragAim), key('E', L.game.stepBack)] : [key(L.game.mouse, L.hints.aim), key(L.hints.space, L.game.holdThrow), key('E', L.game.stepBack)],
+    );
   }
 
   // At the oche or the line, the view narrows onto the target.

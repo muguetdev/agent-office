@@ -328,6 +328,8 @@ export class Thrower {
     if (text === this.shown) return;
     this.shown = text;
     this.titleEl.textContent = title;
-    this.infoEl.textContent = this.info || (game === 'darts' ? L.game.aimDarts : L.game.aimAxe);
+    // By touch (features/touch) there's no mouse or Space: a finger on the target does both.
+    const touch = document.body.classList.contains('touch');
+    this.infoEl.textContent = this.info || (game === 'darts' ? (touch ? L.touch.holdThrow : L.game.aimDarts) : L.game.aimAxe);
   }
 }

@@ -9,6 +9,8 @@ const LOOK_SPEED = 0.0015;
 const YAW_RANGE = 0.42;
 const MIN_PITCH = -0.5;
 const MAX_PITCH = 0.08;
+/** How far in a pinch can bring it (see zoomBy): the field of view goes down to VIEW_FOV / MAX_ZOOM. */
+const MAX_ZOOM = 3;
 
 interface ScopeElement {
   classList: Pick<DOMTokenList, 'add' | 'remove'>;
@@ -24,6 +26,8 @@ export class TelescopeView {
   private yaw = 0;
   private baseYaw = 0;
   private pitch = 0;
+  /** How far in it's zoomed (1 is as it comes; only a pinch changes it, see features/telescope/touch.ts). */
+  private zoom = 1;
   private readonly rotation = new THREE.Euler(0, 0, 0, 'YXZ');
 
   constructor(
@@ -52,6 +56,7 @@ export class TelescopeView {
     this.rotation.setFromQuaternion(this.camera.quaternion, 'YXZ');
     this.baseYaw = this.yaw = this.rotation.y;
     this.pitch = this.rotation.x;
+    this.zoom = 1;
     this.update();
     return true;
   }
@@ -74,8 +79,9 @@ export class TelescopeView {
     if (!this.active) return;
     this.camera.position.copy(VIEW_POSITION);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
-    if (this.camera.fov !== VIEW_FOV || this.camera.zoom !== 1) {
-      this.camera.fov = VIEW_FOV;
+    const fov = VIEW_FOV / this.zoom;
+    if (this.camera.fov !== fov || this.camera.zoom !== 1) {
+      this.camera.fov = fov;
       this.camera.zoom = 1;
       this.camera.updateProjectionMatrix();
     }
@@ -83,8 +89,23 @@ export class TelescopeView {
 
   private readonly look = (event: Event) => {
     if (!this.active) return;
-    const { movementX = 0, movementY = 0 } = event as PointerEvent;
-    this.yaw = THREE.MathUtils.clamp(this.yaw - movementX * LOOK_SPEED, this.baseYaw - YAW_RANGE, this.baseYaw + YAW_RANGE);
-    this.pitch = THREE.MathUtils.clamp(this.pitch - movementY * LOOK_SPEED, MIN_PITCH, MAX_PITCH);
+    const e = event as PointerEvent;
+    // A finger's drag is turned by the touch controls (turn), which know where it was.
+    if (e.pointerType === 'touch') return;
+    this.turn(e.movementX ?? 0, e.movementY ?? 0);
   };
+
+  /** Turns the scope by a move of (dx, dy) px, slower the further in it's zoomed. */
+  turn(dx: number, dy: number) {
+    if (!this.active) return;
+    const s = LOOK_SPEED / this.zoom;
+    this.yaw = THREE.MathUtils.clamp(this.yaw - dx * s, this.baseYaw - YAW_RANGE, this.baseYaw + YAW_RANGE);
+    this.pitch = THREE.MathUtils.clamp(this.pitch - dy * s, MIN_PITCH, MAX_PITCH);
+  }
+
+  /** Zooms in (f > 1) or out, between as it comes and MAX_ZOOM. */
+  zoomBy(f: number) {
+    if (!this.active) return;
+    this.zoom = THREE.MathUtils.clamp(this.zoom * f, 1, MAX_ZOOM);
+  }
 }

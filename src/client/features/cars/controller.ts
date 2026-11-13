@@ -21,6 +21,12 @@ const BUMP_EVERY = 0.35;
 /** The longest step a car takes in one go (m), so it never jumps a lamp post between two frames. */
 const STEP = 0.25;
 
+/** How far a thumbstick's pushed along one way (-1 to 1), with a little in the middle that's nothing and the last of it flat out. */
+function stickAxis(v: number): number {
+  const a = Math.abs(v);
+  return a < 0.15 ? 0 : Math.sign(v) * Math.min(1, (a - 0.15) / 0.7);
+}
+
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
 export class Driver {
@@ -157,6 +163,12 @@ export class Driver {
         turn: (p.holding('KeyA', 'ArrowLeft') ? 1 : 0) - (p.holding('KeyD', 'ArrowRight') ? 1 : 0),
         brake: p.holding('Space'),
       };
+      // A thumbstick (features/touch) is a pedal and a wheel you can go easy on: as far as it's pushed.
+      const st = p.enabled ? p.stick : null;
+      if (st) {
+        pedals.gas = stickAxis(-st.z);
+        pedals.turn = stickAxis(-st.x);
+      }
       this.gas = pedals.gas;
       const from = this.fleet.cars[car].pose;
       const pose = this.move(from, pedals, dt, this.fleet.solids(car, { x: from.x, z: from.z, r: CAR.length + Math.abs(from.speed) * dt + 1 }));

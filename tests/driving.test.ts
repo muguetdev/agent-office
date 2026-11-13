@@ -151,3 +151,17 @@ test("flat out with no hands, the car rides the scenic loop's edges all the way 
   assert.ok(lap !== null && lap > 60 && lap < 100, `a lap in ${lap?.toFixed(1)} s`);
   assert.ok(slowest > 10, `bumping round the bends, never stopped (slowest ${slowest.toFixed(1)} m/s)`);
 });
+
+test('a thumbstick is a pedal you can go easy on: pushed halfway, the car gets going slower than flat out', (t) => {
+  const run = (z: number) => {
+    const s = street(t);
+    s.driver.enter(BLUE, 'driver');
+    s.player.stick = { x: 0, z };
+    s.frames(90);
+    return s.car().x;
+  };
+  const half = run(-0.5);
+  const full = run(-1);
+  assert.ok(half > 1 && half < full * 0.75, `halfway ${half.toFixed(1)} m, flat out ${full.toFixed(1)} m`);
+  assert.ok(Math.abs(run(0.05)) < 1e-6, 'barely touched, it stays put');
+});
