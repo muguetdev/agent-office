@@ -119,7 +119,7 @@ export function mountHud(actions: HudAction[], settings: Settings, save: () => v
     const on = settings.hud[id];
     return h(
       'button.btn.dock-btn.dock-panel',
-      { type: 'button', 'aria-pressed': String(on), title: `${title} · ${on ? L.menu.clickHide : L.menu.clickShow}`, onclick: () => setPanel(id, !settings.hud[id]) },
+      { type: 'button', 'data-panel': id, 'aria-pressed': String(on), title: `${title} · ${on ? L.menu.clickHide : L.menu.clickShow}`, onclick: () => setPanel(id, !settings.hud[id]) },
       icon,
       h('span.lbl', {}, label),
       n ? h('span.n', {}, String(n)) : null,
@@ -185,7 +185,7 @@ export function mountHud(actions: HudAction[], settings: Settings, save: () => v
     const toggle = (p: (typeof PANELS)[number]) => {
       const item = h(
         'button.menu-item.menu-toggle',
-        { type: 'button', role: 'menuitemcheckbox' },
+        { type: 'button', role: 'menuitemcheckbox', 'data-panel': p.id },
         h('span.mi-icon', {}, p.icon),
         h('span.mi-label', {}, p.label, h('small', {}, p.what)),
         h('span.switch', { 'aria-hidden': 'true' }),

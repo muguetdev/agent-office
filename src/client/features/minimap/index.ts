@@ -364,13 +364,18 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
     const outside = outdoors();
     const full = outside ? WORLD : floorBounds();
     // As big as fits: the floor's own shape, or out of doors as much of the screen as there is.
-    const aspect = outside ? Math.min(1.1, Math.max(0.6, (window.innerHeight - 190) / Math.min(window.innerWidth - 80, 1000))) : (full.maxZ - full.minZ) / (full.maxX - full.minX);
-    const width = Math.round(Math.min(window.innerWidth - 80, 1000, (window.innerHeight - 190) / aspect));
+    // On a phone the window is the whole screen (styles/base.css), so the map can be nearly as wide.
+    const phone = window.innerWidth <= 640;
+    const room = window.innerWidth - (phone ? 24 : 80);
+    const aspect = outside ? Math.min(1.1, Math.max(0.6, (window.innerHeight - 190) / Math.min(room, 1000))) : (full.maxZ - full.minZ) / (full.maxX - full.minX);
+    const width = Math.round(Math.min(room, 1000, (window.innerHeight - 190) / aspect));
     const tv = new TopView(width, Math.round(width * aspect));
     const p = ctx.player.pos;
     const win = new MapWindow(full, tv.h / tv.w, outside ? { x: p.x, z: p.z, span: 260 } : undefined);
     const c = h('canvas.minimap-big-canvas', { width: tv.w, height: tv.h }) as HTMLCanvasElement;
     const close = h('button.btn.close', { 'aria-label': L.common.close }, '✕');
+    // By touch there's no wheel or Esc to tell about.
+    const touch = matchMedia('(hover: none) and (pointer: coarse)').matches;
     const button = (label: string, title: string, run: () => void) => h('button.btn', { type: 'button', title, 'aria-label': title, onclick: () => (run(), (bigAt = 0)) }, label);
     const zoom = h(
       'div.minimap-zoom',
@@ -379,7 +384,7 @@ export function installMinimap(ctx: Ctx, parts: Pick<Parts, 'worlds' | 'views' |
       button('+', L.minimap.zoomIn, () => win.zoom(1.25)),
       button('⌖', L.minimap.onMe, () => win.centre(ctx.player.pos.x, ctx.player.pos.z)),
     );
-    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${outside ? L.minimap.cityTitle : L.minimap.title}`), zoom, close), c, h('p.minimap-tip', {}, outside ? L.minimap.cityTip : L.minimap.tip));
+    const el = h('div.modal.minimap-big', { role: 'dialog', 'aria-label': L.minimap.title }, h('header', {}, h('h2', {}, `🗺️ ${outside ? L.minimap.cityTitle : L.minimap.title}`), zoom, close), c, h('p.minimap-tip', {}, touch ? (outside ? L.minimap.cityTouchTip : L.minimap.touchTip) : outside ? L.minimap.cityTip : L.minimap.tip));
     let letGo = () => {};
     const modal = openModal(el, {
       onClose: () => {

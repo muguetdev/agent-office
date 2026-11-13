@@ -87,7 +87,8 @@ export function dbTab(workerId: string): DbTab {
   /** ✍️ Writing is on: the query box runs what's in it as written. */
   let writing = false;
   const side = h('nav.db-side', { 'aria-label': L.dbview.title });
-  const where = h('div.db-where');
+  // On a phone the list folds away once a table's picked (db.css); a tap on where you are brings it back.
+  const where = h('div.db-where', { onclick: () => el.classList.toggle('db-browse') });
   const prev = h('button.btn.db-page', { type: 'button', 'aria-label': L.dbview.prev }, '◀');
   const next = h('button.btn.db-page', { type: 'button', 'aria-label': L.dbview.next }, '▶');
   const count = h('span.db-count');
@@ -179,6 +180,7 @@ export function dbTab(workerId: string): DbTab {
   };
 
   const paintPlace = () => {
+    el.classList.toggle('db-picked', !!place);
     if (!place) {
       where.textContent = '';
       count.textContent = '';
@@ -261,6 +263,7 @@ export function dbTab(workerId: string): DbTab {
   const pick = (spot: Spot, table: string) => {
     const same = !!place && spotKey(place) === spotKey(spot);
     place = { ...spot, table, offset: 0 };
+    el.classList.remove('db-browse');
     if (!same || DB_ENGINE_META[spot.engine].query !== 'sql') query.value = '';
     paintPlace();
     paintSide();

@@ -49,4 +49,14 @@
   .db-query { font-size: 16px; }
   .db-grid { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .db-grid th, .db-grid td { max-width: 60vw; }
+  /* A table picked: its rows get the room, and where you are (▾) opens the list again (db.ts). */
+  .db-picked:not(.db-browse) .db-side { display: none; }
+  .db-picked .db-where { cursor: pointer; padding: 8px 10px; margin: -4px 0; border: 2px solid var(--ink); border-radius: 10px; background: #fff; font-size: 14px; }
+  .db-picked .db-where::after { content: ' ▾'; color: var(--muted); }
+  .db-picked.db-browse .db-where::after { content: ' ▴'; }
+  .db-picked .db-head { gap: 8px; }
+  .db-picked .db-where { flex: 1 1 100%; }
+  .db-head .grow { display: none; }
+  .db-page { min-width: 44px; min-height: 40px; }
+  .db-pane:not(.db-writing) .db-hint { display: none; }
 }

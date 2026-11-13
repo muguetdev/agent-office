@@ -1,7 +1,7 @@
 /**
  * The round buttons in the bottom-right corner: Use (E, labelled with what the hint bar says E does),
  * Jump (Space), Next (N, the next worker waiting on someone), Leave (whatever you're in the middle of,
- * a seat or the telescope) and ⋯, which has the hint bar's other keys and the rest. Every one presses its key, so it goes down
+ * a seat or the telescope) and ⋯, which has the hint bar's other keys, the workers, the command palette and the rest. Every one presses its key, so it goes down
  * the same chain in ctx.keys a key on a keyboard does (see input/keyboard.ts).
  */
 import type { Ctx } from '../../core/context';
@@ -65,7 +65,14 @@ function keyButton(ctx: Ctx, cls: string, icon: string, label: () => string, cod
   return { b, lbl };
 }
 
-export function mountButtons(ctx: Ctx, layer: HTMLElement) {
+/** Something on ⋯ that isn't a key: the workers, the command palette. */
+export interface MoreItem {
+  icon: string;
+  label: string;
+  run: () => void;
+}
+
+export function mountButtons(ctx: Ctx, layer: HTMLElement, extras: MoreItem[] = []) {
   const { player } = ctx;
   const use = keyButton(ctx, 'use', '✋', () => L.touch.use, 'KeyE');
   const jump = keyButton(ctx, 'jump', '⤒', () => L.touch.jump, 'Space');
@@ -100,7 +107,7 @@ export function mountButtons(ctx: Ctx, layer: HTMLElement) {
   const back = h('button.touch-btn.back', { type: 'button', 'aria-label': L.touch.back }, h('span.ico', {}, '↩'), h('span.lbl', {}, L.touch.back));
   back.addEventListener('click', leave);
 
-  // ⋯: the hint bar's other keys (a worker's desk has a few), then chat, the map, the help and the menu.
+  // ⋯: the hint bar's other keys (a worker's desk has a few), then the workers, finding anything, chat, the map, the help and the menu.
   const sheet = h('div.touch-more.panel.hidden', { role: 'menu' });
   const more = h('button.touch-btn.more', { type: 'button', 'aria-label': L.touch.more, 'aria-expanded': 'false' }, h('span.ico', {}, '⋯'));
   function closeMore() {
@@ -116,6 +123,14 @@ export function mountButtons(ctx: Ctx, layer: HTMLElement) {
     });
     return b;
   }
+  function action(x: MoreItem) {
+    const b = h('button.btn.touch-item', { type: 'button', role: 'menuitem' }, h('span.key', {}, x.icon), x.label);
+    b.addEventListener('click', () => {
+      closeMore();
+      x.run();
+    });
+    return b;
+  }
   more.addEventListener('click', () => {
     if (!sheet.classList.contains('hidden')) return closeMore();
     const fixed: [string, string, string][] = [
@@ -125,7 +140,7 @@ export function mountButtons(ctx: Ctx, layer: HTMLElement) {
       ['Tab', '☰', L.touch.menu],
     ];
     const here = hintKeys().filter(([c]) => c !== 'KeyE' && c !== 'Space');
-    sheet.replaceChildren(...here.map(([c, k, l]) => item(k, l, c)), h('div.touch-more-row', {}, ...fixed.map(([c, k, l]) => item(k, l, c))));
+    sheet.replaceChildren(...here.map(([c, k, l]) => item(k, l, c)), h('div.touch-more-row', {}, ...extras.map(action), ...fixed.map(([c, k, l]) => item(k, l, c))));
     sheet.classList.remove('hidden');
     more.setAttribute('aria-expanded', 'true');
   });

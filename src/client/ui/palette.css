@@ -15,7 +15,15 @@
 /* A phone: just under the top, so the keyboard leaves room for the list. */
 @media (max-width: 640px) {
   .backdrop:has(> .modal.palette) { padding-top: max(12px, env(safe-area-inset-top)); }
-  body .modal.palette { max-height: calc(100dvh - 24px - env(safe-area-inset-top)); }
+  body .modal.palette { max-height: calc(var(--vv-h, 100dvh) - 24px - env(safe-area-inset-top)); }
   .palette-row { padding: 10px; }
   .palette-kind { display: none; }
+}
+.palette-x { display: none; }
+/* By touch there's no Enter or arrows to tell about (a tap does it), and no Esc: a ✕ beside the box. */
+@media (hover: none) and (pointer: coarse) {
+  .modal.palette > footer { display: none; }
+  .palette-find { display: flex; align-items: center; gap: 8px; }
+  .palette-find input { flex: 1; min-width: 0; }
+  .palette-x { display: grid; place-items: center; }
 }

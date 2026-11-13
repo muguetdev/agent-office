@@ -74,3 +74,29 @@ body.touch #scene { touch-action: none; }
     padding: 6px 12px; gap: 4px 12px; font-size: 13px;
   }
 }
+
+/* 🤖 on a phone (workers.ts): the side panels lent to a window of their own, the whole screen, with
+   rows tall enough for a finger. A panel's ✕ (hide it from the side) means nothing here. */
+.backdrop:has(> .modal.touch-workers) { padding: 0; }
+body .modal.touch-workers {
+  width: 100%; max-width: 100%; height: var(--vv-h, 100dvh); max-height: var(--vv-h, 100dvh); border: 0; border-radius: 0; box-shadow: none;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.modal.touch-workers > .body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.modal.touch-workers .side { position: static; width: auto; max-height: none; gap: 12px; }
+.modal.touch-workers .side > section.hud-off:not(.hidden) { display: block !important; }
+.modal.touch-workers #workers-panel { order: -1; }
+.modal.touch-workers .side h3 button:not(.panel-x) { min-height: 36px; padding: 4px 12px; font-size: 13px; border-width: 2px; border-radius: 10px; }
+.modal.touch-workers .side .panel-x { display: none; }
+.modal.touch-workers .side section { overflow: visible; }
+.modal.touch-workers .side h3 { font-size: 13px; }
+.modal.touch-workers .side li { min-height: 52px; padding: 8px 10px; font-size: 16px; }
+.modal.touch-workers .workers .sub, .modal.touch-workers .people .sub { font-size: 12.5px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.modal.touch-workers .workers .dot { width: 14px; height: 14px; }
+.modal.touch-workers #waiting:not(.hidden) { min-height: 44px; width: 100%; margin-bottom: 8px; }
+
+/* The ☰ menu on a phone: the side panels and the minimap it would switch on aren't shown there (🤖 and
+   ⋯ have them), so their switches step aside. */
+@media (pointer: coarse) and (max-width: 640px), (pointer: coarse) and (max-height: 500px) {
+  body.touch .menu-toggle:is([data-panel=workers], [data-panel=people], [data-panel=spend], [data-panel=limits], [data-panel=map]) { display: none; }
+}

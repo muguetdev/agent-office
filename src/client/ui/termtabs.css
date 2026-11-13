@@ -18,6 +18,10 @@
   .term-tabbar { padding: 6px 8px; flex-wrap: nowrap; }
   .term-tabs { scrollbar-width: none; }
   .term-tab-label, .term-tab-add { padding: 8px 12px; }
+  .term-tabs.more-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+  /* "+ Page" is just + here, so the tabs get the room. */
+  .term-tab-add { width: 42px; padding: 8px 0; font-size: 0; }
+  .term-tab-add::before { content: '+'; font-size: 20px; line-height: 1; }
   .term-tab-close { width: 32px; height: 32px; }
   .term-tab-form input { font-size: 16px; }
   .term-tab-form input[type=url] { min-width: 0; flex-basis: 100%; }

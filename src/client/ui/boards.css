@@ -43,6 +43,8 @@
 .card:hover .card-labels, .card:focus-within .card-labels { opacity: 1; }
 .card-labels:hover { background: var(--paper-2); }
 @media (hover: none) { .card-labels { opacity: 1; } }
+/* By touch: big enough for a finger, in the card's corner. */
+@media (hover: none) and (pointer: coarse) { .card-labels { top: 3px; right: 3px; width: 36px; height: 36px; font-size: 16px; } }
 .board-status { font-size: 12px; font-weight: 700; color: var(--muted); }
 .board-error { margin: auto; background: var(--paper); border: 3px solid var(--ink); border-radius: 14px; padding: 18px 22px; font-weight: 800; max-width: 520px; text-align: center; }
 .detail pre { white-space: pre-wrap; word-break: break-word; font: 13px/1.5 ui-monospace, Menlo, monospace; background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 10px; max-height: 45vh; overflow: auto; margin: 10px 0 0; }

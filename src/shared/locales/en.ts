@@ -3243,6 +3243,16 @@ Options:
     map: 'Map',
     help: 'Help',
     menu: 'Menu',
+    workers: 'Workers',
+    find: 'Find',
+    helpRows: [
+      ['🕹️', 'Your left thumb on the stick walks; push it all the way to run'],
+      ['👆', 'Drag anywhere else to look around, and tap something to use it'],
+      ['✋', 'Use does what the hint over the buttons says (E on a keyboard)'],
+      ['🙋', 'Next walks you to the next worker waiting on someone'],
+      ['🤖', 'The workers, top right: tap one to open its terminal'],
+      ['⋯', 'Chat, the map, finding anything, this help and the menu'],
+    ] as [string, string][],
   },
   litesug: {
     phone: '📱 The 3D office works by touch now: your left thumb walks, a drag looks around, a tap uses what’s there. The 2D view is lighter, with every worker, its terminal and the boards.',
@@ -3315,6 +3325,7 @@ Options:
     stopped: (who: string) => `${who} called the party off`,
   },
   code: {
+    files: '📁 Files',
     downloadTip: 'Download the file open (as it is on disk)',
     downloadPick: 'Open a file first, or right-click one in the list',
     downloadSaved: 'Downloading the saved version: your unsaved changes aren’t in it',
@@ -3434,6 +3445,8 @@ Options:
     dioramaNote: 'The office as a scale model from high up, its walls cut away: drag to turn it, scroll to zoom, WASD to walk, and click the floor to walk there or anything to go and use it.',
   },
   minimap: {
+    touchTip: 'Drag to move, pinch or + − to zoom · tap someone to walk over to them, or the floor to walk there',
+    cityTouchTip: 'Drag to move, pinch or + − to zoom · ⌖ back to you',
     title: 'Floor map',
     cityTitle: 'Map',
     zoomIn: 'Zoom in (+)',

@@ -43,4 +43,5 @@
   .meeting-field input[type=number], .meeting-field .meeting-rounds { font-size: 16px; }
   .meeting-window .meeting-role input[type=text] { font-size: 16px; }
   .meeting-preview { max-height: 40dvh; }
+  .meeting-window .btn.small { min-width: 40px; min-height: 40px; justify-content: center; font-size: 16px; }
 }

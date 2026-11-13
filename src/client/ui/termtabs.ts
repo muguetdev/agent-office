@@ -107,6 +107,19 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
     openOut.classList.toggle('hidden', !page);
     if (page) openOut.href = page.url;
   };
+  /** On a narrow window the tabs scroll sideways: the one picked stays in view, and a fade says when there are more past the edge. */
+  const edge = () => tabsBar.classList.toggle('more-right', tabsBar.scrollLeft + tabsBar.clientWidth < tabsBar.scrollWidth - 2);
+  const reveal = () => {
+    const on = tabsBar.querySelector<HTMLElement>('.term-tab.on');
+    if (on && tabsBar.scrollWidth > tabsBar.clientWidth) {
+      const r = on.getBoundingClientRect();
+      const b = tabsBar.getBoundingClientRect();
+      if (r.left < b.left) tabsBar.scrollLeft -= b.left - r.left + 12;
+      else if (r.right > b.right) tabsBar.scrollLeft += r.right - b.right + 12;
+    }
+    edge();
+  };
+  tabsBar.addEventListener('scroll', edge, { passive: true });
   const show = (id: string, focus = true) => {
     const wasChat = active === 'chat';
     active = id;
@@ -126,6 +139,7 @@ export function termTabs(workerId: string, opts: TermTabsOptions): { bar: HTMLEl
       void import('./code-editor').then((m) => m.mountCode(codeHost, workerId, store.floor ?? ''));
     }
     render();
+    reveal();
     if (onChat) opts.chat?.show();
     else if (wasChat) opts.chat?.hide();
     if (onMain && focus) opts.focusTerm();

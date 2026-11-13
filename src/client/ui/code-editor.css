@@ -231,15 +231,34 @@
 .code-menu-item { display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: none; color: #f8f8f2; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .code-menu-item:hover { background: #44475a; }
 /* A phone: the files over the editor rather than beside it, and the tools wrap under the file's name. */
+/* 📁 Files: only on a phone (below). */
+.code-files { display: none; }
 @media (max-width: 640px) {
   .modal.term .term-codehost { flex-direction: column; }
-  /* Over the width the split's drag leaves on it (inline). */
-  .code-side { width: auto !important; max-height: 32%; border-bottom: 2px solid var(--code-line); }
+  /* The files and the editor take turns at the whole tab: the files (under the bar, for 👀 Follow and
+     the rest) until one's opened, then the file, with 📁 Files on its bar to go back (code-editor.ts).
+     Over the width the split's drag leaves on it (inline). */
+  .code-side { width: auto !important; flex: 1 1 auto; min-height: 0; }
+  .code-main { flex: 1 1 auto; min-height: 0; }
+  .term-codehost:not(.code-browsing) .code-side { display: none; }
+  .term-codehost.code-browsing .code-main { order: -1; flex: none; }
+  .term-codehost.code-browsing .code-main > :not(.code-bar),
+  .term-codehost.code-browsing .code-bar > :is(.code-files, .code-path, .code-state, .code-save) { display: none; }
+  .code-files { display: inline-flex; align-items: center; order: -2; font-weight: 800; }
   .code-split { display: none; }
   .code-row { padding: 8px 10px; }
-  .code-bar { flex-wrap: wrap; gap: 6px; padding: 6px 8px; }
-  .code-path { flex: 1 1 100%; }
-  .code-tool { min-height: 34px; min-width: 34px; }
+  /* The bar is one row to swipe along (the file's name and Save up front), so the code keeps the height. */
+  .code-bar {
+    flex-wrap: nowrap; gap: 6px; padding: 6px 24px 6px 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .code-bar::-webkit-scrollbar { display: none; }
+  .code-bar > *, .code-bar .cl-tools > * { flex: none; }
+  .code-bar .cl-tools { flex: none; flex-wrap: nowrap; }
+  .code-path { flex: none; max-width: 42vw; }
+  .code-save { order: -1; }
+  .code-state:empty { display: none; }
+  .code-tool { min-height: 40px; min-width: 40px; }
   .code-media .cm-bar { flex-wrap: wrap; }
   .cm-img { max-height: calc(100dvh - 260px); }
   .code-menu { max-width: calc(100vw - 16px); }
