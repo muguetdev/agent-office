@@ -2,6 +2,7 @@
 import type { Ctx } from '../../core/context';
 import { aside, hintTitle, key, onE } from '../../core/hint';
 import { TelescopeView } from './controller';
+import { telescopeTouch } from './touch';
 import { $, modalOpen } from '../../ui/dom';
 import { L } from '../../i18n';
 
@@ -34,8 +35,9 @@ export function installTelescope(ctx: Ctx, deps: TelescopeDeps): TelescopeView {
       player.clearKeys();
       player.stopWalking();
       // The mouse turns the scope, as far as you like: captured, with no cursor to run into the edge.
+      // Not on a phone: a finger turns it (see touch.ts), and a captured pointer would keep every tap, the way out's too.
       player.keepMouse = true;
-      player.lock();
+      if (!player.touch.fingersOnly) player.lock();
       document.body.classList.add('telescope-active');
       $('telescope-view').setAttribute('aria-hidden', 'false');
       deps.clearTarget();
@@ -55,6 +57,8 @@ export function installTelescope(ctx: Ctx, deps: TelescopeDeps): TelescopeView {
       if (!modalOpen()) setTimeout(deps.backToGame, 0);
     },
   );
+  // On a touch screen, a finger turns it and a pinch zooms it.
+  telescopeTouch(ctx.canvas, $('telescope-view'), telescope);
   // The browser let go of the mouse the scope had (its own Esc): out of the scope too, not left without a cursor.
   document.addEventListener('pointerlockchange', () => {
     if (!telescope.active) return;

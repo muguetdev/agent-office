@@ -3253,6 +3253,13 @@ Options:
       ['🤖', 'The workers, top right: tap one to open its terminal'],
       ['⋯', 'Chat, the map, finding anything, this help and the menu'],
     ] as [string, string][],
+    emotes: 'Emotes',
+    tapOne: 'Tap one',
+    telescopeTip: 'Drag to look around · pinch to zoom',
+    dragAim: 'Drag to aim',
+    holdThrow: 'Hold on the target, drag to aim, let go in the green',
+    minesTip: 'Tap to dig · hold to flag',
+    pad: { left: 'Left', right: 'Right', down: 'Faster', turn: 'Turn', drop: 'Drop', hold: 'Hold', pause: 'Pause' },
   },
   litesug: {
     phone: '📱 The 3D office works by touch now: your left thumb walks, a drag looks around, a tap uses what’s there. The 2D view is lighter, with every worker, its terminal and the boards.',

@@ -56,3 +56,36 @@ test('telescope view restores its camera and callbacks across repeated visits', 
   assert.equal(enters, 3);
   assert.equal(exits, 3, 'one exit callback per visit proves click listeners did not accumulate');
 });
+
+test('a pinch zooms the telescope in only so far, a finger turns it, and the next look starts zoomed out', () => {
+  const camera = new THREE.PerspectiveCamera(61, 1.5, 0.1, 100);
+  const pointer = new EventTarget();
+  const view = new TelescopeView(camera, { classList: new Classes() } as never, new EventTarget(), pointer, () => {}, () => {});
+  view.enter();
+  view.zoomBy(2);
+  view.update();
+  assert.equal(camera.fov, 8);
+  view.zoomBy(10);
+  view.update();
+  assert.ok(Math.abs(camera.fov - 16 / 3) < 1e-9, 'no further in than three times');
+  view.zoomBy(0.01);
+  view.update();
+  assert.equal(camera.fov, 16, 'no further out than as it comes');
+
+  const aimed = camera.quaternion.clone();
+  view.turn(60, 0);
+  view.update();
+  assert.ok(camera.quaternion.angleTo(aimed) > 0.05, 'a finger turns it');
+  // A touch's own pointermove is left to the touch controls, which know where the finger was.
+  const before = camera.quaternion.clone();
+  const move = new Event('pointermove');
+  Object.defineProperties(move, { pointerType: { value: 'touch' }, movementX: { value: 80 }, movementY: { value: 0 } });
+  pointer.dispatchEvent(move);
+  view.update();
+  assert.ok(camera.quaternion.angleTo(before) < 1e-6, "a touch's own move is left alone");
+
+  view.zoomBy(2);
+  view.exit();
+  view.enter();
+  assert.equal(camera.fov, 16);
+});

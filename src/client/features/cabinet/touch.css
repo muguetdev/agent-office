@@ -1,0 +1,24 @@
+/* BLOCKFALL's buttons by touch (touch.ts): along the bottom of the screen, a thumb's reach from each
+   corner, under the game in a phone held upright and beside it held sideways. */
+.cabinet-pad {
+  position: absolute; left: 0; right: 0; bottom: calc(14px + env(safe-area-inset-bottom)); padding: 0 calc(12px + env(safe-area-inset-left)) 0 calc(12px + env(safe-area-inset-right));
+  display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; z-index: 2;
+}
+.cabinet-keys { display: grid; grid-template-columns: repeat(3, 58px); gap: 10px; pointer-events: none; }
+.cabinet-keys.right { grid-template-columns: repeat(2, 58px); }
+.cabinet-key {
+  pointer-events: auto; touch-action: none; width: 58px; height: 58px; padding: 0; border: 3px solid var(--ink); border-radius: 50%;
+  background: var(--paper); color: var(--ink); box-shadow: 0 3px 0 var(--ink); font: 900 24px/1 var(--font);
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.cabinet-key:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); background: var(--paper-2); }
+.cabinet-key[data-key=Space], .cabinet-key[data-key=ArrowUp] { background: #ffd166; }
+.cabinet-key[data-key=KeyC], .cabinet-key[data-key=KeyP] { width: 46px; height: 46px; font-size: 18px; justify-self: center; align-self: end; }
+@media (orientation: landscape) {
+  .cabinet-keys.left { grid-template-columns: repeat(2, 54px); grid-template-areas: 'left right' 'down down'; }
+  .cabinet-keys.left > [data-key=ArrowLeft] { grid-area: left; }
+  .cabinet-keys.left > [data-key=ArrowRight] { grid-area: right; }
+  .cabinet-keys.left > [data-key=ArrowDown] { grid-area: down; justify-self: center; }
+  .cabinet-key { width: 54px; height: 54px; }
+  .cabinet-keys.right { grid-template-columns: repeat(2, 54px); }
+}

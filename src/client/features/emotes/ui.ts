@@ -126,7 +126,9 @@ export class EmoteWheel {
   private render() {
     this.items.forEach((b, i) => b.classList.toggle('on', i === this.at));
     const e = EMOTES[this.at];
-    const how = !e ? L.emotes.pointAt : this.heldAt ? L.emotes.letGo : L.hints.click;
+    // By touch (features/touch) there's no pointing: a tap picks one.
+    const touch = document.body.classList.contains('touch');
+    const how = !e ? (touch ? L.touch.tapOne : L.emotes.pointAt) : this.heldAt ? L.emotes.letGo : L.hints.click;
     this.caption.replaceChildren(h('b', {}, e ? (L.emotes.names[e.id] ?? e.label) : 'Emote'), h('small', {}, how));
   }
 }

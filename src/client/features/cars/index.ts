@@ -279,9 +279,11 @@ export function installCars(ctx: Ctx, deps: CarsDeps) {
       const done = laps.done && now - laps.done.at < 6 ? laps.done : null;
       const running = laps.running(now);
       const lap = done ? ` · 🏁 ${lapTime(done.time)}${done.best ? ` ${L.game.best}` : ''}` : running !== null ? ` · ⏱ ${lapTime(running)}` : '';
+      // By touch (features/touch), the thumbstick drives.
+      const touch = document.body.classList.contains('touch');
       hint = {
-        k: `drive|${kmh}|${other}|${where}|${lap}`,
-        parts: [h('span.title', {}, `🏎️ ${carName(CARS[i])}`), aside(`${kmh} km/h${where}${lap}${other ? ` · ${L.game.with(clip(other, 20))}` : ''}`), key('W A S D', L.game.drive), key(L.hints.space, L.game.brake), key('H', L.game.honk), key('E', L.game.getOut)],
+        k: `drive|${kmh}|${other}|${where}|${lap}|${touch}`,
+        parts: [h('span.title', {}, `🏎️ ${carName(CARS[i])}`), aside(`${kmh} km/h${where}${lap}${other ? ` · ${L.game.with(clip(other, 20))}` : ''}`), key(touch ? '🕹️' : 'W A S D', L.game.drive), key(L.hints.space, L.game.brake), key('H', L.game.honk), key('E', L.game.getOut)],
       };
     } else {
       const at = name(c?.driver);

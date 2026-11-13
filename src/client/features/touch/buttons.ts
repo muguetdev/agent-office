@@ -1,6 +1,7 @@
 /**
  * The round buttons in the bottom-right corner: Use (E, labelled with what the hint bar says E does),
- * Jump (Space), Next (N, the next worker waiting on someone), Leave (whatever you're in the middle of,
+ * Jump (Space, labelled with what the hint bar says Space does when it says: a swing at the golf tee,
+ * a throw at the dart board, held down and let go as the key would be), Next (N, the next worker waiting on someone), Leave (whatever you're in the middle of,
  * a seat or the telescope) and ⋯, which has the hint bar's other keys, the workers, the command palette and the rest. Every one presses its key, so it goes down
  * the same chain in ctx.keys a key on a keyboard does (see input/keyboard.ts).
  */
@@ -24,6 +25,8 @@ export function press(ctx: Ctx, code: string, down = true) {
 function codeOf(k: string): string | null {
   if (/^[A-Z]$/.test(k)) return `Key${k}`;
   if (/^[0-9]$/.test(k)) return `Digit${k}`;
+  // The hint bar writes Space in the office's language.
+  if (k === L.hints.space) return 'Space';
   return { Space: 'Space', Esc: 'Escape', Enter: 'Enter', Tab: 'Tab' }[k] ?? null;
 }
 
@@ -62,7 +65,7 @@ function keyButton(ctx: Ctx, cls: string, icon: string, label: () => string, cod
   b.addEventListener('pointerleave', up);
   // Held still, a phone would offer to copy the label.
   b.addEventListener('contextmenu', (e) => e.preventDefault());
-  return { b, lbl };
+  return { b, lbl, down: () => down };
 }
 
 /** Something on ⋯ that isn't a key: the workers, the command palette. */
@@ -134,12 +137,15 @@ export function mountButtons(ctx: Ctx, layer: HTMLElement, extras: MoreItem[] = 
   more.addEventListener('click', () => {
     if (!sheet.classList.contains('hidden')) return closeMore();
     const fixed: [string, string, string][] = [
+      ['KeyG', '😀', L.touch.emotes],
       ['KeyT', '💬', L.touch.chat],
       ['KeyJ', '🗺️', L.touch.map],
       ['KeyH', '❓', L.touch.help],
       ['Tab', '☰', L.touch.menu],
     ];
-    const here = hintKeys().filter(([c]) => c !== 'KeyE' && c !== 'Space');
+    // Not the ones the stick holds down (the ladder's W and S): a tap would only nudge.
+    const busy = ctx.activities.busy();
+    const here = hintKeys().filter(([c]) => c !== 'KeyE' && c !== 'Space' && !(busy && /^Key[WASD]$/.test(c)));
     sheet.replaceChildren(...here.map(([c, k, l]) => item(k, l, c)), h('div.touch-more-row', {}, ...extras.map(action), ...fixed.map(([c, k, l]) => item(k, l, c))));
     sheet.classList.remove('hidden');
     more.setAttribute('aria-expanded', 'true');
@@ -152,17 +158,25 @@ export function mountButtons(ctx: Ctx, layer: HTMLElement, extras: MoreItem[] = 
   const pad = h('div.touch-pad', {}, more, next.b, back, jump.b, use.b);
   layer.append(pad, sheet);
 
-  // What E does here, on the Use button; Leave only while there's something to leave.
+  // What E does here, on the Use button, and what Space does on Jump; Leave only while there's something to leave.
   let shown = '';
+  let jumpWas = '';
+  const jumpHeld = () => jump.down();
   ctx.ticks.add('hud', () => {
-    const e = hintKeys().find(([c]) => c === 'KeyE');
+    const keys = hintKeys();
+    const e = keys.find(([c]) => c === 'KeyE');
+    // Held down mid-swing, the hint bar says to let go: the button keeps saying what it's doing.
+    const space = jumpHeld() ? jumpWas : (keys.find(([c]) => c === 'Space')?.[2] ?? '');
+    jumpWas = space;
     const busy = ctx.activities.busy() || !!player.seat || document.body.classList.contains('telescope-active');
     const waiting = !$('waiting').classList.contains('hidden');
-    const k = `${e?.[2] ?? ''}|${busy}|${waiting}`;
+    const k = `${e?.[2] ?? ''}|${space}|${busy}|${waiting}`;
     if (k === shown) return;
     shown = k;
     use.lbl.textContent = e?.[2] || L.touch.use;
     use.b.classList.toggle('ready', !!e);
+    jump.lbl.textContent = space || L.touch.jump;
+    jump.b.classList.toggle('act', !!space);
     back.classList.toggle('hidden', !busy);
     next.b.classList.toggle('dim', !waiting);
   });

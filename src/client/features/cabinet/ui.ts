@@ -7,6 +7,7 @@ import { h, openModal, toast, type Modal } from '../../ui/dom';
 import { ScreenZoom } from '../arcade/ui';
 import { Blocks, H, W, paintScreen, type ScreenView } from './blocks';
 import { L, placeLabel } from '../../i18n';
+import { cabinetPad } from './touch';
 
 /** What the cabinet makes a noise about: a piece landing, lines clearing (how many), the game ending. */
 export type CabinetSound = 'land' | 'clear' | 'over';
@@ -190,7 +191,9 @@ export class Cabinet {
     this.watching = mode === 'watch' ? (store.cabinet.player?.name ?? '') : '';
     const board = h('canvas', { 'aria-label': mode === 'play' ? GAME : L.arcade.playingGame(this.watching, GAME) });
     const stop = h('button.btn', { type: 'button' }, mode === 'play' ? L.arcade.stopPlaying : L.arcade.stopWatching);
-    const tip = mode === 'play' ? L.arcade.keys : L.arcade.watching(this.watching);
+    // By touch the buttons say what they do (see touch.ts), and the keys' line wouldn't fit on a phone.
+    const touch = document.body.classList.contains('touch');
+    const tip = mode === 'play' ? (touch ? '' : L.arcade.keys) : L.arcade.watching(this.watching);
     const call = h('div.cabinet-call.hidden', { role: 'status' });
     const box = h(
       'div.arcade.cabinet',
@@ -228,6 +231,7 @@ export class Cabinet {
       },
     });
     this.modal.backdrop.classList.add('clear');
+    if (mode === 'play') cabinetPad(this.modal.backdrop);
     stop.addEventListener('click', () => this.modal?.close());
   }
 

@@ -3261,6 +3261,13 @@ Opções:
       ['🤖', 'Os workers, no canto de cima: toque num para abrir o terminal dele'],
       ['⋯', 'Chat, o mapa, procurar qualquer coisa, esta ajuda e o menu'],
     ] as [string, string][],
+    emotes: 'Emotes',
+    tapOne: 'Toque em um',
+    telescopeTip: 'Arraste para olhar · pinça para dar zoom',
+    dragAim: 'Arraste para mirar',
+    holdThrow: 'Segure no alvo, arraste para mirar e solte no verde',
+    minesTip: 'Toque para cavar · segure para marcar',
+    pad: { left: 'Esquerda', right: 'Direita', down: 'Acelerar', turn: 'Girar', drop: 'Derrubar', hold: 'Guardar', pause: 'Pausar' },
   },
   litesug: {
     phone: '📱 Agora o escritório 3D funciona no toque: o polegar esquerdo anda, arrastar olha em volta e um toque usa o que estiver ali. A visão 2D é mais leve, com todos os workers, o terminal de cada um e os quadros.',
